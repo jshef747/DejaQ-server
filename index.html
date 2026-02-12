@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DejaQ WebSocket Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #0f0; }
+        #log { border: 1px solid #333; padding: 10px; height: 300px; overflow-y: scroll; background: #000; }
+        .sent { color: #0ff; }
+        .received { color: #0f0; }
+        .error { color: #f00; }
+    </style>
+</head>
+<body>
+    <h2>DejaQ Connection Test</h2>
+    <div id="status">Status: Disconnected</div>
+    <br>
+    <input type="text" id="msgInput" placeholder="Type a message..." style="width: 300px;">
+    <button onclick="sendMessage()">Send</button>
+    <div id="log"></div>
+
+    <script>
+        // 1. Connect to the WebSocket Endpoint
+        const ws = new WebSocket("ws://localhost:8000/ws/chat");
+
+        ws.onopen = () => {
+            document.getElementById("status").innerText = "Status: Connected";
+            log("System", "Connection established", "received");
+        };
+
+        ws.onmessage = (event) => {
+            // 2. Handle Incoming Messages (Strictly Typed)
+            const data = JSON.parse(event.data);
+            log(data.sender, data.message, "received");
+        };
+
+        ws.onclose = (event) => {
+            document.getElementById("status").innerText = "Status: Disconnected (Code: " + event.code + ")";
+            log("System", "Disconnected: " + event.reason, "error");
+        };
+
+        function sendMessage() {
+            const input = document.getElementById("msgInput");
+            const text = input.value;
+
+            // 3. Construct JSON Payload (Must match Pydantic Schema)
+            const payload = {
+                user_id: "test_user_01",
+                message: text,
+                department: "engineering"
+            };
+
+            ws.send(JSON.stringify(payload));
+            log("Me", text, "sent");
+            input.value = "";
+        }
+
+        function log(sender, message, type) {
+            const logDiv = document.getElementById("log");
+            logDiv.innerHTML += `<div class="${type}">[${sender}]: ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
