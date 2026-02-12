@@ -1,27 +1,37 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import chat
+from app.utils.logger import setup_logging
+import logging
 
-# 1. Initialize the App
+# 1. Setup Global Logging
+setup_logging()
+logger = logging.getLogger("dejaq.main")
+
+# 2. Initialize App
 app = FastAPI(title="DejaQ Middleware", version="0.1.0")
 
-# 2. Configure CORS (Cross-Origin Resource Sharing)
-# This is crucial for local development. It allows your 'file://' or 'localhost' frontend
-# to connect to this backend.
+# 3. CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 3. Include Routers
-# We register the chat router we created in Step 3.
+# 4. Include Routers
 app.include_router(chat.router)
 
-# 4. Health Check Endpoint
-# A standard HTTP endpoint to verify the server is running.
+@app.on_event("startup")
+async def startup_event():
+    logger.info("DejaQ Middleware starting up...")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("DejaQ Middleware shutting down...")
+
 @app.get("/health")
 async def health_check():
+    logger.debug("Health check requested")
     return {"status": "ok", "service": "DejaQ Middleware"}
