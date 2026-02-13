@@ -1,26 +1,40 @@
 import time
 import logging
+from app.services.model_loader import ModelManager
 
 logger = logging.getLogger("dejaq.services.llm_router")
 
 class LLMRouterService:
+    def __init__(self):
+        self.local_llm = ModelManager.load_llama()
+
     def generate_response(self, query: str, complexity: str) -> str:
-        """
-        Routes to the appropriate model based on complexity.
-        """
+        logger.info(f"Generating response for query with complexity '{complexity}': {query}")
         if complexity == "easy":
-            logger.info(f"Routing to local LLM for query: {query}")
             return self._call_local_llm(query)
         else:
-            logger.info(f"Routing to external LLM for query: {query}")
-            return self._call_external_llm(query)
+            return self._call_external_api(query)
 
     def _call_local_llm(self, query: str) -> str:
-        # TODO: Integrate local Llama 3 via Ollama or similar
-        time.sleep(0.5) # Simulate processing
-        return f"[Local Model]: Here is a quick answer to: {query}"
+        system_prompt = "You are a helpful assistant. Answer the user's query concisely and accurately."
+        start = time.time()
+        output = self.local_llm.create_chat_completion(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": query}
+            ],
+            max_tokens=256,
+            temperature=0.7
+        )
+        response = output["choices"][0]["message"]["content"].strip()
+        latency = (time.time() - start) * 1000
 
-    def _call_external_llm(self, query: str) -> str:
-        # TODO: Integrate OpenAI/Gemini API
-        time.sleep(1.0) # Simulate network latency
-        return f"[GPT-4]: Here is a detailed, complex reasoning for: {query}"
+        logger.debug(f"Local LLM response generated in {latency:.2f} ms for query: {query}")
+        return f"[Local LLM] {response}"
+
+    def _call_external_api(self, query: str) -> str:
+        # Placeholder for external API call (e.g., OpenAI, Qwen, etc.)
+        # In a real implementation, this would involve making an HTTP request to the external service.
+        logger.debug(f"Simulating external API call for query: {query}")
+        time.sleep(0.5)  # Simulate network latency
+        return f"[External API] Simulated response for: {query}"

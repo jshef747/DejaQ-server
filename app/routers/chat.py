@@ -1,65 +1,68 @@
+# server/app/routers/chat.py
 import logging
 import json
+import traceback  # <--- NEW: Crucial for seeing the crash
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.normalizer import NormalizerService
-from app.services.memory_chromaDB import MemoryService
-from app.services.classifier import ClassifierService
-from app.services.llm_router import LLMRouterService
 
-# Initialize Logger for this specific module
+# Setup logger
 logger = logging.getLogger("dejaq.router.chat")
 
 router = APIRouter()
 
-# Initialize Services
+# Initialize Service (Global)
+print("DEBUG: Initializing Normalizer Service...")
 normalizer = NormalizerService()
-memory = MemoryService()
-classifier = ClassifierService()
-llm_router = LLMRouterService()
+print("DEBUG: Normalizer Service Ready.")
 
 
 @router.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket):
+    print("DEBUG: New connection request received.")
     await websocket.accept()
-    client_host = websocket.client.host if websocket.client else "unknown"
-    logger.info(f"New WebSocket connection established from {client_host}")
+    print("DEBUG: Connection accepted. Entering loop.")
 
     try:
         while True:
+            # 1. Wait for data
+            print("DEBUG: Waiting for client message...")
             data = await websocket.receive_text()
+            print(f"DEBUG: Received raw data: {data}")
 
-            # Validation
+            # 2. Validate
             try:
                 payload = json.loads(data)
                 request_data = ChatRequest(**payload)
+                print("DEBUG: Validation successful.")
             except Exception as e:
-                error_msg = f"Invalid Schema: {str(e)}"
-                logger.warning(f"Validation failed for client {client_host}: {error_msg}")
-                safe_reason = (error_msg[:100] + '...') if len(error_msg) > 100 else error_msg
-                await websocket.close(code=1008, reason=safe_reason)
+                print(f"DEBUG: Validation FAILED: {e}")
+                await websocket.close(code=1008, reason="Invalid Schema")
                 break
 
-            logger.info(f"Processing message from user: {request_data.user_id}")
+            # 3. Normalize (The likely crash point)
+            print("DEBUG: Starting normalization...")
+            try:
+                clean_query = normalizer.normalize(request_data.message)
+                print(f"DEBUG: Normalization result: {clean_query}")
+            except Exception as e:
+                print(f"DEBUG: CRASH IN NORMALIZER: {e}")
+                traceback.print_exc()  # This prints the full error to the terminal
+                clean_query = request_data.message  # Fallback
 
-            # Logic Flow
-            clean_query = normalizer.normalize(request_data.message)
-            final_answer = memory.check_cache(clean_query)
-            source = "cache"
-
-            if not final_answer:
-                complexity = classifier.predict_complexity(clean_query)
-                final_answer = llm_router.generate_response(clean_query, complexity)
-                source = f"model-{complexity}"
-
-            # Response
+            # 4. Send Response
             response = ChatResponse(
-                sender=source,
-                message=final_answer,
+                sender="system",
+                message=f"I processed your request. Cleaned Query: '{clean_query}'",
+                normalized_query=clean_query,
                 status="processed"
             )
+
             await websocket.send_text(response.model_dump_json())
-            logger.debug(f"Response sent to {request_data.user_id} via {source}")
+            print("DEBUG: Response sent.")
 
     except WebSocketDisconnect:
-        logger.info(f"Client {client_host} disconnected")
+        print("DEBUG: Client disconnected gracefully.")
+    except Exception as e:
+        print(f"DEBUG: CRITICAL UNHANDLED ERROR: {e}")
+        traceback.print_exc()
