@@ -5,16 +5,49 @@ import traceback  # <--- NEW: Crucial for seeing the crash
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.normalizer import NormalizerService
+from app.services.llm_router import LLMRouterService
 
 # Setup logger
 logger = logging.getLogger("dejaq.router.chat")
 
 router = APIRouter()
 
-# Initialize Service (Global)
-print("DEBUG: Initializing Normalizer Service...")
+# Initialize Services (Global)
+logger.info("Initializing Normalizer Service...")
 normalizer = NormalizerService()
-print("DEBUG: Normalizer Service Ready.")
+logger.info("Normalizer Service Ready.")
+
+logger.info("Initializing LLM Router Service...")
+llm_router = LLMRouterService()
+logger.info("LLM Router Service Ready.")
+
+
+@router.post("/normalize", response_model=ChatResponse)
+async def normalize_endpoint(request: ChatRequest):
+    logger.info(f"POST /normalize from user={request.user_id}")
+    clean_query = normalizer.normalize(request.message)
+    logger.info(f"Normalized query: {clean_query}")
+    return ChatResponse(
+        sender="system",
+        message=clean_query,
+        normalized_query=clean_query,
+        status="ok",
+    )
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat_endpoint(request: ChatRequest):
+    logger.info(f"POST /chat from user={request.user_id}")
+    clean_query = normalizer.normalize(request.message)
+    logger.info(f"Normalized query: {clean_query}")
+    answer = llm_router.generate_response(clean_query, complexity="easy")
+    logger.info(f"LLM answer length: {len(answer)}")
+    return ChatResponse(
+        sender="bot",
+        message=answer,
+        normalized_query=clean_query,
+        status="ok",
+    )
 
 
 @router.websocket("/ws/chat")
@@ -66,3 +99,5 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         print(f"DEBUG: CRITICAL UNHANDLED ERROR: {e}")
         traceback.print_exc()
+
+
