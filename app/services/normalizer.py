@@ -1,6 +1,5 @@
 import logging
 import time
-from turtledemo.penrose import start
 
 from app.services.model_loader import ModelManager
 
