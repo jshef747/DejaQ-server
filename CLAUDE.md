@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 DejaQ is an LLM cost-optimization platform that reduces API costs through semantic caching, query classification, and hybrid model routing.
 
-**Cache miss pipeline (current):** User Query → Normalizer (Qwen 2.5, produces cache key) → LLM gets **original query** (preserves tone) → Response to user → Generalize response (tone-neutral, for future cache storage)
+**Cache miss pipeline:** User Query → Normalizer (Qwen 2.5, produces cache key) → LLM gets **original query** (preserves tone) → Response to user → Background: Generalize response (Phi-3.5 Mini) → Store in ChromaDB
 
-**Cache hit pipeline (future):** User Query → Normalizer → Cache returns tone-neutral response → Context Adjuster adds tone → Response to user
+**Cache hit pipeline:** User Query → Normalizer → ChromaDB returns tone-neutral response (cosine ≤ 0.15) → Context Adjuster adds tone → Response to user
 
 ## Commands
 
@@ -50,7 +50,7 @@ app/
 │   ├── llm_router.py    # Routes "easy"→Llama local, "hard"→external API
 │   ├── context_adjuster.py # Two-way: generalize() strips tone via Phi-3.5 Mini (for cache), adjust() adds tone via Qwen 1.5B (for cache hits)
 │   ├── classifier.py    # TODO: NVIDIA prompt-task-and-complexity-classifier
-│   └── memory_chromaDB.py # TODO: BERT embeddings + ChromaDB semantic cache
+│   └── memory_chromaDB.py # ChromaDB semantic cache (PersistentClient, cosine similarity)
 ├── schemas/chat.py      # ChatRequest/ChatResponse (Pydantic)
 ├── models/              # TODO: DB models (PostgreSQL)
 ├── repositories/        # TODO: DB access layer
@@ -72,6 +72,6 @@ app/
 
 ## Current Status
 
-**Working:** FastAPI WebSocket, Normalizer (Qwen), LLM Router (Llama local), Context Adjuster (generalize + adjust), hardware acceleration
-**In progress:** Difficulty Classifier, Database integration, Semantic cache (ChromaDB — `generalize()` output will feed into cache storage)
+**Working:** FastAPI WebSocket, Normalizer (Qwen), LLM Router (Llama local), Context Adjuster (generalize + adjust), Semantic cache (ChromaDB), hardware acceleration
+**In progress:** Difficulty Classifier, Database integration
 **Planned:** Celery/RabbitMQ task queue, External LLM APIs (GPT/Gemini), Feedback loop, React frontend

@@ -13,3 +13,4 @@ class ChatResponse(BaseModel):
     normalized_query: Optional[str] = Field(None, description="The normalized version of the user's query")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     status: str = Field("ok", description="Status of the processing")
+    cache_hit: Optional[bool] = Field(None, description="Whether the response came from cache")

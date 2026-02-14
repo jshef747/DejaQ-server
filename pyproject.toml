@@ -15,4 +15,5 @@ dependencies = [
     "transformers>=5.1.0",
     "uvicorn>=0.40.0",
     "websockets>=16.0",
+    "chromadb>=0.6.0",
 ]
