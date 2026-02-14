@@ -55,6 +55,7 @@ app/
 ├── models/              # TODO: DB models (PostgreSQL)
 ├── repositories/        # TODO: DB access layer
 └── utils/logger.py      # Centralized logging config
+index.html               # WebSocket chatbot test UI with cache diagnostics (project root)
 ```
 
 **Key patterns:**
