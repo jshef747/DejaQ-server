@@ -23,18 +23,18 @@ class LLMRouterService:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": query}
             ],
-            max_tokens=256,
+            max_tokens=512,
             temperature=0.7
         )
         response = output["choices"][0]["message"]["content"].strip()
         latency = (time.time() - start) * 1000
 
         logger.debug(f"Local LLM response generated in {latency:.2f} ms for query: {query}")
-        return f"[Local LLM] {response}"
+        return response
 
     def _call_external_api(self, query: str) -> str:
         # Placeholder for external API call (e.g., OpenAI, Qwen, etc.)
         # In a real implementation, this would involve making an HTTP request to the external service.
         logger.debug(f"Simulating external API call for query: {query}")
         time.sleep(0.5)  # Simulate network latency
-        return f"[External API] Simulated response for: {query}"
+        return f"Simulated response for: {query}"

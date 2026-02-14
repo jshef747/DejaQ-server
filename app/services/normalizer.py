@@ -16,23 +16,25 @@ class NormalizerService:
     def normalize(self, raw_query) -> str:
         logger.debug(f"Normalizing query: {raw_query}")
 
-        system_prompt = (
-            "You are a search query optimizer. "
-            "Remove all politeness, conversational fillers, and meta-instructions. "
-            "Keep all search-relevant nouns, verbs, and defining adjectives. "
-            "Output ONLY the cleaned query string. "
-            "Do NOT answer the question."
-        )
-
         start = time.time()
 
         output = self.llm.create_chat_completion(
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": raw_query}
+                {"role": "system", "content": "You are a query extractor. Given a user message, output ONLY the core topic as a short search query. Never answer the question. Never explain. Just output the topic."},
+                {"role": "user", "content": "INPUT: hey can you explain quantum mechanics like I'm 5\nQUERY:"},
+                {"role": "assistant", "content": "quantum mechanics"},
+                {"role": "user", "content": "INPUT: yo what's the capital of france lol\nQUERY:"},
+                {"role": "assistant", "content": "capital of france"},
+                {"role": "user", "content": "INPUT: I was wondering if you could tell me how photosynthesis works in detail please\nQUERY:"},
+                {"role": "assistant", "content": "how does photosynthesis work"},
+                {"role": "user", "content": "INPUT: explain to me how a computer works like I am 5 years old\nQUERY:"},
+                {"role": "assistant", "content": "how does a computer work"},
+                {"role": "user", "content": "INPUT: can someone tell me what gravity is in simple terms\nQUERY:"},
+                {"role": "assistant", "content": "what is gravity"},
+                {"role": "user", "content": f"INPUT: {raw_query}\nQUERY:"},
             ],
-            max_tokens=128,
-            temperature=0.1
+            max_tokens=32,
+            temperature=0.0
         )
 
         cleaned_query = output["choices"][0]["message"]["content"].strip()
