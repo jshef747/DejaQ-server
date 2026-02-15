@@ -34,24 +34,28 @@ uv run uvicorn app.main:app --reload
 ### Endpoints
 - `GET /health` — health check
 - `POST /normalize` — normalize a query
-- `POST /chat` — full chat pipeline (normalize → LLM with original query → respond)
+- `POST /chat` — full chat pipeline (normalize → cache check → LLM → respond)
 - `POST /generalize` — test endpoint: strips tone from an answer to produce neutral version
-- `WS /ws/chat` — real-time WebSocket chat
+- `GET /conversations` — list all conversations (newest first)
+- `GET /conversations/{id}/messages` — get conversation message history
+- `DELETE /conversations/{id}` — delete a conversation
+- `WS /ws/chat` — real-time WebSocket chat (with conversation history support)
 
 ## Architecture
 
 ```
 app/
 ├── main.py              # FastAPI init, CORS, startup/shutdown
-├── routers/chat.py      # All endpoints (HTTP + WebSocket)
+├── routers/chat.py      # All endpoints (HTTP + WebSocket) + conversation CRUD
 ├── services/
-│   ├── model_loader.py  # ModelManager singleton (Qwen, Llama, Phi GGUF models)
+│   ├── model_loader.py  # ModelManager singleton (Qwen 0.5B, Qwen 1.5B, Llama 3.2 1B, Phi-3.5 Mini)
 │   ├── normalizer.py    # Query cleaning via Qwen 2.5-0.5B
-│   ├── llm_router.py    # Routes "easy"→Llama local, "hard"→external API
-│   ├── context_adjuster.py # Two-way: generalize() strips tone via Phi-3.5 Mini (for cache), adjust() adds tone via Qwen 1.5B (for cache hits)
+│   ├── llm_router.py    # Routes "easy"→Llama 3.2 1B local, "hard"→external API (stub)
+│   ├── context_adjuster.py # generalize() strips tone via Phi-3.5 Mini, adjust() adds tone via Qwen 2.5-1.5B
+│   ├── conversation_store.py # In-memory multi-turn conversation history (max 20 messages)
 │   ├── classifier.py    # TODO: NVIDIA prompt-task-and-complexity-classifier
-│   └── memory_chromaDB.py # ChromaDB semantic cache (PersistentClient, cosine similarity)
-├── schemas/chat.py      # ChatRequest/ChatResponse (Pydantic)
+│   └── memory_chromaDB.py # ChromaDB semantic cache (PersistentClient, cosine ≤ 0.15)
+├── schemas/chat.py      # ChatRequest/ChatResponse (Pydantic), includes conversation_id
 ├── models/              # TODO: DB models (PostgreSQL)
 ├── repositories/        # TODO: DB access layer
 └── utils/logger.py      # Centralized logging config
@@ -62,6 +66,8 @@ index.html               # WebSocket chatbot test UI with cache diagnostics (pro
 - ModelManager is a singleton — models load once on first use
 - Models use GGUF format via `llama-cpp-python` for cross-platform GPU support (Metal/CUDA)
 - All schemas use Pydantic BaseModel
+- Conversation history is passed to the LLM for multi-turn context
+- Cache miss triggers background generalization + storage (BackgroundTasks for HTTP, synchronous for WebSocket)
 
 ## Coding Conventions
 
@@ -71,8 +77,17 @@ index.html               # WebSocket chatbot test UI with cache diagnostics (pro
 - **Strong typing** with Pydantic for all request/response models
 - **Directory structure**: routers (endpoints) → services (business logic) → schemas (data models) → models (DB) → repositories (DB access)
 
+## Models (actual)
+
+| Role | Model | Size | Loader |
+|------|-------|------|--------|
+| Normalizer | Qwen 2.5-0.5B-Instruct | Q4_K_M | `ModelManager.load_qwen()` |
+| Context Adjuster (adjust) | Qwen 2.5-1.5B-Instruct | Q4_K_M | `ModelManager.load_qwen_1_5b()` |
+| Generalizer (strip tone) | Phi-3.5-Mini-Instruct | Q4_K_M | `ModelManager.load_phi()` |
+| Local LLM (generation) | Llama 3.2-1B-Instruct | Q8_0 | `ModelManager.load_llama()` |
+
 ## Current Status
 
-**Working:** FastAPI WebSocket, Normalizer (Qwen), LLM Router (Llama local), Context Adjuster (generalize + adjust), Semantic cache (ChromaDB), hardware acceleration
-**In progress:** Difficulty Classifier, Database integration
-**Planned:** Celery/RabbitMQ task queue, External LLM APIs (GPT/Gemini), Feedback loop, React frontend
+**Working:** FastAPI WebSocket + HTTP, Normalizer (Qwen 0.5B), LLM Router (Llama 3.2 1B local), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Multi-turn conversation history (in-memory), Conversation CRUD endpoints, Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA)
+**In progress:** Difficulty Classifier (NVIDIA), Database integration (PostgreSQL)
+**Planned:** Celery/RabbitMQ task queue, External LLM APIs (GPT/Gemini), Feedback loop, React frontend, Persistent conversation storage (currently in-memory only)

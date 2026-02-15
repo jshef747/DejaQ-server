@@ -2,12 +2,13 @@
 import logging
 import json
 import traceback
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, BackgroundTasks
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, BackgroundTasks, HTTPException
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.normalizer import NormalizerService
 from app.services.llm_router import LLMRouterService
 from app.services.context_adjuster import ContextAdjusterService
 from app.services.memory_chromaDB import MemoryService
+from app.services.conversation_store import ConversationStore
 
 # Setup logger
 logger = logging.getLogger("dejaq.router.chat")
@@ -30,6 +31,10 @@ logger.info("Context Adjuster Service Ready.")
 logger.info("Initializing Memory Service (ChromaDB)...")
 memory = MemoryService()
 logger.info("Memory Service Ready.")
+
+logger.info("Initializing Conversation Store...")
+conversations = ConversationStore()
+logger.info("Conversation Store Ready.")
 
 
 def _generalize_and_store(
@@ -60,6 +65,10 @@ async def normalize_endpoint(request: ChatRequest):
 async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks):
     logger.info(f"POST /chat from user={request.user_id}")
 
+    # 0. Resolve conversation
+    conv_id = conversations.get_or_create(request.conversation_id)
+    history = conversations.get_history(conv_id)
+
     # 1. Normalize
     clean_query = normalizer.normalize(request.message)
     logger.info(f"Normalized query: {clean_query}")
@@ -70,19 +79,26 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
     if cached_answer is not None:
         # Cache HIT — adjust tone to match original query
         answer = context_adjuster.adjust(request.message, cached_answer)
+        conversations.add_message(conv_id, "user", request.message)
+        conversations.add_message(conv_id, "assistant", answer)
         return ChatResponse(
             sender="bot",
             message=answer,
             normalized_query=clean_query,
             status="ok",
             cache_hit=True,
+            conversation_id=conv_id,
         )
 
     # 3. Cache MISS — LLM generates response (original query preserves tone)
-    answer = llm_router.generate_response(request.message, complexity="easy")
+    answer = llm_router.generate_response(request.message, complexity="easy", history=history)
     logger.info(f"LLM answer length: {len(answer)}")
 
-    # 4. Generalize + store in background (user doesn't wait for Phi-3.5)
+    # 4. Store in conversation history
+    conversations.add_message(conv_id, "user", request.message)
+    conversations.add_message(conv_id, "assistant", answer)
+
+    # 5. Generalize + store in background (user doesn't wait for Phi-3.5)
     background_tasks.add_task(
         _generalize_and_store, clean_query, answer, request.message, request.user_id
     )
@@ -93,6 +109,7 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
         normalized_query=clean_query,
         status="ok",
         cache_hit=False,
+        conversation_id=conv_id,
     )
 
 
@@ -109,11 +126,35 @@ async def generalize_endpoint(request: ChatRequest):
     )
 
 
+@router.get("/conversations")
+async def list_conversations():
+    return conversations.list_conversations()
+
+
+@router.get("/conversations/{conversation_id}/messages")
+async def get_conversation_messages(conversation_id: str):
+    history = conversations.get_history(conversation_id)
+    if not history and conversation_id not in conversations._conversations:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return history
+
+
+@router.delete("/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: str):
+    deleted = conversations.delete_conversation(conversation_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return {"status": "deleted"}
+
+
 @router.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket):
     logger.debug("New WebSocket connection request received.")
     await websocket.accept()
     logger.debug("Connection accepted. Entering loop.")
+
+    # Each WebSocket connection starts a conversation (may be resumed via first message)
+    conv_id = None
 
     try:
         while True:
@@ -131,6 +172,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 logger.error(f"Validation FAILED: {e}")
                 await websocket.close(code=1008, reason="Invalid Schema")
                 break
+
+            # 2b. Resolve conversation (first message may carry an existing conversation_id)
+            if conv_id is None:
+                conv_id = conversations.get_or_create(request_data.conversation_id)
+            history = conversations.get_history(conv_id)
 
             # 3. Normalize
             logger.debug("Starting normalization...")
@@ -160,29 +206,34 @@ async def websocket_endpoint(websocket: WebSocket):
                     traceback.print_exc()
                     answer = cached_answer  # Fallback to neutral answer
             else:
-                # Cache MISS — generate via LLM
+                # Cache MISS — generate via LLM with conversation history
                 logger.debug("Generating LLM response...")
                 try:
-                    answer = llm_router.generate_response(request_data.message, complexity="easy")
+                    answer = llm_router.generate_response(request_data.message, complexity="easy", history=history)
                     logger.debug(f"LLM answer length: {len(answer)}")
                 except Exception as e:
                     logger.error(f"CRASH IN LLM: {e}")
                     traceback.print_exc()
                     answer = f"I processed your request. Cleaned Query: '{clean_query}'"
 
-            # 5. Send Response
+            # 5. Store in conversation history (both cache hits and misses)
+            conversations.add_message(conv_id, "user", request_data.message)
+            conversations.add_message(conv_id, "assistant", answer)
+
+            # 6. Send Response
             response = ChatResponse(
                 sender="bot",
                 message=answer,
                 normalized_query=clean_query,
                 status="ok",
                 cache_hit=cache_hit,
+                conversation_id=conv_id,
             )
 
             await websocket.send_text(response.model_dump_json())
             logger.debug("Response sent.")
 
-            # 6. On cache miss, generalize + store (synchronous, no BackgroundTasks in WS)
+            # 7. On cache miss, generalize + store (synchronous, no BackgroundTasks in WS)
             if not cache_hit and cached_answer is None:
                 _generalize_and_store(
                     clean_query, answer, request_data.message, request_data.user_id

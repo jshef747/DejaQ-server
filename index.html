@@ -15,15 +15,90 @@
             justify-content: center;
             align-items: center;
         }
-        .chat-container {
+
+        /* Outer layout: sidebar + chat */
+        .app-layout {
             width: 100%;
-            max-width: 700px;
+            max-width: 960px;
             height: 90vh;
+            display: flex;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            min-width: 220px;
+            background: #0d1b3e;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #1a1a4e;
+        }
+        .sidebar-header {
+            padding: 14px 12px;
+            border-bottom: 1px solid #1a1a4e;
+        }
+        .new-chat-btn {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            background: transparent;
+            color: #e0e0e0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .new-chat-btn:hover { background: #16213e; }
+        .conv-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6px 0;
+        }
+        .conv-list::-webkit-scrollbar { width: 4px; }
+        .conv-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+        .conv-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: background 0.15s;
+            position: relative;
+        }
+        .conv-item:hover { background: #16213e; }
+        .conv-item.active { background: #1e3a5f; }
+        .conv-preview {
+            flex: 1;
+            font-size: 0.82rem;
+            color: #94a3b8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .conv-item.active .conv-preview { color: #e0e0e0; }
+        .conv-delete {
+            display: none;
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 2px 4px;
+            margin-left: 4px;
+            line-height: 1;
+        }
+        .conv-delete:hover { color: #ef4444; }
+        .conv-item:hover .conv-delete { display: block; }
+
+        /* Chat container */
+        .chat-container {
+            flex: 1;
             display: flex;
             flex-direction: column;
             background: #16213e;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
             overflow: hidden;
         }
 
@@ -171,33 +246,47 @@
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="header">
-            <h1>DejaQ Chat</h1>
-            <div class="header-right">
-                <span class="cache-stats" id="cacheStats"></span>
-                <div class="connection-status">
-                    <div class="status-dot" id="statusDot"></div>
-                    <span id="statusText">Disconnected</span>
-                </div>
+    <div class="app-layout">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" onclick="newChat()">+ New Chat</button>
             </div>
+            <div class="conv-list" id="convList"></div>
         </div>
 
-        <div id="messages"></div>
+        <div class="chat-container">
+            <div class="header">
+                <h1>DejaQ Chat</h1>
+                <div class="header-right">
+                    <span class="cache-stats" id="cacheStats"></span>
+                    <div class="connection-status">
+                        <div class="status-dot" id="statusDot"></div>
+                        <span id="statusText">Disconnected</span>
+                    </div>
+                </div>
+            </div>
 
-        <div class="input-area">
-            <input type="text" id="msgInput" placeholder="Type a message..." autocomplete="off">
-            <button id="sendBtn" onclick="sendMessage()">Send</button>
+            <div id="messages"></div>
+
+            <div class="input-area">
+                <input type="text" id="msgInput" placeholder="Type a message..." autocomplete="off">
+                <button id="sendBtn" onclick="sendMessage()">Send</button>
+            </div>
         </div>
     </div>
 
     <script>
+        const API_BASE = "http://localhost:8000";
         let totalQueries = 0;
         let cacheHits = 0;
         let ws;
+        let conversationId = null;
+
+        // Local cache: conversationId -> array of {type, html}
+        const chatHistory = {};
 
         function connect() {
-            ws = new WebSocket("ws://localhost:8000/ws/chat");
+            ws = new WebSocket(API_BASE.replace("http", "ws") + "/ws/chat");
 
             ws.onopen = () => {
                 document.getElementById("statusDot").classList.add("connected");
@@ -216,6 +305,9 @@
 
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
+                const isNewConversation = !conversationId;
+                if (data.conversation_id) conversationId = data.conversation_id;
+
                 const wrapper = document.createElement("div");
                 wrapper.className = "bubble-wrapper bot";
 
@@ -256,7 +348,21 @@
                 const messagesDiv = document.getElementById("messages");
                 messagesDiv.appendChild(wrapper);
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+                // Save to local cache
+                saveBubbleToCache(conversationId, wrapper);
+
+                // If this was the first message in a new conversation, add to sidebar
+                if (isNewConversation) {
+                    loadConversationList();
+                }
             };
+        }
+
+        function saveBubbleToCache(convId, element) {
+            if (!convId) return;
+            if (!chatHistory[convId]) chatHistory[convId] = [];
+            chatHistory[convId].push(element.outerHTML);
         }
 
         function updateCacheStats() {
@@ -281,20 +387,169 @@
             messagesDiv.appendChild(wrapper);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-            ws.send(JSON.stringify({
+            // Save user bubble to local cache
+            if (conversationId) {
+                saveBubbleToCache(conversationId, wrapper);
+            }
+
+            const payload = {
                 user_id: "test_user",
                 department_id: "engineering",
                 message: text
-            }));
+            };
+            if (conversationId) payload.conversation_id = conversationId;
+            ws.send(JSON.stringify(payload));
 
             input.value = "";
+
+            // For new chats, we need to save the user bubble once we get the conv id
+            if (!conversationId) {
+                const pendingHtml = wrapper.outerHTML;
+                const origOnMessage = ws.onmessage;
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data.conversation_id && !chatHistory[data.conversation_id]) {
+                        chatHistory[data.conversation_id] = [pendingHtml];
+                    } else if (data.conversation_id && chatHistory[data.conversation_id]) {
+                        // Insert user bubble before bot response if missing
+                        if (chatHistory[data.conversation_id].length === 0) {
+                            chatHistory[data.conversation_id].push(pendingHtml);
+                        }
+                    }
+                    ws.onmessage = origOnMessage;
+                    origOnMessage(event);
+                };
+            }
+        }
+
+        // --- Sidebar functions ---
+
+        async function loadConversationList() {
+            try {
+                const res = await fetch(API_BASE + "/conversations");
+                const convos = await res.json();
+                renderConversationList(convos);
+            } catch (e) {
+                // Server might be down, ignore
+            }
+        }
+
+        function renderConversationList(convos) {
+            const list = document.getElementById("convList");
+            list.innerHTML = "";
+            convos.forEach(c => {
+                const item = document.createElement("div");
+                item.className = "conv-item" + (c.id === conversationId ? " active" : "");
+                item.onclick = (e) => {
+                    if (e.target.classList.contains("conv-delete")) return;
+                    switchConversation(c.id);
+                };
+
+                const preview = document.createElement("span");
+                preview.className = "conv-preview";
+                preview.textContent = c.preview || "New conversation";
+                item.appendChild(preview);
+
+                const del = document.createElement("button");
+                del.className = "conv-delete";
+                del.textContent = "\u00d7";
+                del.title = "Delete conversation";
+                del.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteConversation(c.id);
+                };
+                item.appendChild(del);
+
+                list.appendChild(item);
+            });
+        }
+
+        function switchConversation(id) {
+            if (id === conversationId) return;
+
+            // Save current messages to cache
+            saveCurrentToCache();
+
+            // Set new conversation
+            conversationId = id;
+
+            // Restore from local cache or clear
+            const messagesDiv = document.getElementById("messages");
+            messagesDiv.innerHTML = "";
+            if (chatHistory[id]) {
+                chatHistory[id].forEach(html => {
+                    messagesDiv.innerHTML += html;
+                });
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+
+            // Reconnect WS with conversation_id
+            reconnectWebSocket();
+
+            // Update sidebar active state
+            document.querySelectorAll(".conv-item").forEach(el => el.classList.remove("active"));
+            document.querySelectorAll(".conv-item").forEach(el => {
+                if (el.querySelector(".conv-preview").textContent === (chatHistory[id] ? "" : "")) return;
+                // Re-render to update active state
+            });
+            loadConversationList();
+        }
+
+        function saveCurrentToCache() {
+            if (!conversationId) return;
+            const messagesDiv = document.getElementById("messages");
+            const bubbles = messagesDiv.querySelectorAll(".bubble-wrapper");
+            chatHistory[conversationId] = [];
+            bubbles.forEach(b => chatHistory[conversationId].push(b.outerHTML));
+        }
+
+        function newChat() {
+            // Save current chat
+            saveCurrentToCache();
+
+            // Reset state
+            conversationId = null;
+            document.getElementById("messages").innerHTML = "";
+            totalQueries = 0;
+            cacheHits = 0;
+            document.getElementById("cacheStats").textContent = "";
+
+            // Reconnect WS (fresh, no conversation_id)
+            reconnectWebSocket();
+
+            // Update sidebar
+            loadConversationList();
+        }
+
+        async function deleteConversation(id) {
+            try {
+                await fetch(API_BASE + "/conversations/" + id, { method: "DELETE" });
+            } catch (e) {
+                // ignore
+            }
+            delete chatHistory[id];
+            if (id === conversationId) {
+                newChat();
+            } else {
+                loadConversationList();
+            }
+        }
+
+        function reconnectWebSocket() {
+            if (ws) {
+                ws.onclose = null; // Prevent auto-reconnect
+                ws.close();
+            }
+            connect();
         }
 
         document.getElementById("msgInput").addEventListener("keydown", (e) => {
             if (e.key === "Enter") sendMessage();
         });
 
+        // Boot
         connect();
+        loadConversationList();
     </script>
 </body>
 </html>

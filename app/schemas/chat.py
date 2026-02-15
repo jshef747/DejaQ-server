@@ -6,6 +6,7 @@ class ChatRequest(BaseModel):
     user_id: str = Field(..., description="The ID of the user sending the message")
     message: str = Field(..., description="The content of the message being sent")
     department_id: str = Field(..., description="The department the message is related to")
+    conversation_id: Optional[str] = Field(None, description="ID of the conversation for multi-turn chat")
 
 class ChatResponse(BaseModel):
     sender: str = Field(..., description="Who sent this message (user/system/bot)")
@@ -14,3 +15,4 @@ class ChatResponse(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     status: str = Field("ok", description="Status of the processing")
     cache_hit: Optional[bool] = Field(None, description="Whether the response came from cache")
+    conversation_id: Optional[str] = Field(None, description="ID of the conversation for multi-turn chat")
