@@ -2,13 +2,15 @@
 import logging
 import json
 import traceback
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, BackgroundTasks, HTTPException
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, BackgroundTasks, HTTPException, Query
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.normalizer import NormalizerService
 from app.services.llm_router import LLMRouterService
 from app.services.context_adjuster import ContextAdjusterService
 from app.services.memory_chromaDB import MemoryService
 from app.services.conversation_store import ConversationStore
+from app.services.context_enricher import ContextEnricherService
+from app.services import cache_filter
 
 # Setup logger
 logger = logging.getLogger("dejaq.router.chat")
@@ -35,6 +37,10 @@ logger.info("Memory Service Ready.")
 logger.info("Initializing Conversation Store...")
 conversations = ConversationStore()
 logger.info("Conversation Store Ready.")
+
+logger.info("Initializing Context Enricher Service...")
+enricher = ContextEnricherService()
+logger.info("Context Enricher Service Ready.")
 
 
 def _generalize_and_store(
@@ -69,11 +75,15 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
     conv_id = conversations.get_or_create(request.conversation_id)
     history = conversations.get_history(conv_id)
 
-    # 1. Normalize
-    clean_query = normalizer.normalize(request.message)
+    # 1. Enrich — rewrite context-dependent queries into standalone ones
+    enriched = enricher.enrich(request.message, history)
+    enriched_changed = enriched != request.message
+
+    # 2. Normalize the enriched query (better cache key)
+    clean_query = normalizer.normalize(enriched)
     logger.info(f"Normalized query: {clean_query}")
 
-    # 2. Check cache
+    # 3. Check cache with enriched+normalized key
     cached_answer = memory.check_cache(clean_query)
 
     if cached_answer is not None:
@@ -88,20 +98,25 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
             status="ok",
             cache_hit=True,
             conversation_id=conv_id,
+            enriched_query=enriched if enriched_changed else None,
         )
 
-    # 3. Cache MISS — LLM generates response (original query preserves tone)
+    # 4. Cache MISS — LLM generates response (original query + history preserves tone)
     answer = llm_router.generate_response(request.message, complexity="easy", history=history)
     logger.info(f"LLM answer length: {len(answer)}")
 
-    # 4. Store in conversation history
+    # 5. Store in conversation history
     conversations.add_message(conv_id, "user", request.message)
     conversations.add_message(conv_id, "assistant", answer)
 
-    # 5. Generalize + store in background (user doesn't wait for Phi-3.5)
-    background_tasks.add_task(
-        _generalize_and_store, clean_query, answer, request.message, request.user_id
-    )
+    # 6. Smart cache filter — decide if this response is worth caching
+    will_cache, filter_reason = cache_filter.should_cache(enriched, clean_query)
+
+    if will_cache:
+        # 7. Generalize + store in background (user doesn't wait for Phi-3.5)
+        background_tasks.add_task(
+            _generalize_and_store, clean_query, answer, request.message, request.user_id
+        )
 
     return ChatResponse(
         sender="bot",
@@ -110,6 +125,8 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
         status="ok",
         cache_hit=False,
         conversation_id=conv_id,
+        enriched_query=enriched if enriched_changed else None,
+        cached=will_cache,
     )
 
 
@@ -125,6 +142,27 @@ async def generalize_endpoint(request: ChatRequest):
         status="ok",
     )
 
+
+# --- Cache Viewer Endpoints ---
+
+@router.get("/cache/entries")
+async def get_cache_entries(limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0)):
+    entries = memory.get_all_entries(limit=limit, offset=offset)
+    return {
+        "total": memory.count,
+        "entries": entries,
+    }
+
+
+@router.delete("/cache/entries/{entry_id}")
+async def delete_cache_entry(entry_id: str):
+    deleted = memory.delete_entry(entry_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Cache entry not found")
+    return {"status": "deleted"}
+
+
+# --- Conversation Endpoints ---
 
 @router.get("/conversations")
 async def list_conversations():
@@ -146,6 +184,8 @@ async def delete_conversation(conversation_id: str):
         raise HTTPException(status_code=404, detail="Conversation not found")
     return {"status": "deleted"}
 
+
+# --- WebSocket ---
 
 @router.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket):
@@ -178,18 +218,29 @@ async def websocket_endpoint(websocket: WebSocket):
                 conv_id = conversations.get_or_create(request_data.conversation_id)
             history = conversations.get_history(conv_id)
 
-            # 3. Normalize
+            # 3. Enrich — rewrite context-dependent queries into standalone ones
+            try:
+                enriched = enricher.enrich(request_data.message, history)
+                enriched_changed = enriched != request_data.message
+            except Exception as e:
+                logger.error(f"CRASH IN ENRICHER: {e}")
+                traceback.print_exc()
+                enriched = request_data.message
+                enriched_changed = False
+
+            # 4. Normalize the enriched query
             logger.debug("Starting normalization...")
             try:
-                clean_query = normalizer.normalize(request_data.message)
+                clean_query = normalizer.normalize(enriched)
                 logger.debug(f"Normalization result: {clean_query}")
             except Exception as e:
                 logger.error(f"CRASH IN NORMALIZER: {e}")
                 traceback.print_exc()
                 clean_query = request_data.message  # Fallback
 
-            # 4. Check cache
+            # 5. Check cache with enriched+normalized key
             cache_hit = False
+            will_cache = None
             try:
                 cached_answer = memory.check_cache(clean_query)
             except Exception as e:
@@ -216,11 +267,15 @@ async def websocket_endpoint(websocket: WebSocket):
                     traceback.print_exc()
                     answer = f"I processed your request. Cleaned Query: '{clean_query}'"
 
-            # 5. Store in conversation history (both cache hits and misses)
+            # 6. Store in conversation history (both cache hits and misses)
             conversations.add_message(conv_id, "user", request_data.message)
             conversations.add_message(conv_id, "assistant", answer)
 
-            # 6. Send Response
+            # 7. Smart cache filter (decide before sending so we can include the badge)
+            if not cache_hit and cached_answer is None:
+                will_cache, filter_reason = cache_filter.should_cache(enriched, clean_query)
+
+            # 8. Send Response FIRST (user doesn't wait for generalization)
             response = ChatResponse(
                 sender="bot",
                 message=answer,
@@ -228,13 +283,15 @@ async def websocket_endpoint(websocket: WebSocket):
                 status="ok",
                 cache_hit=cache_hit,
                 conversation_id=conv_id,
+                enriched_query=enriched if enriched_changed else None,
+                cached=will_cache,
             )
 
             await websocket.send_text(response.model_dump_json())
             logger.debug("Response sent.")
 
-            # 7. On cache miss, generalize + store (synchronous, no BackgroundTasks in WS)
-            if not cache_hit and cached_answer is None:
+            # 9. AFTER sending: generalize + store (blocking but user already has their answer)
+            if will_cache:
                 _generalize_and_store(
                     clean_query, answer, request_data.message, request_data.user_id
                 )

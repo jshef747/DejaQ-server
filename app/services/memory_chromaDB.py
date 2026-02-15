@@ -75,6 +75,45 @@ class MemoryService:
         )
         logger.info("Stored in cache (id=%s, total=%d)", doc_id, self._collection.count())
 
+    def get_all_entries(self, limit: int = 50, offset: int = 0) -> list[dict]:
+        """Return all cached entries with metadata for the cache viewer."""
+        total = self._collection.count()
+        if total == 0:
+            return []
+
+        results = self._collection.get(
+            include=["documents", "metadatas"],
+            limit=limit,
+            offset=offset,
+        )
+
+        entries = []
+        for i, doc_id in enumerate(results["ids"]):
+            meta = results["metadatas"][i] if results["metadatas"] else {}
+            entries.append({
+                "id": doc_id,
+                "normalized_query": results["documents"][i] if results["documents"] else "",
+                "generalized_answer": meta.get("generalized_answer", ""),
+                "original_query": meta.get("original_query", ""),
+                "user_id": meta.get("user_id", ""),
+                "stored_at": meta.get("stored_at", ""),
+            })
+
+        return entries
+
+    def delete_entry(self, entry_id: str) -> bool:
+        """Delete a single cache entry by ID. Returns True if it existed."""
+        try:
+            existing = self._collection.get(ids=[entry_id])
+            if not existing["ids"]:
+                return False
+            self._collection.delete(ids=[entry_id])
+            logger.info("Deleted cache entry %s (total=%d)", entry_id, self._collection.count())
+            return True
+        except Exception:
+            logger.error("Failed to delete cache entry %s", entry_id)
+            return False
+
     @property
     def count(self) -> int:
         return self._collection.count()

@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 DejaQ is an LLM cost-optimization platform that reduces API costs through semantic caching, query classification, and hybrid model routing.
 
-**Cache miss pipeline:** User Query → Normalizer (Qwen 2.5, produces cache key) → LLM gets **original query** (preserves tone) → Response to user → Background: Generalize response (Phi-3.5 Mini) → Store in ChromaDB
+**Cache miss pipeline:** User Query → Context Enricher (Qwen 0.5B, makes query standalone) → Normalizer (Qwen 2.5, produces cache key) → Cache Filter (heuristics) → LLM gets **original query + history** (preserves tone) → Response to user → Background: Generalize response (Phi-3.5 Mini) → Store in ChromaDB (if filter passes)
 
-**Cache hit pipeline:** User Query → Normalizer → ChromaDB returns tone-neutral response (cosine ≤ 0.15) → Context Adjuster adds tone → Response to user
+**Cache hit pipeline:** User Query → Context Enricher → Normalizer → ChromaDB returns tone-neutral response (cosine ≤ 0.15) → Context Adjuster adds tone → Response to user
 
 ## Commands
 
@@ -36,6 +36,8 @@ uv run uvicorn app.main:app --reload
 - `POST /normalize` — normalize a query
 - `POST /chat` — full chat pipeline (normalize → cache check → LLM → respond)
 - `POST /generalize` — test endpoint: strips tone from an answer to produce neutral version
+- `GET /cache/entries` — cache viewer: list all cached entries with metadata
+- `DELETE /cache/entries/{id}` — delete a single cache entry
 - `GET /conversations` — list all conversations (newest first)
 - `GET /conversations/{id}/messages` — get conversation message history
 - `DELETE /conversations/{id}` — delete a conversation
@@ -52,6 +54,8 @@ app/
 │   ├── normalizer.py    # Query cleaning via Qwen 2.5-0.5B
 │   ├── llm_router.py    # Routes "easy"→Llama 3.2 1B local, "hard"→external API (stub)
 │   ├── context_adjuster.py # generalize() strips tone via Phi-3.5 Mini, adjust() adds tone via Qwen 2.5-1.5B
+│   ├── context_enricher.py # Rewrites context-dependent queries into standalone ones (Qwen 0.5B)
+│   ├── cache_filter.py  # Smart heuristic filter: skips non-cacheable prompts (too short, filler, vague)
 │   ├── conversation_store.py # In-memory multi-turn conversation history (max 20 messages)
 │   ├── classifier.py    # TODO: NVIDIA prompt-task-and-complexity-classifier
 │   └── memory_chromaDB.py # ChromaDB semantic cache (PersistentClient, cosine ≤ 0.15)
@@ -67,7 +71,9 @@ index.html               # WebSocket chatbot test UI with cache diagnostics (pro
 - Models use GGUF format via `llama-cpp-python` for cross-platform GPU support (Metal/CUDA)
 - All schemas use Pydantic BaseModel
 - Conversation history is passed to the LLM for multi-turn context
-- Cache miss triggers background generalization + storage (BackgroundTasks for HTTP, synchronous for WebSocket)
+- Cache miss triggers background generalization + storage (BackgroundTasks for HTTP, synchronous for WebSocket) — only if cache filter passes
+- Context enricher rewrites follow-up queries ("tell me more") into standalone questions before normalization
+- Cache filter skips storing trivial messages (filler words, too short, too vague)
 
 ## Coding Conventions
 
@@ -88,6 +94,6 @@ index.html               # WebSocket chatbot test UI with cache diagnostics (pro
 
 ## Current Status
 
-**Working:** FastAPI WebSocket + HTTP, Normalizer (Qwen 0.5B), LLM Router (Llama 3.2 1B local), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Multi-turn conversation history (in-memory), Conversation CRUD endpoints, Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA)
-**In progress:** Difficulty Classifier (NVIDIA), Database integration (PostgreSQL)
+**Working:** FastAPI WebSocket + HTTP, Normalizer (Qwen 0.5B), LLM Router (Llama 3.2 1B local), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Multi-turn conversation history (in-memory), Conversation CRUD endpoints, Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher (conversation-aware caching), Smart Cache Filter (skip non-cacheable prompts), Cache Viewer API + UI panel
+**In progress:** Difficulty Classifier (NVIDIA), Database integration (PostgreSQL), Non-blocking generalize+store in WebSocket (currently `_generalize_and_store` blocks the next message — needs `asyncio.to_thread()` + `create_task()` or Celery)
 **Planned:** Celery/RabbitMQ task queue, External LLM APIs (GPT/Gemini), Feedback loop, React frontend, Persistent conversation storage (currently in-memory only)

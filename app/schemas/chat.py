@@ -16,3 +16,5 @@ class ChatResponse(BaseModel):
     status: str = Field("ok", description="Status of the processing")
     cache_hit: Optional[bool] = Field(None, description="Whether the response came from cache")
     conversation_id: Optional[str] = Field(None, description="ID of the conversation for multi-turn chat")
+    enriched_query: Optional[str] = Field(None, description="The context-enriched version of the query (shown when enrichment changed the query)")
+    cached: Optional[bool] = Field(None, description="Whether this response will be stored in cache")
