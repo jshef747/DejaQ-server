@@ -234,6 +234,14 @@
             background: #f97316;
             color: #fff;
         }
+        .badge-easy {
+            background: #14b8a6;
+            color: #fff;
+        }
+        .badge-hard {
+            background: #ef4444;
+            color: #fff;
+        }
 
         /* Input area */
         .input-area {
@@ -511,6 +519,22 @@
                             cacheBadge.textContent = "Not Cached";
                         }
                         badges.appendChild(cacheBadge);
+                    }
+
+                    // Complexity badge (only on cache miss — cache hits skip the classifier)
+                    if (data.complexity) {
+                        const complexityBadge = document.createElement("span");
+                        complexityBadge.className = "badge " + (data.complexity === "easy" ? "badge-easy" : "badge-hard");
+                        complexityBadge.textContent = data.complexity.toUpperCase() + (data.complexity_score != null ? " (" + data.complexity_score.toFixed(2) + ")" : "");
+                        badges.appendChild(complexityBadge);
+                    }
+
+                    // Task type badge
+                    if (data.task_type) {
+                        const taskBadge = document.createElement("span");
+                        taskBadge.className = "badge badge-normalized";
+                        taskBadge.textContent = "task: " + data.task_type;
+                        badges.appendChild(taskBadge);
                     }
 
                     if (data.normalized_query) {

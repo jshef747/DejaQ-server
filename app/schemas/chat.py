@@ -18,3 +18,6 @@ class ChatResponse(BaseModel):
     conversation_id: Optional[str] = Field(None, description="ID of the conversation for multi-turn chat")
     enriched_query: Optional[str] = Field(None, description="The context-enriched version of the query (shown when enrichment changed the query)")
     cached: Optional[bool] = Field(None, description="Whether this response will be stored in cache")
+    complexity: Optional[str] = Field(None, description="Query complexity: easy or hard")
+    complexity_score: Optional[float] = Field(None, description="Complexity score 0-1")
+    task_type: Optional[str] = Field(None, description="Detected task type")

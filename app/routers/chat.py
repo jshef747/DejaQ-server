@@ -11,6 +11,7 @@ from app.services.memory_chromaDB import MemoryService
 from app.services.conversation_store import ConversationStore
 from app.services.context_enricher import ContextEnricherService
 from app.services import cache_filter
+from app.services.classifier import ClassifierService
 
 # Setup logger
 logger = logging.getLogger("dejaq.router.chat")
@@ -41,6 +42,10 @@ logger.info("Conversation Store Ready.")
 logger.info("Initializing Context Enricher Service...")
 enricher = ContextEnricherService()
 logger.info("Context Enricher Service Ready.")
+
+logger.info("Initializing Classifier Service...")
+classifier = ClassifierService()
+logger.info("Classifier Service Ready.")
 
 
 def _generalize_and_store(
@@ -101,19 +106,22 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
             enriched_query=enriched if enriched_changed else None,
         )
 
-    # 4. Cache MISS — LLM generates response (original query + history preserves tone)
-    answer = llm_router.generate_response(request.message, complexity="easy", history=history)
+    # 4. Classify complexity
+    classification = classifier.predict_complexity(request.message)
+
+    # 5. Cache MISS — LLM generates response (original query + history preserves tone)
+    answer = llm_router.generate_response(request.message, complexity=classification["complexity"], history=history)
     logger.info(f"LLM answer length: {len(answer)}")
 
-    # 5. Store in conversation history
+    # 6. Store in conversation history
     conversations.add_message(conv_id, "user", request.message)
     conversations.add_message(conv_id, "assistant", answer)
 
-    # 6. Smart cache filter — decide if this response is worth caching
+    # 7. Smart cache filter — decide if this response is worth caching
     will_cache, filter_reason = cache_filter.should_cache(enriched, clean_query)
 
     if will_cache:
-        # 7. Generalize + store in background (user doesn't wait for Phi-3.5)
+        # 8. Generalize + store in background (user doesn't wait for Phi-3.5)
         background_tasks.add_task(
             _generalize_and_store, clean_query, answer, request.message, request.user_id
         )
@@ -127,6 +135,9 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
         conversation_id=conv_id,
         enriched_query=enriched if enriched_changed else None,
         cached=will_cache,
+        complexity=classification["complexity"],
+        complexity_score=classification["score"],
+        task_type=classification["task_type"],
     )
 
 
@@ -247,6 +258,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 logger.error(f"Cache check failed: {e}")
                 cached_answer = None
 
+            classification = None
             if cached_answer is not None:
                 # Cache HIT — adjust tone
                 cache_hit = True
@@ -257,10 +269,17 @@ async def websocket_endpoint(websocket: WebSocket):
                     traceback.print_exc()
                     answer = cached_answer  # Fallback to neutral answer
             else:
-                # Cache MISS — generate via LLM with conversation history
+                # Cache MISS — classify complexity then generate via LLM
+                try:
+                    classification = classifier.predict_complexity(request_data.message)
+                except Exception as e:
+                    logger.error(f"CRASH IN CLASSIFIER: {e}")
+                    traceback.print_exc()
+                    classification = {"complexity": "easy", "score": 0.0, "task_type": "Unknown"}
+
                 logger.debug("Generating LLM response...")
                 try:
-                    answer = llm_router.generate_response(request_data.message, complexity="easy", history=history)
+                    answer = llm_router.generate_response(request_data.message, complexity=classification["complexity"], history=history)
                     logger.debug(f"LLM answer length: {len(answer)}")
                 except Exception as e:
                     logger.error(f"CRASH IN LLM: {e}")
@@ -285,6 +304,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 conversation_id=conv_id,
                 enriched_query=enriched if enriched_changed else None,
                 cached=will_cache,
+                complexity=classification["complexity"] if classification else None,
+                complexity_score=classification["score"] if classification else None,
+                task_type=classification["task_type"] if classification else None,
             )
 
             await websocket.send_text(response.model_dump_json())

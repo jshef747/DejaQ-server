@@ -57,7 +57,7 @@ app/
 │   ├── context_enricher.py # Rewrites context-dependent queries into standalone ones (Qwen 0.5B)
 │   ├── cache_filter.py  # Smart heuristic filter: skips non-cacheable prompts (too short, filler, vague)
 │   ├── conversation_store.py # In-memory multi-turn conversation history (max 20 messages)
-│   ├── classifier.py    # TODO: NVIDIA prompt-task-and-complexity-classifier
+│   ├── classifier.py    # NVIDIA DeBERTa-based prompt complexity classifier (easy/hard routing)
 │   └── memory_chromaDB.py # ChromaDB semantic cache (PersistentClient, cosine ≤ 0.15)
 ├── schemas/chat.py      # ChatRequest/ChatResponse (Pydantic), includes conversation_id
 ├── models/              # TODO: DB models (PostgreSQL)
@@ -91,9 +91,10 @@ index.html               # WebSocket chatbot test UI with cache diagnostics (pro
 | Context Adjuster (adjust) | Qwen 2.5-1.5B-Instruct | Q4_K_M | `ModelManager.load_qwen_1_5b()` |
 | Generalizer (strip tone) | Phi-3.5-Mini-Instruct | Q4_K_M | `ModelManager.load_phi()` |
 | Local LLM (generation) | Llama 3.2-1B-Instruct | Q8_0 | `ModelManager.load_llama()` |
+| Difficulty Classifier | NVIDIA DeBERTa-v3-base | Full | `ClassifierService` (singleton) |
 
 ## Current Status
 
-**Working:** FastAPI WebSocket + HTTP, Normalizer (Qwen 0.5B), LLM Router (Llama 3.2 1B local), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Multi-turn conversation history (in-memory), Conversation CRUD endpoints, Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher (conversation-aware caching), Smart Cache Filter (skip non-cacheable prompts), Cache Viewer API + UI panel
-**In progress:** Difficulty Classifier (NVIDIA), Database integration (PostgreSQL), Non-blocking generalize+store in WebSocket (currently `_generalize_and_store` blocks the next message — needs `asyncio.to_thread()` + `create_task()` or Celery)
+**Working:** FastAPI WebSocket + HTTP, Normalizer (Qwen 0.5B), LLM Router (Llama 3.2 1B local), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Multi-turn conversation history (in-memory), Conversation CRUD endpoints, Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher (conversation-aware caching), Smart Cache Filter (skip non-cacheable prompts), Cache Viewer API + UI panel, Difficulty Classifier (NVIDIA DeBERTa — routes easy→local, hard→external)
+**In progress:** Database integration (PostgreSQL), Non-blocking generalize+store in WebSocket (currently `_generalize_and_store` blocks the next message — needs `asyncio.to_thread()` + `create_task()` or Celery)
 **Planned:** Celery/RabbitMQ task queue, External LLM APIs (GPT/Gemini), Feedback loop, React frontend, Persistent conversation storage (currently in-memory only)
