@@ -37,4 +37,7 @@ uv.lock
 
 # ChromaDB persistent storage
 chroma_data/
+
+# Test reports
+test_reports/
 EOF
