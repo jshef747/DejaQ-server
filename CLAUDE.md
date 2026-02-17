@@ -26,10 +26,26 @@ uv sync
 
 ### Run
 ```bash
+# Terminal 1: Start Redis
+redis-server
+
+# Terminal 2: Start FastAPI
 uv run uvicorn app.main:app --reload
 # Server at http://127.0.0.1:8000
 # WebSocket test UI: open index.html in browser
+
+# Terminal 3: Start Celery background worker (--pool=solo required for Metal/GPU compatibility)
+uv run celery -A app.celery_app:celery_app worker --queues=background --pool=solo --loglevel=info
+
+# Without Redis (fallback mode — generalize+store runs in-process):
+DEJAQ_USE_CELERY=false uv run uvicorn app.main:app --reload
 ```
+
+### Environment Variables
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEJAQ_REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL (broker + result backend) |
+| `DEJAQ_USE_CELERY` | `true` | Set to `false` to disable Celery and run tasks in-process |
 
 ### Endpoints
 - `GET /health` — health check
@@ -47,8 +63,12 @@ uv run uvicorn app.main:app --reload
 
 ```
 app/
-├── main.py              # FastAPI init, CORS, startup/shutdown
+├── main.py              # FastAPI init, CORS, startup/shutdown, health check
+├── config.py            # Centralized settings (Redis URL, feature flags)
+├── celery_app.py        # Celery configuration (broker, queues, serialization)
 ├── routers/chat.py      # All endpoints (HTTP + WebSocket) + conversation CRUD
+├── tasks/
+│   └── cache_tasks.py   # Celery task: generalize_and_store_task (Phi-3.5 + ChromaDB)
 ├── services/
 │   ├── model_loader.py  # ModelManager singleton (Qwen 0.5B, Qwen 1.5B, Llama 3.2 1B, Phi-3.5 Mini)
 │   ├── normalizer.py    # Query cleaning via Qwen 2.5-0.5B
@@ -71,7 +91,8 @@ index.html               # WebSocket chatbot test UI with cache diagnostics (pro
 - Models use GGUF format via `llama-cpp-python` for cross-platform GPU support (Metal/CUDA)
 - All schemas use Pydantic BaseModel
 - Conversation history is passed to the LLM for multi-turn context
-- Cache miss triggers background generalization + storage (BackgroundTasks for HTTP, synchronous for WebSocket) — only if cache filter passes
+- Cache miss triggers background generalization + storage via Celery task queue (falls back to in-process if Celery disabled) — only if cache filter passes
+- Celery workers lazy-load their own model instances via ModelManager singleton (one per worker process)
 - Context enricher rewrites follow-up queries ("tell me more") into standalone questions before normalization
 - Cache filter skips storing trivial messages (filler words, too short, too vague)
 
@@ -95,6 +116,6 @@ index.html               # WebSocket chatbot test UI with cache diagnostics (pro
 
 ## Current Status
 
-**Working:** FastAPI WebSocket + HTTP, Normalizer (Qwen 0.5B), LLM Router (Llama 3.2 1B local), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Multi-turn conversation history (in-memory), Conversation CRUD endpoints, Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher (conversation-aware caching), Smart Cache Filter (skip non-cacheable prompts), Cache Viewer API + UI panel, Difficulty Classifier (NVIDIA DeBERTa — routes easy→local, hard→external)
-**In progress:** Database integration (PostgreSQL), Non-blocking generalize+store in WebSocket (currently `_generalize_and_store` blocks the next message — needs `asyncio.to_thread()` + `create_task()` or Celery)
-**Planned:** Celery/RabbitMQ task queue, External LLM APIs (GPT/Gemini), Feedback loop, React frontend, Persistent conversation storage (currently in-memory only)
+**Working:** FastAPI WebSocket + HTTP, Normalizer (Qwen 0.5B), LLM Router (Llama 3.2 1B local), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Multi-turn conversation history (in-memory), Conversation CRUD endpoints, Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher (conversation-aware caching), Smart Cache Filter (skip non-cacheable prompts), Cache Viewer API + UI panel, Difficulty Classifier (NVIDIA DeBERTa — routes easy→local, hard→external), Celery + Redis task queue (non-blocking generalize+store for both HTTP and WebSocket)
+**In progress:** Database integration (PostgreSQL)
+**Planned:** External LLM APIs (GPT/Gemini), Feedback loop, React frontend, Persistent conversation storage (currently in-memory only), Offload user-facing inference to Celery inference queue (multi-user parallelism)

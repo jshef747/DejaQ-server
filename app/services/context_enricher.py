@@ -44,7 +44,10 @@ class ContextEnricherService:
                 # Example 2: topic continuation
                 {"role": "user", "content": "HISTORY:\nUser: How does photosynthesis work?\nAssistant: Photosynthesis converts light energy into chemical energy in plants.\n\nFOLLOW-UP: What about the dark reactions?"},
                 {"role": "assistant", "content": "What are the dark reactions in photosynthesis?"},
-                # Example 3: already standalone
+                # Example 3: resolve reference from assistant's answer
+                {"role": "user", "content": "HISTORY:\nUser: What is the capital of Italy?\nAssistant: The capital of Italy is Rome.\n\nFOLLOW-UP: I am traveling there recommend me restaurants"},
+                {"role": "assistant", "content": "What restaurants should I visit in Rome?"},
+                # Example 4: already standalone
                 {"role": "user", "content": "HISTORY:\nUser: What is gravity?\nAssistant: Gravity is a fundamental force of attraction.\n\nFOLLOW-UP: What is the capital of France?"},
                 {"role": "assistant", "content": "What is the capital of France?"},
                 # Actual query

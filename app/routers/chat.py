@@ -12,6 +12,8 @@ from app.services.conversation_store import ConversationStore
 from app.services.context_enricher import ContextEnricherService
 from app.services import cache_filter
 from app.services.classifier import ClassifierService
+from app.tasks.cache_tasks import generalize_and_store_task
+from app.config import USE_CELERY
 
 # Setup logger
 logger = logging.getLogger("dejaq.router.chat")
@@ -122,9 +124,12 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
 
     if will_cache:
         # 8. Generalize + store in background (user doesn't wait for Phi-3.5)
-        background_tasks.add_task(
-            _generalize_and_store, clean_query, answer, request.message, request.user_id
-        )
+        if USE_CELERY:
+            generalize_and_store_task.delay(clean_query, answer, request.message, request.user_id)
+        else:
+            background_tasks.add_task(
+                _generalize_and_store, clean_query, answer, request.message, request.user_id
+            )
 
     return ChatResponse(
         sender="bot",
@@ -312,11 +317,16 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_text(response.model_dump_json())
             logger.debug("Response sent.")
 
-            # 9. AFTER sending: generalize + store (blocking but user already has their answer)
+            # 9. AFTER sending: generalize + store in background
             if will_cache:
-                _generalize_and_store(
-                    clean_query, answer, request_data.message, request_data.user_id
-                )
+                if USE_CELERY:
+                    generalize_and_store_task.delay(
+                        clean_query, answer, request_data.message, request_data.user_id
+                    )
+                else:
+                    _generalize_and_store(
+                        clean_query, answer, request_data.message, request_data.user_id
+                    )
 
     except WebSocketDisconnect:
         logger.debug("Client disconnected gracefully.")

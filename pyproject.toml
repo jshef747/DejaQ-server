@@ -16,4 +16,6 @@ dependencies = [
     "uvicorn>=0.40.0",
     "websockets>=16.0",
     "chromadb>=0.6.0",
+    "celery[redis]>=5.4.0",
+    "redis>=5.0.0",
 ]
