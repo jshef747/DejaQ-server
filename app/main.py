@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import chat
+from app.routers import chat, feedback
 from app.utils.logger import setup_logging
 from app.config import USE_CELERY
 import logging
@@ -23,6 +23,7 @@ app.add_middleware(
 
 # 4. Include Routers
 app.include_router(chat.router)
+app.include_router(feedback.router)
 
 @app.on_event("startup")
 async def startup_event():

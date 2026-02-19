@@ -21,3 +21,4 @@ class ChatResponse(BaseModel):
     complexity: Optional[str] = Field(None, description="Query complexity: easy or hard")
     complexity_score: Optional[float] = Field(None, description="Complexity score 0-1")
     task_type: Optional[str] = Field(None, description="Detected task type")
+    cache_entry_id: Optional[str] = Field(None, description="ID of the cache entry for feedback submission")

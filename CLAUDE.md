@@ -46,6 +46,11 @@ DEJAQ_USE_CELERY=false uv run uvicorn app.main:app --reload
 |----------|---------|-------------|
 | `DEJAQ_REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL (broker + result backend) |
 | `DEJAQ_USE_CELERY` | `true` | Set to `false` to disable Celery and run tasks in-process |
+| `DEJAQ_TRUSTED_THRESHOLD` | `3` | Minimum net-positive feedback score for relaxed cache matching |
+| `DEJAQ_FLAG_THRESHOLD` | `-3` | Score at which a cache entry is flagged as unreliable |
+| `DEJAQ_AUTO_DELETE_THRESHOLD` | `-5` | Score at which a cache entry is auto-deleted |
+| `DEJAQ_TRUSTED_SIMILARITY` | `0.20` | Cosine distance ceiling for trusted (high-score) entries |
+| `DEJAQ_SUPPRESSION_TTL` | `300` | Seconds to hold a storage suppression flag in Redis |
 
 ### Endpoints
 - `GET /health` — health check
@@ -54,6 +59,8 @@ DEJAQ_USE_CELERY=false uv run uvicorn app.main:app --reload
 - `POST /generalize` — test endpoint: strips tone from an answer to produce neutral version
 - `GET /cache/entries` — cache viewer: list all cached entries with metadata
 - `DELETE /cache/entries/{id}` — delete a single cache entry
+- `POST /cache/entries/{id}/feedback` — submit positive/negative quality rating for a cache entry
+- `GET /cache/entries/{id}/feedback` — retrieve timestamped feedback history for a cache entry
 - `GET /conversations` — list all conversations (newest first)
 - `GET /conversations/{id}/messages` — get conversation message history
 - `DELETE /conversations/{id}` — delete a conversation
@@ -119,3 +126,10 @@ index.html               # WebSocket chatbot test UI with cache diagnostics (pro
 **Working:** FastAPI WebSocket + HTTP, Normalizer (Qwen 0.5B), LLM Router (Llama 3.2 1B local), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Multi-turn conversation history (in-memory), Conversation CRUD endpoints, Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher (conversation-aware caching), Smart Cache Filter (skip non-cacheable prompts), Cache Viewer API + UI panel, Difficulty Classifier (NVIDIA DeBERTa — routes easy→local, hard→external), Celery + Redis task queue (non-blocking generalize+store for both HTTP and WebSocket)
 **In progress:** Database integration (PostgreSQL)
 **Planned:** External LLM APIs (GPT/Gemini), Feedback loop, React frontend, Persistent conversation storage (currently in-memory only), Offload user-facing inference to Celery inference queue (multi-user parallelism)
+
+## Active Technologies
+- Python 3.13+ + FastAPI + Uvicorn, ChromaDB (PersistentClient), redis-py (already present as Celery dependency), Pydantic v2, Celery (001-cache-feedback-loop)
+- ChromaDB (entry metadata), Redis (feedback event history, suppression flags) (001-cache-feedback-loop)
+
+## Recent Changes
+- 001-cache-feedback-loop: Added Python 3.13+ + FastAPI + Uvicorn, ChromaDB (PersistentClient), redis-py (already present as Celery dependency), Pydantic v2, Celery

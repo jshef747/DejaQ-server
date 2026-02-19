@@ -5,6 +5,8 @@ from typing import Optional
 
 import chromadb
 
+from app.config import FEEDBACK_TRUSTED_THRESHOLD, FEEDBACK_TRUSTED_SIMILARITY
+
 logger = logging.getLogger("dejaq.services.memory_chromaDB")
 
 SIMILARITY_THRESHOLD = 0.15
@@ -24,11 +26,13 @@ class MemoryService:
         )
         logger.info("ChromaDB ready — %d documents in collection '%s'", self._collection.count(), collection_name)
 
-    def check_cache(self, normalized_query: str) -> Optional[str]:
+    def check_cache(self, normalized_query: str) -> Optional[tuple[str, str]]:
+        """Return (generalized_answer, entry_id) on cache hit, None on miss."""
         start = time.time()
         results = self._collection.query(
             query_texts=[normalized_query],
             n_results=1,
+            include=["documents", "metadatas", "distances"],
         )
 
         latency_ms = (time.time() - start) * 1000
@@ -36,15 +40,36 @@ class MemoryService:
         if (
             results["distances"]
             and results["distances"][0]
-            and results["distances"][0][0] <= SIMILARITY_THRESHOLD
+            and results["ids"]
+            and results["ids"][0]
         ):
             distance = results["distances"][0][0]
-            answer = results["metadatas"][0][0]["generalized_answer"]
-            logger.info(
-                "Cache HIT (distance=%.4f, latency=%.1fms) for query: %s",
-                distance, latency_ms, normalized_query,
+            meta = results["metadatas"][0][0] if results["metadatas"] and results["metadatas"][0] else {}
+            entry_id = results["ids"][0][0]
+
+            # Respect flagged entries — never serve them
+            if meta.get("flagged", 0) == 1:
+                logger.info(
+                    "Cache FLAGGED entry skipped (id=%s, latency=%.1fms) for query: %s",
+                    entry_id, latency_ms, normalized_query,
+                )
+                return None
+
+            # Dynamic threshold: trusted entries cast a wider net
+            feedback_score = int(meta.get("feedback_score", 0))
+            threshold = (
+                FEEDBACK_TRUSTED_SIMILARITY
+                if feedback_score >= FEEDBACK_TRUSTED_THRESHOLD
+                else SIMILARITY_THRESHOLD
             )
-            return answer
+
+            if distance <= threshold:
+                answer = meta["generalized_answer"]
+                logger.info(
+                    "Cache HIT (distance=%.4f, threshold=%.2f, score=%d, latency=%.1fms) for query: %s",
+                    distance, threshold, feedback_score, latency_ms, normalized_query,
+                )
+                return answer, entry_id
 
         distance = results["distances"][0][0] if results["distances"] and results["distances"][0] else None
         logger.info(
@@ -71,6 +96,8 @@ class MemoryService:
                 "original_query": original_query,
                 "user_id": user_id,
                 "stored_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "feedback_score": 0,
+                "flagged": 0,
             }],
         )
         logger.info("Stored in cache (id=%s, total=%d)", doc_id, self._collection.count())
@@ -112,6 +139,23 @@ class MemoryService:
             return True
         except Exception:
             logger.error("Failed to delete cache entry %s", entry_id)
+            return False
+
+    def get_entry_metadata(self, entry_id: str) -> Optional[dict]:
+        """Return full metadata dict for a cache entry, or None if not found."""
+        result = self._collection.get(ids=[entry_id], include=["metadatas"])
+        if not result["ids"]:
+            return None
+        return result["metadatas"][0]
+
+    def update_entry_metadata(self, entry_id: str, metadata: dict) -> bool:
+        """Replace the full metadata for a cache entry. ChromaDB requires the complete dict."""
+        try:
+            self._collection.update(ids=[entry_id], metadatas=[metadata])
+            logger.info("Updated metadata for cache entry %s", entry_id)
+            return True
+        except Exception:
+            logger.error("Failed to update metadata for entry %s", entry_id, exc_info=True)
             return False
 
     @property

@@ -1,4 +1,5 @@
 # server/app/routers/chat.py
+import hashlib
 import logging
 import json
 import traceback
@@ -19,6 +20,10 @@ from app.config import USE_CELERY
 logger = logging.getLogger("dejaq.router.chat")
 
 router = APIRouter()
+
+
+def _compute_doc_id(clean_query: str) -> str:
+    return hashlib.sha256(clean_query.encode()).hexdigest()[:16]
 
 # Initialize Services (Global)
 logger.info("Initializing Normalizer Service...")
@@ -50,10 +55,25 @@ classifier = ClassifierService()
 logger.info("Classifier Service Ready.")
 
 
+def _is_suppressed(clean_query: str) -> bool:
+    """Check if negative feedback has suppressed storage for this query."""
+    import redis as redis_lib
+    from app.config import REDIS_URL
+    doc_id = hashlib.sha256(clean_query.encode()).hexdigest()[:16]
+    try:
+        r = redis_lib.Redis.from_url(REDIS_URL, decode_responses=True)
+        return r.exists(f"skip:{doc_id}") == 1
+    except redis_lib.exceptions.RedisError:
+        return False
+
+
 def _generalize_and_store(
     clean_query: str, answer: str, original_query: str, user_id: str
 ) -> None:
     """Generalize an LLM answer and store it in the cache. Safe to call from background tasks."""
+    if _is_suppressed(clean_query):
+        logger.info("Storage suppressed (in-process) for query '%s'", clean_query[:60])
+        return
     try:
         generalized = context_adjuster.generalize(answer)
         memory.store_interaction(clean_query, generalized, original_query, user_id)
@@ -91,9 +111,10 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
     logger.info(f"Normalized query: {clean_query}")
 
     # 3. Check cache with enriched+normalized key
-    cached_answer = memory.check_cache(clean_query)
+    cache_result = memory.check_cache(clean_query)
 
-    if cached_answer is not None:
+    if cache_result is not None:
+        cached_answer, entry_id = cache_result
         # Cache HIT — adjust tone to match original query
         answer = context_adjuster.adjust(request.message, cached_answer)
         conversations.add_message(conv_id, "user", request.message)
@@ -106,6 +127,7 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
             cache_hit=True,
             conversation_id=conv_id,
             enriched_query=enriched if enriched_changed else None,
+            cache_entry_id=entry_id,
         )
 
     # 4. Classify complexity
@@ -143,6 +165,7 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
         complexity=classification["complexity"],
         complexity_score=classification["score"],
         task_type=classification["task_type"],
+        cache_entry_id=_compute_doc_id(clean_query) if will_cache else None,
     )
 
 
@@ -257,14 +280,16 @@ async def websocket_endpoint(websocket: WebSocket):
             # 5. Check cache with enriched+normalized key
             cache_hit = False
             will_cache = None
+            entry_id = None
             try:
-                cached_answer = memory.check_cache(clean_query)
+                cache_result = memory.check_cache(clean_query)
             except Exception as e:
                 logger.error(f"Cache check failed: {e}")
-                cached_answer = None
+                cache_result = None
 
             classification = None
-            if cached_answer is not None:
+            if cache_result is not None:
+                cached_answer, entry_id = cache_result
                 # Cache HIT — adjust tone
                 cache_hit = True
                 try:
@@ -274,6 +299,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     traceback.print_exc()
                     answer = cached_answer  # Fallback to neutral answer
             else:
+                cached_answer = None
                 # Cache MISS — classify complexity then generate via LLM
                 try:
                     classification = classifier.predict_complexity(request_data.message)
@@ -312,6 +338,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 complexity=classification["complexity"] if classification else None,
                 complexity_score=classification["score"] if classification else None,
                 task_type=classification["task_type"] if classification else None,
+                cache_entry_id=entry_id if cache_hit else (_compute_doc_id(clean_query) if will_cache else None),
             )
 
             await websocket.send_text(response.model_dump_json())

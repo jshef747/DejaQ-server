@@ -1,11 +1,25 @@
+import hashlib
 import logging
 import traceback
 
+import redis as redis_lib
+
 from app.celery_app import celery_app
+from app.config import REDIS_URL
 from app.services.context_adjuster import ContextAdjusterService
 from app.services.memory_chromaDB import MemoryService
 
 logger = logging.getLogger("dejaq.tasks.cache")
+
+
+def _is_suppressed(clean_query: str) -> bool:
+    """Check if negative feedback has flagged this query's storage as suppressed."""
+    doc_id = hashlib.sha256(clean_query.encode()).hexdigest()[:16]
+    try:
+        r = redis_lib.Redis.from_url(REDIS_URL, decode_responses=True)
+        return r.exists(f"skip:{doc_id}") == 1
+    except redis_lib.exceptions.RedisError:
+        return False  # Redis unavailable: proceed with storage
 
 # Lazy-initialized service instances (one per worker process)
 _context_adjuster: ContextAdjusterService | None = None
@@ -42,6 +56,10 @@ def generalize_and_store_task(
 
     All arguments are plain strings — no model objects or unpickleable data.
     """
+    if _is_suppressed(clean_query):
+        logger.info("Storage suppressed for query '%s'", clean_query[:60])
+        return {"status": "suppressed", "clean_query": clean_query}
+
     try:
         context_adjuster, memory = _get_services()
         generalized = context_adjuster.generalize(answer)
