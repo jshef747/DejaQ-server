@@ -40,4 +40,10 @@ chroma_data/
 
 # Test reports
 test_reports/
-EOF
+
+# macOS
+.DS_Store
+
+# Redis
+dump.rdb
+

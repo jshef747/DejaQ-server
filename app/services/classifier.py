@@ -8,7 +8,7 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 logger = logging.getLogger("dejaq.services.classifier")
 
 MODEL_ID = "nvidia/prompt-task-and-complexity-classifier"
-COMPLEXITY_THRESHOLD = 0.5
+COMPLEXITY_THRESHOLD = 0.2
 
 
 # --- NVIDIA model architecture (required for loading) ---
