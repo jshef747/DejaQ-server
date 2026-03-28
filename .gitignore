@@ -47,3 +47,12 @@ test_reports/
 # Redis
 dump.rdb
 
+# Tooling / Scaffolding
+.specify/
+.claude/
+.gemini/
+.logs/
+
+# Personal notes / Obsidian docs
+_docs/
+

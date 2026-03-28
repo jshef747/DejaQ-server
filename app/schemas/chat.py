@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 class ChatRequest(BaseModel):
     user_id: str = Field(..., description="The ID of the user sending the message")
@@ -22,3 +22,25 @@ class ChatResponse(BaseModel):
     complexity_score: Optional[float] = Field(None, description="Complexity score 0-1")
     task_type: Optional[str] = Field(None, description="Detected task type")
     cache_entry_id: Optional[str] = Field(None, description="ID of the cache entry for feedback submission")
+    model_used: Optional[str] = Field(None, description="Model that generated the response (local or external)")
+    latency_ms: Optional[float] = Field(None, description="Time in milliseconds to generate the LLM response")
+
+
+class ExternalLLMRequest(BaseModel):
+    query: str = Field(..., description="The user's query to send to the external LLM")
+    history: list[dict] = Field(default_factory=list, description="Multi-turn conversation messages")
+    system_prompt: str = Field(
+        "You are a helpful assistant. Answer the user's query concisely and accurately.",
+        description="System prompt guiding the external model's behavior",
+    )
+    model: str = Field("gpt-4o", description="External model name to use")
+    max_tokens: int = Field(1024, description="Maximum tokens to generate")
+    temperature: float = Field(0.7, description="Sampling temperature")
+
+
+class ExternalLLMResponse(BaseModel):
+    text: str = Field(..., description="The generated response text")
+    model_used: str = Field(..., description="Actual model that produced the response")
+    prompt_tokens: int = Field(0, description="Number of input tokens consumed")
+    completion_tokens: int = Field(0, description="Number of output tokens generated")
+    latency_ms: float = Field(0.0, description="Total request time in milliseconds")

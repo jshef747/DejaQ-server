@@ -5,7 +5,7 @@ from typing import Optional
 
 import chromadb
 
-from app.config import FEEDBACK_TRUSTED_THRESHOLD, FEEDBACK_TRUSTED_SIMILARITY
+from app.config import FEEDBACK_TRUSTED_THRESHOLD, FEEDBACK_TRUSTED_SIMILARITY, CHROMA_HOST, CHROMA_PORT
 
 logger = logging.getLogger("dejaq.services.memory_chromaDB")
 
@@ -16,10 +16,9 @@ class MemoryService:
     def __init__(
         self,
         collection_name: str = "dejaq_default",
-        persist_directory: str = "./chroma_data",
     ):
-        logger.info("Initializing ChromaDB (collection=%s, path=%s)", collection_name, persist_directory)
-        self._client = chromadb.PersistentClient(path=persist_directory)
+        logger.info("Initializing ChromaDB (collection=%s, host=%s, port=%d)", collection_name, CHROMA_HOST, CHROMA_PORT)
+        self._client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
         self._collection = self._client.get_or_create_collection(
             name=collection_name,
             metadata={"hnsw:space": "cosine"},
@@ -124,6 +123,8 @@ class MemoryService:
                 "original_query": meta.get("original_query", ""),
                 "user_id": meta.get("user_id", ""),
                 "stored_at": meta.get("stored_at", ""),
+                "feedback_score": int(meta.get("feedback_score", 0)),
+                "flagged": bool(meta.get("flagged", 0)),
             })
 
         return entries

@@ -579,6 +579,22 @@
                         badges.appendChild(taskBadge);
                     }
 
+                    // Model used badge
+                    if (data.model_used) {
+                        const modelBadge = document.createElement("span");
+                        modelBadge.className = "badge " + (data.complexity === "hard" ? "badge-hard" : "badge-easy");
+                        modelBadge.textContent = "model: " + data.model_used;
+                        badges.appendChild(modelBadge);
+                    }
+
+                    // Latency badge
+                    if (data.latency_ms != null) {
+                        const latencyBadge = document.createElement("span");
+                        latencyBadge.className = "badge badge-normalized";
+                        latencyBadge.textContent = data.latency_ms.toFixed(0) + " ms";
+                        badges.appendChild(latencyBadge);
+                    }
+
                     if (data.normalized_query) {
                         const normBadge = document.createElement("span");
                         normBadge.className = "badge badge-normalized";

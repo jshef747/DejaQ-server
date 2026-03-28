@@ -3,6 +3,15 @@ import os
 # Redis
 REDIS_URL = os.getenv("DEJAQ_REDIS_URL", "redis://localhost:6379/0")
 
+# ChromaDB
+CHROMA_HOST = os.getenv("DEJAQ_CHROMA_HOST", "127.0.0.1")
+CHROMA_PORT = int(os.getenv("DEJAQ_CHROMA_PORT", "8001"))
+
+# External LLM
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+EXTERNAL_MODEL_NAME = os.getenv("DEJAQ_EXTERNAL_MODEL", "gpt-4o")
+EXTERNAL_API_BASE = os.getenv("DEJAQ_EXTERNAL_API_BASE", None)
+
 # Feature flags
 USE_CELERY = os.getenv("DEJAQ_USE_CELERY", "true").lower() == "true"
 

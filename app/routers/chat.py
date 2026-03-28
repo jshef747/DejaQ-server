@@ -4,9 +4,10 @@ import logging
 import json
 import traceback
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, BackgroundTasks, HTTPException, Query
-from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.chat import ChatRequest, ChatResponse, ExternalLLMRequest
 from app.services.normalizer import NormalizerService
-from app.services.llm_router import LLMRouterService
+from app.services.llm_router import LLMRouterService, _LOCAL_MODEL_NAME
+from app.services.external_llm import ExternalLLMService
 from app.services.context_adjuster import ContextAdjusterService
 from app.services.memory_chromaDB import MemoryService
 from app.services.conversation_store import ConversationStore
@@ -14,7 +15,8 @@ from app.services.context_enricher import ContextEnricherService
 from app.services import cache_filter
 from app.services.classifier import ClassifierService
 from app.tasks.cache_tasks import generalize_and_store_task
-from app.config import USE_CELERY
+from app.config import USE_CELERY, EXTERNAL_MODEL_NAME
+from app.utils.exceptions import ExternalLLMError
 
 # Setup logger
 logger = logging.getLogger("dejaq.router.chat")
@@ -53,6 +55,8 @@ logger.info("Context Enricher Service Ready.")
 logger.info("Initializing Classifier Service...")
 classifier = ClassifierService()
 logger.info("Classifier Service Ready.")
+
+external_llm = ExternalLLMService()
 
 
 def _is_suppressed(clean_query: str) -> bool:
@@ -132,10 +136,38 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
 
     # 4. Classify complexity
     classification = classifier.predict_complexity(request.message)
+    complexity = classification["complexity"]
 
-    # 5. Cache MISS — LLM generates response (original query + history preserves tone)
-    answer = llm_router.generate_response(request.message, complexity=classification["complexity"], history=history)
-    logger.info(f"LLM answer length: {len(answer)}")
+    # 5. Cache MISS — route to local or external LLM (original query + history preserves tone)
+    model_used = None
+    latency_ms = None
+    if complexity == "hard":
+        logger.info("Routing 'hard' query to ExternalLLMService")
+        try:
+            ext_request = ExternalLLMRequest(
+                query=request.message,
+                history=history,
+                model=EXTERNAL_MODEL_NAME,
+            )
+            ext_response = await external_llm.generate_response(ext_request)
+            answer = ext_response.text
+            model_used = ext_response.model_used
+            latency_ms = ext_response.latency_ms
+        except ExternalLLMError as exc:
+            logger.error("ExternalLLMService failed: %s", exc)
+            return ChatResponse(
+                sender="bot",
+                message="I'm sorry, I couldn't process your request right now. The external service is unavailable. Please try again later.",
+                normalized_query=clean_query,
+                status="error",
+                cache_hit=False,
+                conversation_id=conv_id,
+            )
+    else:
+        answer, latency_ms = llm_router.generate_local_response(request.message, history=history)
+        model_used = _LOCAL_MODEL_NAME
+
+    logger.info("LLM answer length: %d (model=%s)", len(answer), model_used)
 
     # 6. Store in conversation history
     conversations.add_message(conv_id, "user", request.message)
@@ -162,10 +194,12 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
         conversation_id=conv_id,
         enriched_query=enriched if enriched_changed else None,
         cached=will_cache,
-        complexity=classification["complexity"],
+        complexity=complexity,
         complexity_score=classification["score"],
         task_type=classification["task_type"],
         cache_entry_id=_compute_doc_id(clean_query) if will_cache else None,
+        model_used=model_used,
+        latency_ms=latency_ms,
     )
 
 
@@ -288,6 +322,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 cache_result = None
 
             classification = None
+            model_used = None
+            latency_ms = None
             if cache_result is not None:
                 cached_answer, entry_id = cache_result
                 # Cache HIT — adjust tone
@@ -300,7 +336,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     answer = cached_answer  # Fallback to neutral answer
             else:
                 cached_answer = None
-                # Cache MISS — classify complexity then generate via LLM
+                # Cache MISS — classify complexity then route to local or external LLM
                 try:
                     classification = classifier.predict_complexity(request_data.message)
                 except Exception as e:
@@ -308,10 +344,27 @@ async def websocket_endpoint(websocket: WebSocket):
                     traceback.print_exc()
                     classification = {"complexity": "easy", "score": 0.0, "task_type": "Unknown"}
 
-                logger.debug("Generating LLM response...")
+                logger.debug("Generating LLM response (complexity=%s)...", classification["complexity"])
                 try:
-                    answer = llm_router.generate_response(request_data.message, complexity=classification["complexity"], history=history)
-                    logger.debug(f"LLM answer length: {len(answer)}")
+                    if classification["complexity"] == "hard":
+                        logger.info("Routing 'hard' query to ExternalLLMService (WebSocket)")
+                        ext_request = ExternalLLMRequest(
+                            query=request_data.message,
+                            history=history,
+                            model=EXTERNAL_MODEL_NAME,
+                        )
+                        ext_response = await external_llm.generate_response(ext_request)
+                        answer = ext_response.text
+                        model_used = ext_response.model_used
+                        latency_ms = ext_response.latency_ms
+                    else:
+                        answer, latency_ms = llm_router.generate_local_response(request_data.message, history=history)
+                        model_used = _LOCAL_MODEL_NAME
+                    logger.debug("LLM answer length: %d (model=%s)", len(answer), model_used)
+                except ExternalLLMError as e:
+                    logger.error("ExternalLLMService failed (WebSocket): %s", e)
+                    answer = "I'm sorry, I couldn't process your request right now. The external service is unavailable. Please try again later."
+                    model_used = None
                 except Exception as e:
                     logger.error(f"CRASH IN LLM: {e}")
                     traceback.print_exc()
@@ -339,6 +392,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 complexity_score=classification["score"] if classification else None,
                 task_type=classification["task_type"] if classification else None,
                 cache_entry_id=entry_id if cache_hit else (_compute_doc_id(clean_query) if will_cache else None),
+                model_used=model_used,
+                latency_ms=latency_ms,
             )
 
             await websocket.send_text(response.model_dump_json())
