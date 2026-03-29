@@ -4,27 +4,61 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$PROJECT_DIR/.logs"
+VENV="$PROJECT_DIR/.venv"
 mkdir -p "$LOG_DIR"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 
-REDIS_PID=""; CELERY_PID=""; UVICORN_PID=""; CHROMA_PID=""
+# Verify the project venv exists
+if [[ ! -f "$VENV/bin/python" ]]; then
+  echo -e "${RED}No .venv found at $VENV. Run: uv sync${NC}"; exit 1
+fi
+
+# Use project venv executables directly — avoids any venv activated in the parent shell
+PYTHON="$VENV/bin/python"
+UVICORN="$VENV/bin/uvicorn"
+CELERY="$VENV/bin/celery"
+CHROMA="$VENV/bin/chroma"
+
+REDIS_PID=""; CELERY_PID=""; UVICORN_PID=""; CHROMA_PID=""; TAIL_PID=""
 
 cleanup() {
   echo -e "\n${YELLOW}Shutting down services...${NC}"
-  [[ -n "$UVICORN_PID" ]] && kill "$UVICORN_PID" 2>/dev/null && echo "  FastAPI stopped"
-  [[ -n "$CELERY_PID"  ]] && kill "$CELERY_PID"  2>/dev/null && echo "  Celery stopped"
-  [[ -n "$CHROMA_PID"  ]] && kill "$CHROMA_PID"  2>/dev/null && echo "  ChromaDB stopped"
-  [[ -n "$REDIS_PID"   ]] && kill "$REDIS_PID"   2>/dev/null && echo "  Redis stopped"
+  stop_service() {
+    local pid=$1 name=$2
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      pkill -TERM -P "$pid" 2>/dev/null || true  # kill children first
+      kill -TERM "$pid" 2>/dev/null || true
+      echo "  $name stopped"
+    fi
+  }
+  [[ -n "$TAIL_PID" ]] && kill "$TAIL_PID" 2>/dev/null || true
+  stop_service "$UVICORN_PID" "FastAPI"
+  stop_service "$CELERY_PID"  "Celery"
+  stop_service "$CHROMA_PID"  "ChromaDB"
+  stop_service "$REDIS_PID"   "Redis"
   echo -e "${GREEN}All services stopped.${NC}"
 }
 trap cleanup EXIT INT TERM
+
+# Kill any process holding a port before we try to bind it
+free_port() {
+  local port=$1
+  local pids
+  pids=$(lsof -ti :"$port" 2>/dev/null) || true
+  if [[ -n "$pids" ]]; then
+    echo -e "  ${YELLOW}Port $port already in use — clearing...${NC}"
+    echo "$pids" | xargs kill -9 2>/dev/null || true
+    sleep 1
+  fi
+}
 
 cd "$PROJECT_DIR"
 
 # ── 1. ChromaDB ─────────────────────────────────────────────────────────────
 echo -e "${CYAN}[1/4] Starting ChromaDB server...${NC}"
-uv run chroma run --path "$PROJECT_DIR/chroma_data" --host 127.0.0.1 --port 8001 \
+free_port 8001
+"$CHROMA" run --path "$PROJECT_DIR/chroma_data" --host 127.0.0.1 --port 8001 \
   &>"$LOG_DIR/chroma.log" &
 CHROMA_PID=$!
 sleep 2
@@ -34,7 +68,7 @@ fi
 echo -e "  ${GREEN}ChromaDB running (PID $CHROMA_PID)${NC}"
 
 # ── 2. Redis ────────────────────────────────────────────────────────────────
-echo -e "${CYAN}[1/3] Starting Redis...${NC}"
+echo -e "${CYAN}[2/4] Starting Redis...${NC}"
 if ! command -v redis-server &>/dev/null; then
   echo -e "${RED}redis-server not found. Install with: brew install redis${NC}"; exit 1
 fi
@@ -52,7 +86,7 @@ fi
 
 # ── 3. Celery ───────────────────────────────────────────────────────────────
 echo -e "${CYAN}[3/4] Starting Celery worker...${NC}"
-uv run celery -A app.celery_app:celery_app worker \
+"$CELERY" -A app.celery_app:celery_app worker \
   --queues=background --pool=solo --loglevel=info \
   &>"$LOG_DIR/celery.log" &
 CELERY_PID=$!
@@ -64,7 +98,8 @@ echo -e "  ${GREEN}Celery running (PID $CELERY_PID)${NC}"
 
 # ── 4. FastAPI ──────────────────────────────────────────────────────────────
 echo -e "${CYAN}[4/4] Starting FastAPI...${NC}"
-uv run uvicorn app.main:app --reload &>"$LOG_DIR/uvicorn.log" &
+free_port 8000
+"$UVICORN" app.main:app --reload &>"$LOG_DIR/uvicorn.log" &
 UVICORN_PID=$!
 sleep 2
 if ! kill -0 "$UVICORN_PID" 2>/dev/null; then
@@ -81,5 +116,7 @@ echo -e "  Chat UI:   open index.html in browser"
 echo -e "  Logs:      $LOG_DIR/"
 echo -e "\n${YELLOW}Press Ctrl+C to stop all services.${NC}\n"
 
-# Tail all logs to stdout so you can see live output
-tail -f "$LOG_DIR/redis.log" "$LOG_DIR/celery.log" "$LOG_DIR/uvicorn.log"
+# Tail all logs — kill tail pid in cleanup so it doesn't linger
+tail -f "$LOG_DIR/redis.log" "$LOG_DIR/celery.log" "$LOG_DIR/uvicorn.log" &
+TAIL_PID=$!
+wait $TAIL_PID
