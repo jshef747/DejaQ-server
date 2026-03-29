@@ -8,9 +8,8 @@ CHROMA_HOST = os.getenv("DEJAQ_CHROMA_HOST", "127.0.0.1")
 CHROMA_PORT = int(os.getenv("DEJAQ_CHROMA_PORT", "8001"))
 
 # External LLM
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-EXTERNAL_MODEL_NAME = os.getenv("DEJAQ_EXTERNAL_MODEL", "gpt-4o")
-EXTERNAL_API_BASE = os.getenv("DEJAQ_EXTERNAL_API_BASE", None)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+EXTERNAL_MODEL_NAME = os.getenv("DEJAQ_EXTERNAL_MODEL", "gemini-2.5-flash")
 
 # Feature flags
 USE_CELERY = os.getenv("DEJAQ_USE_CELERY", "true").lower() == "true"

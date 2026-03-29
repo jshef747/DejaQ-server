@@ -1,15 +1,14 @@
 import time
 import logging
-import openai
-from openai import AsyncOpenAI
+from google import genai
+from google.genai import types, errors as genai_errors
 
-from app.config import OPENAI_API_KEY, EXTERNAL_MODEL_NAME, EXTERNAL_API_BASE
+from app.config import GEMINI_API_KEY, EXTERNAL_MODEL_NAME
 from app.schemas.chat import ExternalLLMRequest, ExternalLLMResponse
 from app.utils.exceptions import ExternalLLMError, ExternalLLMAuthError, ExternalLLMTimeoutError
 
 logger = logging.getLogger("dejaq.services.external_llm")
 
-_MAX_RETRIES = 2
 _TIMEOUT_SECONDS = 30.0
 
 
@@ -22,17 +21,14 @@ class ExternalLLMService:
             cls._instance._client = None
         return cls._instance
 
-    def _get_client(self) -> AsyncOpenAI:
+    def _get_client(self) -> genai.Client:
         if self._client is None:
-            if not OPENAI_API_KEY:
+            if not GEMINI_API_KEY:
                 raise ExternalLLMAuthError(
-                    "OPENAI_API_KEY is not set. Configure it via the OPENAI_API_KEY environment variable."
+                    "GEMINI_API_KEY is not set. Configure it via the GEMINI_API_KEY environment variable."
                 )
-            kwargs: dict = {"api_key": OPENAI_API_KEY, "timeout": _TIMEOUT_SECONDS, "max_retries": _MAX_RETRIES}
-            if EXTERNAL_API_BASE:
-                kwargs["base_url"] = EXTERNAL_API_BASE
-            self._client = AsyncOpenAI(**kwargs)
-            logger.info("AsyncOpenAI client initialized (model=%s, base=%s)", EXTERNAL_MODEL_NAME, EXTERNAL_API_BASE or "default")
+            self._client = genai.Client(api_key=GEMINI_API_KEY)
+            logger.info("Gemini client initialized (model=%s)", EXTERNAL_MODEL_NAME)
         return self._client
 
     async def generate_response(self, request: ExternalLLMRequest) -> ExternalLLMResponse:
@@ -41,12 +37,21 @@ class ExternalLLMService:
 
         client = self._get_client()
 
-        messages: list[dict] = [{"role": "system", "content": request.system_prompt}]
-        messages.extend(request.history)
-        messages.append({"role": "user", "content": request.query})
+        # Convert history from OpenAI format (role="assistant") to Gemini format (role="model")
+        contents: list[types.Content] = []
+        for msg in request.history:
+            role = "model" if msg["role"] == "assistant" else msg["role"]
+            contents.append(types.Content(role=role, parts=[types.Part(text=msg["content"])]))
+        contents.append(types.Content(role="user", parts=[types.Part(text=request.query)]))
+
+        config = types.GenerateContentConfig(
+            system_instruction=request.system_prompt,
+            max_output_tokens=request.max_tokens,
+            temperature=request.temperature,
+        )
 
         logger.info(
-            "Sending hard query to external LLM (model=%s, history_turns=%d): %.80s",
+            "Sending hard query to Gemini (model=%s, history_turns=%d): %.80s",
             request.model,
             len(request.history),
             request.query,
@@ -54,41 +59,37 @@ class ExternalLLMService:
 
         start = time.perf_counter()
         try:
-            completion = await client.chat.completions.create(
+            response = await client.aio.models.generate_content(
                 model=request.model,
-                messages=messages,
-                max_tokens=request.max_tokens,
-                temperature=request.temperature,
+                contents=contents,
+                config=config,
             )
-        except openai.AuthenticationError as exc:
-            logger.error("External LLM authentication failed: %s", exc)
-            raise ExternalLLMAuthError(f"Authentication failed: {exc}") from exc
-        except openai.APITimeoutError as exc:
-            logger.error("External LLM request timed out: %s", exc)
-            raise ExternalLLMTimeoutError(f"Request timed out after {_TIMEOUT_SECONDS}s") from exc
-        except openai.RateLimitError as exc:
-            logger.error("External LLM rate limit hit: %s", exc)
-            raise ExternalLLMError(f"Rate limit exceeded: {exc}") from exc
-        except openai.APIError as exc:
-            logger.error("External LLM API error: %s", exc)
+        except genai_errors.ClientError as exc:
+            if exc.code == 401:
+                logger.error("Gemini authentication failed: %s", exc)
+                raise ExternalLLMAuthError(f"Authentication failed: {exc}") from exc
+            logger.error("Gemini client error (code=%d): %s", exc.code, exc)
+            raise ExternalLLMError(f"Provider error: {exc}") from exc
+        except genai_errors.APIError as exc:
+            logger.error("Gemini API error: %s", exc)
             raise ExternalLLMError(f"Provider error: {exc}") from exc
 
         latency_ms = (time.perf_counter() - start) * 1000
-        text = completion.choices[0].message.content or ""
-        usage = completion.usage
+        text = response.text or ""
+        usage = response.usage_metadata
 
         logger.info(
-            "External API request successful (model=%s, latency=%.2f ms, prompt_tokens=%d, completion_tokens=%d)",
-            completion.model,
+            "Gemini request successful (model=%s, latency=%.2f ms, prompt_tokens=%d, completion_tokens=%d)",
+            request.model,
             latency_ms,
-            usage.prompt_tokens if usage else 0,
-            usage.completion_tokens if usage else 0,
+            usage.prompt_token_count if usage else 0,
+            usage.candidates_token_count if usage else 0,
         )
 
         return ExternalLLMResponse(
             text=text,
-            model_used=completion.model,
-            prompt_tokens=usage.prompt_tokens if usage else 0,
-            completion_tokens=usage.completion_tokens if usage else 0,
+            model_used=request.model,
+            prompt_tokens=usage.prompt_token_count if usage else 0,
+            completion_tokens=usage.candidates_token_count if usage else 0,
             latency_ms=latency_ms,
         )
