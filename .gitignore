@@ -1,0 +1,8 @@
+.env
+.DS_Store
+.idea/
+.logs/
+chroma_data/
+dump.rdb
+test_reports/
+uv.lock
