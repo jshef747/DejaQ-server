@@ -4,12 +4,12 @@ from app.services.model_loader import ModelManager
 
 logger = logging.getLogger("dejaq.services.llm_router")
 
-_LOCAL_MODEL_NAME = "llama-3.2-1b"
+_LOCAL_MODEL_NAME = "gemma-4-26b-a4b"
 
 
 class LLMRouterService:
     def __init__(self):
-        self.local_llm = ModelManager.load_llama()
+        self.local_llm = ModelManager.load_gemma()
 
     def is_hard(self, complexity: str) -> bool:
         return complexity == "hard"

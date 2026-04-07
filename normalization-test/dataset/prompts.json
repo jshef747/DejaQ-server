@@ -1,0 +1,904 @@
+{
+  "concepts": [
+    {
+      "id": "capital_of_canada",
+      "category": "factual_qa",
+      "phrasings": [
+        "What is the capital of Canada?",
+        "Name the capital city of Canada.",
+        "Can you tell me Canada's capital?"
+      ]
+    },
+    {
+      "id": "deepest_ocean_trench",
+      "category": "factual_qa",
+      "phrasings": [
+        "What is the deepest point in the ocean?",
+        "Name the deepest oceanic trench on Earth.",
+        "Where is the lowest elevation in the ocean?"
+      ]
+    },
+    {
+      "id": "boiling_point_fahrenheit",
+      "category": "factual_qa",
+      "phrasings": [
+        "At what temperature Fahrenheit does water boil?",
+        "What's the Fahrenheit boiling point of water?",
+        "Tell me the boiling temperature of water in Fahrenheit."
+      ]
+    },
+    {
+      "id": "longest_bone_human_body",
+      "category": "factual_qa",
+      "phrasings": [
+        "What is the longest bone in the human body?",
+        "Name the longest human bone.",
+        "Which bone is the longest one in humans?"
+      ]
+    },
+    {
+      "id": "number_of_continents",
+      "category": "factual_qa",
+      "phrasings": [
+        "How many continents are there on Earth?",
+        "What is the total number of continents?",
+        "Tell me how many continents exist globally."
+      ]
+    },
+    {
+      "id": "largest_desert",
+      "category": "factual_qa",
+      "phrasings": [
+        "What is the largest desert in the world?",
+        "Name the biggest desert on the planet.",
+        "Which desert covers the most area globally?"
+      ]
+    },
+    {
+      "id": "fastest_land_animal",
+      "category": "factual_qa",
+      "phrasings": [
+        "What is the fastest land animal?",
+        "Which animal is the fastest on land?",
+        "Name the land mammal with the highest top speed."
+      ]
+    },
+    {
+      "id": "most_populated_country",
+      "category": "factual_qa",
+      "phrasings": [
+        "Which country has the largest population?",
+        "What is the most populous nation?",
+        "Name the country with the most people."
+      ]
+    },
+    {
+      "id": "atomic_number_of_oxygen",
+      "category": "factual_qa",
+      "phrasings": [
+        "What is the atomic number of oxygen?",
+        "Which atomic number belongs to oxygen?",
+        "Tell me oxygen's atomic number."
+      ]
+    },
+    {
+      "id": "smallest_planet",
+      "category": "factual_qa",
+      "phrasings": [
+        "What is the smallest planet in our solar system?",
+        "Name the tiniest planet orbiting our sun.",
+        "Which solar system planet has the least mass and volume?"
+      ]
+    },
+    {
+      "id": "currency_of_japan",
+      "category": "factual_qa",
+      "phrasings": [
+        "What currency is used in Japan?",
+        "Name the official currency of Japan.",
+        "What is the Japanese money called?"
+      ]
+    },
+    {
+      "id": "number_of_teeth_adult",
+      "category": "factual_qa",
+      "phrasings": [
+        "How many teeth does a typical adult human have?",
+        "What is the normal number of permanent teeth in an adult?",
+        "Tell me the standard tooth count for a human adult."
+      ]
+    },
+    {
+      "id": "hottest_planet",
+      "category": "factual_qa",
+      "phrasings": [
+        "Which planet is the hottest in the solar system?",
+        "Name the solar system's hottest planet.",
+        "What is the highest temperature planet orbiting our sun?"
+      ]
+    },
+    {
+      "id": "largest_mammal",
+      "category": "factual_qa",
+      "phrasings": [
+        "What is the largest mammal on Earth?",
+        "Name the biggest living mammal.",
+        "Which mammal holds the record for largest size?"
+      ]
+    },
+    {
+      "id": "how_do_submarines_dive",
+      "category": "conceptual",
+      "phrasings": [
+        "How do submarines sink and float?",
+        "Explain the ballast system of a submarine.",
+        "What allows a submarine to submerge and surface?"
+      ]
+    },
+    {
+      "id": "what_is_dark_matter",
+      "category": "conceptual",
+      "phrasings": [
+        "What is dark matter in astrophysics?",
+        "Explain the concept of dark matter.",
+        "Can you describe what dark matter is?"
+      ]
+    },
+    {
+      "id": "how_do_tornadoes_form",
+      "category": "conceptual",
+      "phrasings": [
+        "How do tornadoes develop?",
+        "Explain the meteorological process of tornado formation.",
+        "What causes a tornado to form?"
+      ]
+    },
+    {
+      "id": "what_is_the_stock_market",
+      "category": "conceptual",
+      "phrasings": [
+        "How does the stock market work?",
+        "Explain the basic concept of the stock market.",
+        "What exactly is a stock market and how does it function?"
+      ]
+    },
+    {
+      "id": "how_does_a_fridge_work",
+      "category": "conceptual",
+      "phrasings": [
+        "How does a refrigerator keep things cold?",
+        "Explain the cooling mechanism of a fridge.",
+        "What is the science behind how a refrigerator works?"
+      ]
+    },
+    {
+      "id": "what_is_dna",
+      "category": "conceptual",
+      "phrasings": [
+        "What is the function of DNA?",
+        "Explain what DNA is and what it does.",
+        "Describe the biological purpose of DNA."
+      ]
+    },
+    {
+      "id": "how_do_earthquakes_happen",
+      "category": "conceptual",
+      "phrasings": [
+        "What causes an earthquake?",
+        "Explain the geological process behind earthquakes.",
+        "Why do earthquakes occur?"
+      ]
+    },
+    {
+      "id": "what_is_artificial_intelligence",
+      "category": "conceptual",
+      "phrasings": [
+        "How would you define artificial intelligence?",
+        "Explain the concept of AI.",
+        "What exactly is artificial intelligence?"
+      ]
+    },
+    {
+      "id": "how_does_a_microwave_heat_food",
+      "category": "conceptual",
+      "phrasings": [
+        "How do microwaves cook food?",
+        "Explain the science behind a microwave oven.",
+        "What makes food get hot inside a microwave?"
+      ]
+    },
+    {
+      "id": "what_is_a_recession",
+      "category": "conceptual",
+      "phrasings": [
+        "What defines an economic recession?",
+        "Explain what a recession is in economics.",
+        "Describe the criteria for an economic recession."
+      ]
+    },
+    {
+      "id": "how_do_gears_work",
+      "category": "conceptual",
+      "phrasings": [
+        "How do gear systems function?",
+        "Explain the mechanics of gears.",
+        "What is the mechanical advantage of using gears?"
+      ]
+    },
+    {
+      "id": "what_is_osmosis",
+      "category": "conceptual",
+      "phrasings": [
+        "Can you explain the process of osmosis?",
+        "What does osmosis mean in biology?",
+        "Describe how osmosis works."
+      ]
+    },
+    {
+      "id": "how_does_the_immune_system_work",
+      "category": "conceptual",
+      "phrasings": [
+        "How does the human immune system fight off illness?",
+        "Explain the basic function of the immune system.",
+        "What does the immune system do to protect the body?"
+      ]
+    },
+    {
+      "id": "what_is_a_supernova",
+      "category": "conceptual",
+      "phrasings": [
+        "What causes a star to go supernova?",
+        "Explain the phenomenon of a supernova.",
+        "Describe what happens during a supernova explosion."
+      ]
+    },
+    {
+      "id": "how_to_tie_shoes",
+      "category": "howto",
+      "phrasings": [
+        "How do I tie my shoelaces?",
+        "What are the steps to tying a shoe?",
+        "Show me how to knot shoelaces."
+      ]
+    },
+    {
+      "id": "how_to_paint_a_room",
+      "category": "howto",
+      "phrasings": [
+        "What is the correct process for painting a bedroom?",
+        "How do you prep and paint a wall?",
+        "Give me a step-by-step guide to painting an interior room."
+      ]
+    },
+    {
+      "id": "how_to_make_a_resume",
+      "category": "howto",
+      "phrasings": [
+        "How do I create a professional resume?",
+        "What are the steps to writing a good CV?",
+        "Guide me through building a resume from scratch."
+      ]
+    },
+    {
+      "id": "how_to_parallel_park",
+      "category": "howto",
+      "phrasings": [
+        "How do you successfully parallel park a car?",
+        "What is the proper technique for parallel parking?",
+        "Give me instructions on how to parallel park."
+      ]
+    },
+    {
+      "id": "how_to_build_a_campfire",
+      "category": "howto",
+      "phrasings": [
+        "How do I properly start a campfire?",
+        "What is the best way to build a fire outdoors?",
+        "Walk me through making a campfire."
+      ]
+    },
+    {
+      "id": "how_to_shave_your_face",
+      "category": "howto",
+      "phrasings": [
+        "How do you correctly shave your face with a razor?",
+        "What are the steps for getting a clean shave?",
+        "Guide me through the process of shaving a beard."
+      ]
+    },
+    {
+      "id": "how_to_cook_rice",
+      "category": "howto",
+      "phrasings": [
+        "How do I cook white rice on the stove?",
+        "What is the standard method for boiling rice?",
+        "Give me the steps to perfectly cook rice."
+      ]
+    },
+    {
+      "id": "how_to_fix_running_toilet",
+      "category": "howto",
+      "phrasings": [
+        "How do you fix a running toilet?",
+        "What are the steps to repair a toilet that won't stop running?",
+        "Guide me through fixing a continuously running toilet."
+      ]
+    },
+    {
+      "id": "how_to_shuffle_cards",
+      "category": "howto",
+      "phrasings": [
+        "How do you properly riffle shuffle a deck of cards?",
+        "What is the technique for shuffling playing cards?",
+        "Teach me how to shuffle cards like a dealer."
+      ]
+    },
+    {
+      "id": "how_to_read_sheet_music",
+      "category": "howto",
+      "phrasings": [
+        "How do I start reading musical notation?",
+        "What are the basics of reading sheet music?",
+        "Teach me how to decipher sheet music."
+      ]
+    },
+    {
+      "id": "how_to_braid_hair",
+      "category": "howto",
+      "phrasings": [
+        "How do you do a basic three-strand hair braid?",
+        "What is the process for braiding hair?",
+        "Show me how to plait or braid hair."
+      ]
+    },
+    {
+      "id": "how_to_clean_windows",
+      "category": "howto",
+      "phrasings": [
+        "What is the best way to clean glass windows without streaks?",
+        "How do I wash my windows properly?",
+        "Give me instructions for streak-free window cleaning."
+      ]
+    },
+    {
+      "id": "how_to_change_oil",
+      "category": "howto",
+      "phrasings": [
+        "How do I change the motor oil in my car?",
+        "What are the steps for doing a car oil change at home?",
+        "Walk me through replacing vehicle engine oil."
+      ]
+    },
+    {
+      "id": "how_to_wrap_a_gift",
+      "category": "howto",
+      "phrasings": [
+        "How do you neatly wrap a present?",
+        "What is the best technique for gift wrapping?",
+        "Give me a step-by-step guide to wrapping a box with paper."
+      ]
+    },
+    {
+      "id": "python_read_csv",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I read a CSV file using Python's pandas?",
+        "Write a Python script to load a CSV into a pandas DataFrame.",
+        "Show me the pandas code to parse a CSV file."
+      ]
+    },
+    {
+      "id": "js_array_map",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I use the map function on a JavaScript array?",
+        "Write a JS code snippet demonstrating array.map().",
+        "Show me an example of mapping over an array in JavaScript."
+      ]
+    },
+    {
+      "id": "sql_insert_row",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I insert a new record into a SQL database?",
+        "Write a SQL INSERT statement to add a row to a table.",
+        "What is the SQL command to add new data to a table?"
+      ]
+    },
+    {
+      "id": "java_read_console_input",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I read user input from the console in Java?",
+        "Write Java code using Scanner to get command line input.",
+        "Show me a Java snippet that prompts the user for text input."
+      ]
+    },
+    {
+      "id": "c_plus_plus_hello_world",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I write a Hello World program in C++?",
+        "Show me the standard C++ code to print Hello World.",
+        "Write a basic C++ script that outputs the phrase Hello World."
+      ]
+    },
+    {
+      "id": "css_flexbox_center",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I center an item using CSS flexbox?",
+        "Write the CSS rules to perfectly center a child element with flexbox.",
+        "Show me the flexbox properties for vertical and horizontal centering."
+      ]
+    },
+    {
+      "id": "python_dictionary_iteration",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I loop through keys and values in a Python dictionary?",
+        "Write a Python loop to iterate over a dict's items.",
+        "Show me how to traverse a dictionary in Python."
+      ]
+    },
+    {
+      "id": "bash_if_file_exists",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I check if a file exists in a bash script?",
+        "Write a shell script condition that tests for a file's existence.",
+        "Show me the bash syntax to verify a file exists before doing something."
+      ]
+    },
+    {
+      "id": "react_useeffect_example",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I fetch data on component mount using React's useEffect?",
+        "Write a React component that uses useEffect to make an API call on load.",
+        "Show me an example of useEffect triggering a fetch when a React component renders."
+      ]
+    },
+    {
+      "id": "go_read_file",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I read the entire contents of a file into memory in Go?",
+        "Write a Golang snippet to read a text file.",
+        "Show me how to load file contents to a string in Go."
+      ]
+    },
+    {
+      "id": "ruby_map_array",
+      "category": "code_gen",
+      "phrasings": [
+        "How do you transform elements in a Ruby array?",
+        "Write a Ruby code snippet using the map method on an array.",
+        "Show me an example of collecting or mapping array values in Ruby."
+      ]
+    },
+    {
+      "id": "php_foreach_loop",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I iterate over an associative array in PHP?",
+        "Write a PHP foreach loop to go through an array's keys and values.",
+        "Show me the PHP syntax for looping through an array."
+      ]
+    },
+    {
+      "id": "rust_hello_world",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I write a hello world application in Rust?",
+        "Show me the Rust code needed to print Hello World to the console.",
+        "Write a basic Rust program that outputs a string."
+      ]
+    },
+    {
+      "id": "html_image_tag",
+      "category": "code_gen",
+      "phrasings": [
+        "How do you embed an image in an HTML page?",
+        "Write the HTML code for an img tag with a source and alt text.",
+        "Show me how to display a picture using HTML."
+      ]
+    },
+    {
+      "id": "dockerfile_python_app",
+      "category": "code_gen",
+      "phrasings": [
+        "How do I write a Dockerfile for a basic Python application?",
+        "Show me an example Dockerfile to containerize a Python script.",
+        "Write a simple Dockerfile that runs a Python program."
+      ]
+    },
+    {
+      "id": "waffles_vs_pancakes",
+      "category": "comparison",
+      "phrasings": [
+        "What are the culinary differences between pancakes and waffles?",
+        "Compare the batter and cooking methods of waffles and pancakes.",
+        "How do pancakes differ from waffles?"
+      ]
+    },
+    {
+      "id": "marvel_vs_dc",
+      "category": "comparison",
+      "phrasings": [
+        "What are the primary differences between the Marvel and DC comic universes?",
+        "Compare the comic book worlds of DC and Marvel.",
+        "How do DC comics and Marvel comics differ stylistically and historically?"
+      ]
+    },
+    {
+      "id": "skiing_vs_snowboarding",
+      "category": "comparison",
+      "phrasings": [
+        "What is the difference between skiing and snowboarding?",
+        "Compare the sports of snowboarding and skiing.",
+        "How does learning to ski differ from learning to snowboard?"
+      ]
+    },
+    {
+      "id": "email_cc_vs_bcc",
+      "category": "comparison",
+      "phrasings": [
+        "What is the difference between CC and BCC in an email?",
+        "Compare the CC and BCC fields when sending emails.",
+        "How does copying someone (CC) differ from blind copying (BCC)?"
+      ]
+    },
+    {
+      "id": "lcd_vs_oled",
+      "category": "comparison",
+      "phrasings": [
+        "What are the technical differences between LCD and OLED screens?",
+        "Compare OLED displays to LCD panels.",
+        "How do LCD monitors differ from OLED ones?"
+      ]
+    },
+    {
+      "id": "freelance_vs_fulltime",
+      "category": "comparison",
+      "phrasings": [
+        "What is the difference between working as a freelancer and being a full-time employee?",
+        "Compare standard employment with freelance work.",
+        "How does freelance consulting differ from a traditional full-time job?"
+      ]
+    },
+    {
+      "id": "train_vs_plane_travel",
+      "category": "comparison",
+      "phrasings": [
+        "What are the differences between traveling by train and traveling by airplane?",
+        "Compare the experience of air travel to rail travel.",
+        "How does taking a train differ from flying?"
+      ]
+    },
+    {
+      "id": "yoga_vs_pilates",
+      "category": "comparison",
+      "phrasings": [
+        "What is the difference between Pilates and Yoga?",
+        "Compare the practices of Yoga and Pilates.",
+        "How do Pilates exercises differ from Yoga routines?"
+      ]
+    },
+    {
+      "id": "http_vs_https",
+      "category": "comparison",
+      "phrasings": [
+        "What is the technical difference between HTTP and HTTPS?",
+        "Compare the HTTP protocol with its secure HTTPS version.",
+        "How does HTTPS differ from standard HTTP?"
+      ]
+    },
+    {
+      "id": "venomous_vs_poisonous",
+      "category": "comparison",
+      "phrasings": [
+        "What is the biological difference between a venomous animal and a poisonous one?",
+        "Compare the terms poisonous and venomous.",
+        "How does being venomous differ from being poisonous?"
+      ]
+    },
+    {
+      "id": "alligator_vs_crocodile",
+      "category": "comparison",
+      "phrasings": [
+        "What are the physical differences between alligators and crocodiles?",
+        "Compare crocodiles and alligators.",
+        "How do alligators differ from crocodiles?"
+      ]
+    },
+    {
+      "id": "weather_vs_climate",
+      "category": "comparison",
+      "phrasings": [
+        "What is the difference between weather and climate?",
+        "Compare the concepts of short-term weather and long-term climate.",
+        "How does a region's climate differ from its daily weather?"
+      ]
+    },
+    {
+      "id": "laptop_vs_desktop",
+      "category": "comparison",
+      "phrasings": [
+        "What are the differences between a desktop computer and a laptop?",
+        "Compare a portable laptop to a stationary desktop PC.",
+        "How do laptops differ from desktop computers?"
+      ]
+    },
+    {
+      "id": "butter_vs_margarine",
+      "category": "comparison",
+      "phrasings": [
+        "What is the difference between margarine and butter?",
+        "Compare the ingredients and uses of butter versus margarine.",
+        "How does dairy butter differ from margarine?"
+      ]
+    },
+    {
+      "id": "sprint_vs_marathon",
+      "category": "comparison",
+      "phrasings": [
+        "What is the difference between running a sprint and running a marathon?",
+        "Compare short-distance sprinting to marathon running.",
+        "How does marathon training differ from sprint training?"
+      ]
+    },
+    {
+      "id": "best_browser",
+      "category": "opinion",
+      "phrasings": [
+        "Which web browser is the best one to use?",
+        "What is your top recommendation for an internet browser?",
+        "Which browser offers the greatest user experience?"
+      ]
+    },
+    {
+      "id": "best_tv_show_finale",
+      "category": "opinion",
+      "phrasings": [
+        "Which television series had the absolute best finale episode?",
+        "What is widely considered the greatest TV show ending ever?",
+        "In your opinion, which show wrapped up its story the best?"
+      ]
+    },
+    {
+      "id": "best_language_for_data_science",
+      "category": "opinion",
+      "phrasings": [
+        "Which programming language is the best choice for data science?",
+        "What is the most highly recommended language for a data analyst?",
+        "Which coding tool is the ultimate best for machine learning and data?"
+      ]
+    },
+    {
+      "id": "best_car_brand",
+      "category": "opinion",
+      "phrasings": [
+        "Which automobile manufacturer makes the best cars overall?",
+        "What is the top recommended car brand for reliability and value?",
+        "Which car company is considered the finest in the world?"
+      ]
+    },
+    {
+      "id": "best_season_of_the_year",
+      "category": "opinion",
+      "phrasings": [
+        "Which of the four seasons is the best one?",
+        "What is arguably the greatest time of year?",
+        "Which season do you consider to be the absolute best?"
+      ]
+    },
+    {
+      "id": "best_cuisine_in_the_world",
+      "category": "opinion",
+      "phrasings": [
+        "Which country has the best food globally?",
+        "What is the most delicious cuisine in the world?",
+        "Which culture's traditional food is highly recommended as the best?"
+      ]
+    },
+    {
+      "id": "best_exercise_for_weight_loss",
+      "category": "opinion",
+      "phrasings": [
+        "What is the single best exercise for losing fat?",
+        "Which workout movement is most highly recommended for weight loss?",
+        "What is the ultimate physical activity to drop pounds quickly?"
+      ]
+    },
+    {
+      "id": "best_streaming_service",
+      "category": "opinion",
+      "phrasings": [
+        "Which movie and TV streaming platform is the best value?",
+        "What is the top recommended streaming service to subscribe to?",
+        "Which on-demand streaming app is considered the greatest?"
+      ]
+    },
+    {
+      "id": "best_book_genre",
+      "category": "opinion",
+      "phrasings": [
+        "Which genre of literature is the best to read?",
+        "What is the greatest category of books?",
+        "Which fictional or non-fictional book genre is the ultimate best?"
+      ]
+    },
+    {
+      "id": "best_music_genre",
+      "category": "opinion",
+      "phrasings": [
+        "Which style of music is arguably the best?",
+        "What is the greatest musical genre of all time?",
+        "Which type of music do you highly recommend listening to above all others?"
+      ]
+    },
+    {
+      "id": "best_way_to_cook_steak",
+      "category": "opinion",
+      "phrasings": [
+        "What is the absolute best method for preparing a steak?",
+        "Which cooking technique yields the most perfect steak?",
+        "What is your top recommendation for grilling or searing a steak?"
+      ]
+    },
+    {
+      "id": "best_board_game",
+      "category": "opinion",
+      "phrasings": [
+        "Which board game is the best one for a group of friends?",
+        "What is the ultimate tabletop game to play?",
+        "Which board game comes most highly recommended?"
+      ]
+    },
+    {
+      "id": "best_city_to_live_in",
+      "category": "opinion",
+      "phrasings": [
+        "Which city in the world is the best place to reside?",
+        "What is the ultimate global city for quality of life?",
+        "Which metropolitan area is highly recommended as the best place to live?"
+      ]
+    },
+    {
+      "id": "best_cloud_provider",
+      "category": "opinion",
+      "phrasings": [
+        "Which cloud computing platform is the absolute best for businesses?",
+        "What is the top recommended cloud infrastructure provider?",
+        "Which enterprise cloud service is considered the finest?"
+      ]
+    },
+    {
+      "id": "invention_of_airplane",
+      "category": "history",
+      "phrasings": [
+        "Who invented the first successful motor-operated airplane?",
+        "Who created the first functioning airplane?",
+        "Name the brothers credited with inventing the airplane."
+      ]
+    },
+    {
+      "id": "discovery_of_radium",
+      "category": "history",
+      "phrasings": [
+        "Who discovered the element radium?",
+        "Name the scientist who isolated radium.",
+        "Who was responsible for finding the radioactive element radium?"
+      ]
+    },
+    {
+      "id": "fall_of_roman_empire_year",
+      "category": "history",
+      "phrasings": [
+        "In what year did the Western Roman Empire fall?",
+        "When did the Roman Empire collapse?",
+        "Give me the date typically cited for the fall of Rome."
+      ]
+    },
+    {
+      "id": "author_of_don_quixote",
+      "category": "history",
+      "phrasings": [
+        "Who wrote the novel Don Quixote?",
+        "Name the author of the book Don Quixote.",
+        "Who penned the Spanish literary classic Don Quixote?"
+      ]
+    },
+    {
+      "id": "assassination_of_jfk_year",
+      "category": "history",
+      "phrasings": [
+        "What year was President John F. Kennedy assassinated?",
+        "When was JFK shot and killed?",
+        "In which year did the assassination of John F. Kennedy occur?"
+      ]
+    },
+    {
+      "id": "inventor_of_world_wide_web",
+      "category": "history",
+      "phrasings": [
+        "Who invented the World Wide Web?",
+        "Name the creator of the WWW.",
+        "Who was the computer scientist that developed the World Wide Web?"
+      ]
+    },
+    {
+      "id": "first_woman_in_space",
+      "category": "history",
+      "phrasings": [
+        "Who was the first woman to travel into outer space?",
+        "Name the female cosmonaut who first went to space.",
+        "Who holds the record as the first woman in space?"
+      ]
+    },
+    {
+      "id": "end_of_cold_war",
+      "category": "history",
+      "phrasings": [
+        "When did the Cold War officially come to an end?",
+        "What year marked the conclusion of the Cold War?",
+        "Give me the year the Cold War was declared over."
+      ]
+    },
+    {
+      "id": "builder_of_taj_mahal",
+      "category": "history",
+      "phrasings": [
+        "Which Mughal emperor commissioned the building of the Taj Mahal?",
+        "Who ordered the construction of the Taj Mahal?",
+        "Name the ruler who had the Taj Mahal built."
+      ]
+    },
+    {
+      "id": "discovery_of_dna_structure",
+      "category": "history",
+      "phrasings": [
+        "Who discovered the double helix structure of DNA?",
+        "Name the scientists credited with finding the shape of the DNA molecule.",
+        "Who figured out that DNA was a double helix?"
+      ]
+    },
+    {
+      "id": "start_of_ww1",
+      "category": "history",
+      "phrasings": [
+        "In what year did World War I begin?",
+        "When did the First World War break out?",
+        "Give me the starting year for WWI."
+      ]
+    },
+    {
+      "id": "first_man_on_mount_everest",
+      "category": "history",
+      "phrasings": [
+        "Who were the first people to successfully summit Mount Everest?",
+        "Name the first climbers to reach the top of Everest.",
+        "Who holds the record for the first confirmed ascent of Mount Everest?"
+      ]
+    },
+    {
+      "id": "invention_of_radio",
+      "category": "history",
+      "phrasings": [
+        "Who is generally credited with inventing the radio?",
+        "Name the inventor of the early radio transmission system.",
+        "Who developed the first practical radio?"
+      ]
+    },
+    {
+      "id": "signing_of_declaration_of_independence",
+      "category": "history",
+      "phrasings": [
+        "When was the US Declaration of Independence signed?",
+        "What date was the American Declaration of Independence adopted?",
+        "On what day was the Declaration of Independence officially signed?"
+      ]
+    }
+  ]
+}

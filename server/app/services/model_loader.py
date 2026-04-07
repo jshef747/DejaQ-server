@@ -49,14 +49,14 @@ class ModelManager:
         return cls._phi
 
     @classmethod
-    def load_llama(cls):
-        """Loads the Llama 3.2 (1B) model. The local model for answering queries."""
+    def load_gemma(cls):
+        """Loads the Gemma 4 26B A4B (MoE) model. The local model for answering queries."""
         if cls._llama is None:
-            logger.info("Loading Llama 3.2 1B (GGUF)...")
+            logger.info("Loading Gemma 4 26B A4B MoE (GGUF)...")
             cls._llama = Llama.from_pretrained(
-                repo_id="hugging-quants/Llama-3.2-1B-Instruct-Q8_0-GGUF",
-                filename="*q8_0.gguf",
+                repo_id="unsloth/gemma-4-26B-A4B-it-GGUF",
+                filename="*UD-Q4_K_M*",
                 verbose=False,
-                n_ctx=4096
+                n_ctx=8192
             )
         return cls._llama
