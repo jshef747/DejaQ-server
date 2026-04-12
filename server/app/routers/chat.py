@@ -118,7 +118,7 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
     cache_result = memory.check_cache(clean_query)
 
     if cache_result is not None:
-        cached_answer, entry_id = cache_result
+        cached_answer, entry_id, cache_distance = cache_result
         # Cache HIT — adjust tone to match original query
         answer = context_adjuster.adjust(request.message, cached_answer)
         conversations.add_message(conv_id, "user", request.message)
@@ -132,6 +132,7 @@ async def chat_endpoint(request: ChatRequest, background_tasks: BackgroundTasks)
             conversation_id=conv_id,
             enriched_query=enriched if enriched_changed else None,
             cache_entry_id=entry_id,
+            cache_distance=cache_distance,
         )
 
     # 4. Classify complexity
@@ -315,6 +316,7 @@ async def websocket_endpoint(websocket: WebSocket):
             cache_hit = False
             will_cache = None
             entry_id = None
+            cache_distance = None
             try:
                 cache_result = memory.check_cache(clean_query)
             except Exception as e:
@@ -325,7 +327,7 @@ async def websocket_endpoint(websocket: WebSocket):
             model_used = None
             latency_ms = None
             if cache_result is not None:
-                cached_answer, entry_id = cache_result
+                cached_answer, entry_id, cache_distance = cache_result
                 # Cache HIT — adjust tone
                 cache_hit = True
                 try:
@@ -392,6 +394,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 complexity_score=classification["score"] if classification else None,
                 task_type=classification["task_type"] if classification else None,
                 cache_entry_id=entry_id if cache_hit else (_compute_doc_id(clean_query) if will_cache else None),
+                cache_distance=cache_distance,
                 model_used=model_used,
                 latency_ms=latency_ms,
             )

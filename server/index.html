@@ -215,6 +215,7 @@
         .badge-cache   { background: #22c55e; color: #fff; }
         .badge-hit     { background: #22c55e; color: #fff; }
         .badge-miss    { background: #ef4444; color: #fff; }
+        .badge-distance { background: #1e293b; color: #38bdf8; font-family: monospace; font-weight: 400; }
         .badge-normalized {
             background: #1e293b;
             color: #94a3b8;
@@ -541,6 +542,14 @@
                     hitBadge.className = "badge " + (data.cache_hit ? "badge-hit" : "badge-miss");
                     hitBadge.textContent = data.cache_hit ? "HIT" : "MISS";
                     badges.appendChild(hitBadge);
+
+                    // Distance badge — shown on cache hit
+                    if (data.cache_hit && data.cache_distance != null) {
+                        const distBadge = document.createElement("span");
+                        distBadge.className = "badge badge-distance";
+                        distBadge.textContent = "dist " + data.cache_distance.toFixed(4);
+                        badges.appendChild(distBadge);
+                    }
 
                     // Enriched badge — shown when enricher changed the query
                     if (data.enriched_query) {

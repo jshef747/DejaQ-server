@@ -1,49 +1,144 @@
+"""Normalizer v22: opinion-gated LLM rewrite + raw passthrough + bge-small embedding.
+
+Non-opinion queries: lowercase passthrough (no LLM).
+Opinion queries: Gemma 4 E2B rewrites to "best <noun>" via regex-gated few-shot prompt.
+Fallback: if LLM output fails the "best <noun>" format check, return lowercase passthrough.
+"""
+
+from __future__ import annotations
+
 import logging
+import re
 import time
 
 from app.services.model_loader import ModelManager
 
 logger = logging.getLogger("dejaq.services.normalizer")
 
+# ---------------------------------------------------------------------------
+# Regex gates (ported verbatim from normalization-test/configs/v22_opinion_llm_rewrite_bge_small.py)
+# ---------------------------------------------------------------------------
+
+_OPINION_GATE = re.compile(
+    r"\b(best|greatest|ultimate|finest|top[- ]?rated|top recommendation|"
+    r"top recommended|most highly recommended|highly recommend|absolute best|"
+    r"arguably|most (?:delicious|perfect|flavorful|amazing|beautiful)"
+    r"|widely considered)\b",
+    re.IGNORECASE,
+)
+
+# Howto queries use "best" adverbially: "best way/technique/method/approach to X".
+# These must NOT fire the opinion gate or they collide with the howto sibling.
+_HOWTO_ADVERBIAL = re.compile(
+    r"\bbest\s+(way|method|technique|approach|strategy|practice|thing|"
+    r"time|place|tool|tools|tip|tips)\s+(to|for|of)\b",
+    re.IGNORECASE,
+)
+
+_BEST_FORM = re.compile(r"^best\s+[a-z][a-z\s-]{0,40}$")
+
+# ---------------------------------------------------------------------------
+# Opinion rewrite prompt
+# ---------------------------------------------------------------------------
+
+_SYSTEM_PROMPT = """\
+You rewrite user superlative queries into a canonical short form.
+
+RULES:
+1. Output EXACTLY: "best <noun>" on one line. No prefix, no explanation.
+2. The noun is 1-3 words. Prefer the shortest common English noun:
+   "browser" not "internet browser", "car brand" not "automobile manufacturer",
+   "city" not "metropolitan area", "music genre" not "musical style".
+3. Drop every superlative word (best, greatest, ultimate, finest, top-rated,
+   highly recommended, absolute, arguably, most, single). They all mean "best".
+4. Drop every filler word (in your opinion, of all time, ever, you consider,
+   do you think, widely considered, the one, to use, to play, to buy, overall).
+5. Drop redundant qualifiers (drop "internet" from "internet browser", drop
+   "traditional" from "traditional food", drop "fictional" from "fictional book").
+6. Two paraphrases of the same concept MUST produce the same "best <noun>".
+"""
+
+_FEW_SHOTS: list[tuple[str, str]] = [
+    # hiking boot cluster
+    ("Which hiking boot is the best for long trails?", "best hiking boot"),
+    ("What are the top-rated boots for thru-hiking?", "best hiking boot"),
+    ("Which brand makes the ultimate trekking boot?", "best hiking boot"),
+    # coffee cluster
+    ("What is the greatest coffee bean origin?", "best coffee"),
+    ("Which country produces the finest coffee?", "best coffee"),
+    # pillow cluster
+    ("Which pillow is most highly recommended for back sleepers?", "best pillow"),
+    ("What is the absolute best pillow to buy?", "best pillow"),
+    # running shoe cluster
+    ("Which running shoe is considered the greatest?", "best running shoe"),
+    ("What are the top recommended shoes for marathons?", "best running shoe"),
+    # camera cluster
+    ("Which digital camera is the finest for beginners?", "best camera"),
+    ("What is arguably the ultimate DSLR?", "best camera"),
+    # novel cluster
+    ("Which novel is widely considered the greatest ever written?", "best novel"),
+    ("In your opinion what is the absolute best book of all time?", "best novel"),
+    # single-word noun
+    ("What is the greatest dog breed?", "best dog breed"),
+    ("Which breed of dog is top recommended?", "best dog breed"),
+    # noun-redundancy-drop demonstration
+    ("Which smartphone manufacturer is the ultimate best?", "best smartphone brand"),
+    ("What is the top recommended phone company?", "best smartphone brand"),
+    # watch cluster (category-qualifier drop)
+    ("What is arguably the finest luxury wristwatch?", "best watch"),
+    ("Which timepiece is the greatest ever made?", "best watch"),
+]
+
+
+def _is_opinion(query: str) -> bool:
+    return bool(_OPINION_GATE.search(query) and not _HOWTO_ADVERBIAL.search(query))
+
+
+def _postprocess(raw: str, original: str) -> str:
+    """Validate LLM output. Falls back to lowercase passthrough on format failure."""
+    text = raw.strip().split("\n")[0].strip().lower()
+    text = re.sub(r"[^\w\s-]", " ", text)
+    text = " ".join(text.split())
+    if not _BEST_FORM.match(text):
+        logger.warning("Opinion rewrite failed format check; falling back to passthrough. raw=%r", raw)
+        return original.strip().lower()
+    return text
+
+
+def _build_opinion_messages(query: str) -> list[dict]:
+    messages: list[dict] = [{"role": "system", "content": _SYSTEM_PROMPT}]
+    for user_input, assistant_output in _FEW_SHOTS:
+        messages.append({"role": "user", "content": f"INPUT: {user_input}\nQUERY:"})
+        messages.append({"role": "assistant", "content": assistant_output})
+    messages.append({"role": "user", "content": f"INPUT: {query}\nQUERY:"})
+    return messages
 
 
 class NormalizerService:
 
-    def __init__(self):
-        self.llm = ModelManager.load_qwen()
-
-
-    def normalize(self, raw_query) -> str:
-        logger.debug(f"Normalizing query: {raw_query}")
-
+    def normalize(self, raw_query: str) -> str:
+        logger.debug("Normalizing query: %s", raw_query)
         start = time.time()
 
-        output = self.llm.create_chat_completion(
-            messages=[
-                {"role": "system", "content": "You are a query normalizer. Given a user message, output ONLY a compact canonical search query. Rules: (1) Capture the core problem type and domain, not specific numbers or exact phrasing. (2) Use consistent standard vocabulary — prefer 'debug' over 'troubleshoot'/'diagnose', 'slow query' over 'query performance drop', 'database' over 'postgres/mysql/db'. (3) Different phrasings of the same problem must produce the same output. (4) Remove filler words and tone. Never answer. Never explain. Just output the query."},
-                {"role": "user", "content": "INPUT: hey can you explain quantum mechanics like I'm 5\nQUERY:"},
-                {"role": "assistant", "content": "explain quantum mechanics simply"},
-                {"role": "user", "content": "INPUT: yo what's the capital of france lol\nQUERY:"},
-                {"role": "assistant", "content": "capital of france"},
-                {"role": "user", "content": "INPUT: I was wondering if you could tell me how photosynthesis works in detail please\nQUERY:"},
-                {"role": "assistant", "content": "how does photosynthesis work"},
-                {"role": "user", "content": "INPUT: You have a Postgres table with 500M rows. A query that used to take 200ms now takes 45 seconds after a recent data migration. The table has indexes. How do you fix it?\nQUERY:"},
-                {"role": "assistant", "content": "debug slow query after data migration large indexed database table"},
-                {"role": "user", "content": "INPUT: Our database query performance dropped dramatically after we moved data — it went from near-instant to almost a minute on a large table that has proper indexing. How do I troubleshoot this?\nQUERY:"},
-                {"role": "assistant", "content": "debug slow query after data migration large indexed database table"},
-                {"role": "user", "content": "INPUT: Walk me through how you'd debug a memory leak in a Python service that only manifests after 48 hours of production traffic, given you can't reproduce it locally.\nQUERY:"},
-                {"role": "assistant", "content": "debug memory leak python service delayed onset not reproducible locally"},
-                {"role": "user", "content": "INPUT: Design a distributed rate limiter that works across multiple API gateway instances without a single point of failure. What consistency guarantees can you realistically achieve?\nQUERY:"},
-                {"role": "assistant", "content": "distributed rate limiter multiple api gateway instances no single point of failure consistency guarantees"},
-                {"role": "user", "content": "INPUT: You're running a real-time ML inference service at 50k RPS. Your P99 latency suddenly spikes from 12ms to 800ms every 4 hours like clockwork. Walk me through your entire investigation process.\nQUERY:"},
-                {"role": "assistant", "content": "debug periodic latency spikes real-time ml inference service high rps investigation"},
-                {"role": "user", "content": f"INPUT: {raw_query}\nQUERY:"},
-            ],
-            max_tokens=64,
-            temperature=0.0
-        )
+        if not _is_opinion(raw_query):
+            normalized = raw_query.strip().lower()
+            latency = (time.time() - start) * 1000
+            logger.info(
+                "Normalization (passthrough) in %.2f ms. Raw: %r -> Normalized: %r",
+                latency, raw_query, normalized,
+            )
+            return normalized
 
-        cleaned_query = output["choices"][0]["message"]["content"].strip()
+        # Opinion path: lazy-load Gemma E2B
+        llm = ModelManager.load_gemma_e2b()
+        messages = _build_opinion_messages(raw_query)
+        output = llm.create_chat_completion(messages=messages, max_tokens=8, temperature=0.0)
+        raw_output = output["choices"][0]["message"]["content"].strip()
+        normalized = _postprocess(raw_output, raw_query)
+
         latency = (time.time() - start) * 1000
-        logger.info(f"Normalization completed in {latency:.2f} ms. Raw: '{raw_query}' -> Normalized: '{cleaned_query}'")
-        return cleaned_query
+        logger.info(
+            "Normalization (opinion rewrite) in %.2f ms. Raw: %r -> Normalized: %r",
+            latency, raw_query, normalized,
+        )
+        return normalized

@@ -22,6 +22,7 @@ class ChatResponse(BaseModel):
     complexity_score: Optional[float] = Field(None, description="Complexity score 0-1")
     task_type: Optional[str] = Field(None, description="Detected task type")
     cache_entry_id: Optional[str] = Field(None, description="ID of the cache entry for feedback submission")
+    cache_distance: Optional[float] = Field(None, description="Cosine distance of the cache hit (0=identical, 1=unrelated)")
     model_used: Optional[str] = Field(None, description="Model that generated the response (local or external)")
     latency_ms: Optional[float] = Field(None, description="Time in milliseconds to generate the LLM response")
 

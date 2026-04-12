@@ -8,6 +8,7 @@ class ModelManager:
     _qwen_1_5b = None
     _llama = None
     _phi = None
+    _gemma_e2b = None
 
     @classmethod
     def load_qwen(cls):
@@ -60,3 +61,16 @@ class ModelManager:
                 n_ctx=8192
             )
         return cls._llama
+
+    @classmethod
+    def load_gemma_e2b(cls):
+        """Loads Gemma 4 E2B (2B) model for opinion query rewriting (normalizer v22)."""
+        if cls._gemma_e2b is None:
+            logger.info("Loading Gemma 4 E2B (GGUF) for opinion rewriting...")
+            cls._gemma_e2b = Llama.from_pretrained(
+                repo_id="unsloth/gemma-4-E2B-it-GGUF",
+                filename="*Q4_K_M.gguf",
+                verbose=False,
+                n_ctx=2048,
+            )
+        return cls._gemma_e2b

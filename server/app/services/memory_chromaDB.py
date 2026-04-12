@@ -4,12 +4,27 @@ import logging
 from typing import Optional
 
 import chromadb
+from sentence_transformers import SentenceTransformer
 
 from app.config import FEEDBACK_TRUSTED_THRESHOLD, FEEDBACK_TRUSTED_SIMILARITY, CHROMA_HOST, CHROMA_PORT
 
 logger = logging.getLogger("dejaq.services.memory_chromaDB")
 
 SIMILARITY_THRESHOLD = 0.15
+
+_embedder: SentenceTransformer | None = None
+
+
+def _get_embedder() -> SentenceTransformer:
+    global _embedder
+    if _embedder is None:
+        logger.info("Loading BAAI/bge-small-en-v1.5 embedder...")
+        _embedder = SentenceTransformer("BAAI/bge-small-en-v1.5")
+    return _embedder
+
+
+def _embed(text: str) -> list[float]:
+    return _get_embedder().encode(text, normalize_embeddings=True).tolist()
 
 
 class MemoryService:
@@ -19,17 +34,20 @@ class MemoryService:
     ):
         logger.info("Initializing ChromaDB (collection=%s, host=%s, port=%d)", collection_name, CHROMA_HOST, CHROMA_PORT)
         self._client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+        # No embedding_function — we embed manually and pass query_embeddings / embeddings directly.
+        # This avoids any conflict with a previously persisted embedding function config.
         self._collection = self._client.get_or_create_collection(
             name=collection_name,
             metadata={"hnsw:space": "cosine"},
         )
         logger.info("ChromaDB ready — %d documents in collection '%s'", self._collection.count(), collection_name)
 
-    def check_cache(self, normalized_query: str) -> Optional[tuple[str, str]]:
-        """Return (generalized_answer, entry_id) on cache hit, None on miss."""
+    def check_cache(self, normalized_query: str) -> Optional[tuple[str, str, float]]:
+        """Return (generalized_answer, entry_id, distance) on cache hit, None on miss."""
         start = time.time()
+        query_embedding = _embed(normalized_query)
         results = self._collection.query(
-            query_texts=[normalized_query],
+            query_embeddings=[query_embedding],
             n_results=1,
             include=["documents", "metadatas", "distances"],
         )
@@ -68,7 +86,7 @@ class MemoryService:
                     "Cache HIT (distance=%.4f, threshold=%.2f, score=%d, latency=%.1fms) for query: %s",
                     distance, threshold, feedback_score, latency_ms, normalized_query,
                 )
-                return answer, entry_id
+                return answer, entry_id, distance
 
         distance = results["distances"][0][0] if results["distances"] and results["distances"][0] else None
         logger.info(
@@ -87,8 +105,10 @@ class MemoryService:
         user_id: str,
     ) -> None:
         doc_id = hashlib.sha256(normalized_query.encode()).hexdigest()[:16]
+        embedding = _embed(normalized_query)
         self._collection.upsert(
             ids=[doc_id],
+            embeddings=[embedding],
             documents=[normalized_query],
             metadatas=[{
                 "generalized_answer": generalized_answer,
