@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 DejaQ is an LLM cost-optimization platform that reduces API costs through semantic caching, query classification, and hybrid model routing.
 
-**Cache miss pipeline:** User Query → Context Enricher (Qwen 0.5B, makes query standalone) → Normalizer (Qwen 2.5, produces cache key) → Cache Filter (heuristics) → LLM gets **original query + history** (preserves tone) → Response to user → Background: Generalize response (Phi-3.5 Mini) → Store in ChromaDB (if filter passes)
+**Cache miss pipeline:** User Query → Context Enricher (Qwen 1.5B + regex gate, makes query standalone) → Normalizer (Qwen 2.5, produces cache key) → Cache Filter (heuristics) → LLM gets **original query + history** (preserves tone) → Response to user → Background: Generalize response (Phi-3.5 Mini) → Store in ChromaDB (if filter passes)
 
 **Cache hit pipeline:** User Query → Context Enricher → Normalizer → ChromaDB returns tone-neutral response (cosine ≤ 0.15) → Context Adjuster adds tone → Response to user
 
@@ -81,7 +81,7 @@ app/
 │   ├── normalizer.py    # Query cleaning via Qwen 2.5-0.5B
 │   ├── llm_router.py    # Routes "easy"→Llama 3.2 1B local, "hard"→external API (stub)
 │   ├── context_adjuster.py # generalize() strips tone via Phi-3.5 Mini, adjust() adds tone via Qwen 2.5-1.5B
-│   ├── context_enricher.py # Rewrites context-dependent queries into standalone ones (Qwen 0.5B)
+│   ├── context_enricher.py # Rewrites context-dependent queries into standalone ones (Qwen 1.5B + regex gate, v5)
 │   ├── cache_filter.py  # Smart heuristic filter: skips non-cacheable prompts (too short, filler, vague)
 │   ├── conversation_store.py # In-memory multi-turn conversation history (max 20 messages)
 │   ├── classifier.py    # NVIDIA DeBERTa-based prompt complexity classifier (easy/hard routing)
@@ -115,21 +115,69 @@ index.html               # WebSocket chatbot test UI with cache diagnostics (pro
 
 | Role | Model | Size | Loader |
 |------|-------|------|--------|
+| Context Enricher (v5) | Qwen 2.5-1.5B-Instruct | Q4_K_M | `ModelManager.load_qwen_1_5b()` |
 | Normalizer | Qwen 2.5-0.5B-Instruct | Q4_K_M | `ModelManager.load_qwen()` |
 | Context Adjuster (adjust) | Qwen 2.5-1.5B-Instruct | Q4_K_M | `ModelManager.load_qwen_1_5b()` |
 | Generalizer (strip tone) | Phi-3.5-Mini-Instruct | Q4_K_M | `ModelManager.load_phi()` |
 | Local LLM (generation) | Llama 3.2-1B-Instruct | Q8_0 | `ModelManager.load_llama()` |
 | Difficulty Classifier | NVIDIA DeBERTa-v3-base | Full | `ClassifierService` (singleton) |
 
+## Test Harnesses
+
+Both services have dedicated offline eval harnesses. Run from their respective directories with `uv`.
+
+### enricher-test/ — Context Enricher eval
+
+```bash
+cd enricher-test
+
+# Run all configs against all 5 datasets
+uv run python -m harness.runner --all-datasets
+
+# Run specific configs only
+uv run python -m harness.runner --configs v2_regex_gate,v3_improved_fewshots --all-datasets
+
+# Single dataset
+uv run python -m harness.runner --configs baseline_qwen_0_5b --dataset dataset/conversations.json
+
+# Recompute metrics from cached raw outputs (no inference)
+uv run python -m harness.runner --metrics-only --raw-from reports/20260413-111941/conversations
+```
+
+**Metric:** Fidelity — cosine distance between embed(enriched) and embed(expected_standalone). Lower = better.
+- `fidelity@0.15` = production cache similarity threshold
+- `fidelity@0.20` = trusted entry threshold
+- `passthrough rate` = % of `passthrough` category rows where enriched ≈ original (dist < 0.05)
+
+**Datasets** (5 files, `dataset/conversations*.json`): `conversations` (general, 60 scenarios), `conversations_coding` (54), `conversations_science` (51), `conversations_culture` (49), `conversations_practical` (49). Each scenario has 3 phrasings × 5 categories: `pronoun_resolution`, `topic_continuation`, `multi_reference`, `passthrough`, `deep_chain`.
+
+**Configs** (`configs/`):
+| Config | Description | Key result |
+|--------|-------------|------------|
+| `baseline_qwen_0_5b` | Production enricher, no gate | ~85% @0.20, 60% passthrough |
+| `v2_regex_gate` | Regex gate skips LLM on standalone queries | ~92% @0.20, 100% passthrough, −30ms |
+| `v3_improved_fewshots` | v2 gate + `\bones?\b` fix + 8 few-shots | +3pp coding, neutral elsewhere |
+
+**Known ceiling:** Qwen 0.5B cannot inject subject nouns into bare "which" comparatives ("Which is cheaper?" from gym vs home history) without domain-specific few-shots. Needs 1.5B or subject-extraction preprocessing to fix.
+
+### normalization-test/ — Normalizer eval
+
+```bash
+cd normalization-test
+uv run python -m harness.runner
+```
+
+Best config: `v22` (BGE-small embedder + opinion LLM gate) — 81% Hit@0.20.
+
 ## Current Status
 
-**Working:** FastAPI WebSocket + HTTP, Normalizer (Qwen 0.5B), LLM Router (Llama 3.2 1B local), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Multi-turn conversation history (in-memory), Conversation CRUD endpoints, Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher (conversation-aware caching), Smart Cache Filter (skip non-cacheable prompts), Cache Viewer API + UI panel, Difficulty Classifier (NVIDIA DeBERTa — routes easy→local, hard→external), Celery + Redis task queue (non-blocking generalize+store for both HTTP and WebSocket)
+**Working:** FastAPI WebSocket + HTTP, Normalizer (Qwen 0.5B, v22), LLM Router (Llama 3.2 1B local), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Multi-turn conversation history (in-memory), Conversation CRUD endpoints, Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher v5 (Qwen 1.5B + regex gate, 88.7% @0.15 across 5 datasets), Smart Cache Filter (skip non-cacheable prompts), Cache Viewer API + UI panel, Difficulty Classifier (NVIDIA DeBERTa — routes easy→local, hard→external), Celery + Redis task queue (non-blocking generalize+store for both HTTP and WebSocket)
 **In progress:** Database integration (PostgreSQL)
-**Planned:** External LLM APIs (GPT/Gemini), Feedback loop, React frontend, Persistent conversation storage (currently in-memory only), Offload user-facing inference to Celery inference queue (multi-user parallelism)
+**Planned:** External LLM APIs (GPT/Gemini), Feedback loop, React frontend, Persistent conversation storage (currently in-memory only), Offload user-facing inference to Celery inference queue (multi-user parallelism), Subject-extraction preprocessing for bare comparative failures ("Which is cheaper?" — 1.5B model not sufficient)
 
 ## Active Technologies
-- Python 3.13+ + FastAPI + Uvicorn, ChromaDB (PersistentClient), redis-py (already present as Celery dependency), Pydantic v2, Celery (001-cache-feedback-loop)
-- ChromaDB (entry metadata), Redis (feedback event history, suppression flags) (001-cache-feedback-loop)
+- Python 3.13+ + FastAPI + Uvicorn, ChromaDB (PersistentClient), redis-py (already present as Celery dependency), Pydantic v2, Celery
+- ChromaDB (entry metadata), Redis (feedback event history, suppression flags)
 
 ## Recent Changes
-- 001-cache-feedback-loop: Added Python 3.13+ + FastAPI + Uvicorn, ChromaDB (PersistentClient), redis-py (already present as Celery dependency), Pydantic v2, Celery
+- `services-tuning` branch: deployed v5 enricher (Qwen 1.5B + regex gate) — +5.4pp @0.15 vs baseline; built enricher-test harness (5 datasets, configs: baseline / v2_regex_gate / v3_improved_fewshots / v4_gate_fix / v5_qwen_1_5b)

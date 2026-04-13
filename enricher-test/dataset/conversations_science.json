@@ -1,0 +1,685 @@
+{
+  "scenarios": [
+    {
+      "id": "neuron_synapse",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a neuron?"},
+        {"role": "assistant", "content": "A neuron is a specialized cell in the nervous system that transmits information through electrical and chemical signals. It consists of a cell body, dendrites, and an axon."}
+      ],
+      "followups": [
+        {"input": "How does it communicate with other cells?", "expected": "How does a neuron communicate with other cells?"},
+        {"input": "How fast does it fire?", "expected": "How fast does a neuron fire?"},
+        {"input": "What happens when it dies?", "expected": "What happens when a neuron dies?"}
+      ]
+    },
+    {
+      "id": "mitochondria",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a mitochondrion?"},
+        {"role": "assistant", "content": "The mitochondrion is a membrane-bound organelle found in eukaryotic cells, often called the powerhouse of the cell because it generates most of the cell's ATP through aerobic respiration."}
+      ],
+      "followups": [
+        {"input": "How does it generate ATP?", "expected": "How does the mitochondrion generate ATP?"},
+        {"input": "Does every cell have it?", "expected": "Does every cell have mitochondria?"},
+        {"input": "How did it evolve?", "expected": "How did the mitochondrion evolve?"}
+      ]
+    },
+    {
+      "id": "atom_nucleus",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is an atomic nucleus?"},
+        {"role": "assistant", "content": "The atomic nucleus is the dense central region of an atom, containing protons and neutrons bound together by the strong nuclear force."}
+      ],
+      "followups": [
+        {"input": "What holds it together?", "expected": "What holds the atomic nucleus together?"},
+        {"input": "How small is it?", "expected": "How small is an atomic nucleus?"},
+        {"input": "What happens when it splits?", "expected": "What happens when an atomic nucleus splits?"}
+      ]
+    },
+    {
+      "id": "tectonic_plates",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What are tectonic plates?"},
+        {"role": "assistant", "content": "Tectonic plates are massive segments of Earth's lithosphere that move slowly over the mantle, and their interactions cause earthquakes, volcanoes, and the formation of mountains."}
+      ],
+      "followups": [
+        {"input": "How fast do they move?", "expected": "How fast do tectonic plates move?"},
+        {"input": "How many are there?", "expected": "How many tectonic plates are there?"},
+        {"input": "What drives their movement?", "expected": "What drives the movement of tectonic plates?"}
+      ]
+    },
+    {
+      "id": "crispr",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is CRISPR?"},
+        {"role": "assistant", "content": "CRISPR-Cas9 is a gene-editing tool derived from a bacterial immune mechanism, allowing scientists to precisely cut and edit DNA sequences in living organisms."}
+      ],
+      "followups": [
+        {"input": "How does it work exactly?", "expected": "How does CRISPR-Cas9 work to edit DNA?"},
+        {"input": "What diseases can it treat?", "expected": "What diseases can CRISPR be used to treat?"},
+        {"input": "Is it safe for humans?", "expected": "Is CRISPR gene editing safe for humans?"}
+      ]
+    },
+    {
+      "id": "supernova",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a supernova?"},
+        {"role": "assistant", "content": "A supernova is a powerful stellar explosion that occurs at the end of certain stars' lives, briefly outshining entire galaxies and scattering heavy elements across space."}
+      ],
+      "followups": [
+        {"input": "What triggers it?", "expected": "What triggers a supernova explosion?"},
+        {"input": "What remains after it?", "expected": "What remains after a supernova explosion?"},
+        {"input": "How often does it happen in our galaxy?", "expected": "How often does a supernova occur in our galaxy?"}
+      ]
+    },
+    {
+      "id": "entropy_thermodynamics",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is entropy in thermodynamics?"},
+        {"role": "assistant", "content": "Entropy is a measure of disorder or randomness in a system. The second law of thermodynamics states that entropy in a closed system always increases over time."}
+      ],
+      "followups": [
+        {"input": "Can it ever decrease?", "expected": "Can entropy ever decrease in a closed system?"},
+        {"input": "How is it measured?", "expected": "How is entropy measured in thermodynamics?"},
+        {"input": "What does it mean for the universe?", "expected": "What does entropy mean for the long-term fate of the universe?"}
+      ]
+    },
+    {
+      "id": "mrna_vaccine",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "How does an mRNA vaccine work?"},
+        {"role": "assistant", "content": "An mRNA vaccine delivers genetic instructions that tell your cells to produce a harmless piece of a pathogen (like a spike protein), triggering an immune response without using live virus."}
+      ],
+      "followups": [
+        {"input": "Does it change your DNA?", "expected": "Does an mRNA vaccine change your DNA?"},
+        {"input": "How long does it last in the body?", "expected": "How long does mRNA from a vaccine last in the body?"},
+        {"input": "How was it developed so quickly?", "expected": "How was the mRNA vaccine technology developed so quickly?"}
+      ]
+    },
+    {
+      "id": "dark_matter",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is dark matter?"},
+        {"role": "assistant", "content": "Dark matter is a hypothetical form of matter that doesn't interact with the electromagnetic force but exerts gravitational effects, making up about 27% of the universe's mass-energy."}
+      ],
+      "followups": [
+        {"input": "How do we know it exists?", "expected": "How do scientists know dark matter exists?"},
+        {"input": "What could it be made of?", "expected": "What could dark matter be made of?"},
+        {"input": "Has it been directly detected?", "expected": "Has dark matter been directly detected?"}
+      ]
+    },
+    {
+      "id": "immune_system",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is the immune system?"},
+        {"role": "assistant", "content": "The immune system is the body's defense network against pathogens, comprising physical barriers, innate immunity (fast, non-specific), and adaptive immunity (slow, highly specific with memory)."}
+      ],
+      "followups": [
+        {"input": "How does it remember past infections?", "expected": "How does the immune system remember past infections?"},
+        {"input": "What happens when it attacks itself?", "expected": "What happens when the immune system attacks the body's own cells?"},
+        {"input": "How does aging affect it?", "expected": "How does aging affect the immune system?"}
+      ]
+    },
+    {
+      "id": "relativity_time",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is time dilation in relativity?"},
+        {"role": "assistant", "content": "Time dilation is a consequence of Einstein's special relativity: time passes more slowly for an observer moving at high speed relative to a stationary observer."}
+      ],
+      "followups": [
+        {"input": "Has it been experimentally verified?", "expected": "Has time dilation been experimentally verified?"},
+        {"input": "Does it affect GPS satellites?", "expected": "Does time dilation affect GPS satellite clocks?"},
+        {"input": "Is it reversible?", "expected": "Is time dilation reversible when the moving object slows down?"}
+      ]
+    },
+    {
+      "id": "stem_cells",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What are stem cells?"},
+        {"role": "assistant", "content": "Stem cells are undifferentiated cells capable of self-renewal and differentiation into specialized cell types, making them valuable for regenerative medicine and research."}
+      ],
+      "followups": [
+        {"input": "What types are there?", "expected": "What types of stem cells are there?"},
+        {"input": "Where are they found in the body?", "expected": "Where are stem cells found in the human body?"},
+        {"input": "What diseases can they treat?", "expected": "What diseases can stem cells be used to treat?"}
+      ]
+    },
+    {
+      "id": "quantum_entanglement",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is quantum entanglement?"},
+        {"role": "assistant", "content": "Quantum entanglement is a phenomenon where two or more particles become correlated so that the state of one instantly influences the other, regardless of the distance between them."}
+      ],
+      "followups": [
+        {"input": "Can it be used for faster-than-light communication?", "expected": "Can quantum entanglement be used for faster-than-light communication?"},
+        {"input": "How is it created in the lab?", "expected": "How is quantum entanglement created in the laboratory?"},
+        {"input": "What makes it useful for computing?", "expected": "What makes quantum entanglement useful for quantum computing?"}
+      ]
+    },
+    {
+      "id": "ozone_layer",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is the ozone layer?"},
+        {"role": "assistant", "content": "The ozone layer is a region of Earth's stratosphere that absorbs most of the Sun's harmful ultraviolet radiation, protecting life on Earth."}
+      ],
+      "followups": [
+        {"input": "How was it damaged?", "expected": "How was the ozone layer damaged?"},
+        {"input": "Is it recovering?", "expected": "Is the ozone layer recovering?"},
+        {"input": "Where is the hole in it?", "expected": "Where is the hole in the ozone layer?"}
+      ]
+    },
+    {
+      "id": "ribosome",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a ribosome?"},
+        {"role": "assistant", "content": "A ribosome is a molecular machine found in all cells that synthesizes proteins by translating messenger RNA (mRNA) sequences into amino acid chains."}
+      ],
+      "followups": [
+        {"input": "Where is it found in the cell?", "expected": "Where is a ribosome found in the cell?"},
+        {"input": "How does it read mRNA?", "expected": "How does a ribosome read mRNA to produce proteins?"},
+        {"input": "How big is it?", "expected": "How big is a ribosome?"}
+      ]
+    },
+    {
+      "id": "chemical_bonding",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is an ionic bond?"},
+        {"role": "assistant", "content": "An ionic bond forms when one atom transfers electrons to another, creating oppositely charged ions that attract each other, as in sodium chloride (table salt)."}
+      ],
+      "followups": [
+        {"input": "What about covalent bonds?", "expected": "What is a covalent bond in chemistry?"},
+        {"input": "And metallic bonds?", "expected": "What is a metallic bond in chemistry?"},
+        {"input": "Which is stronger?", "expected": "Are ionic or covalent bonds generally stronger?"}
+      ]
+    },
+    {
+      "id": "evolution_natural_selection",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is natural selection?"},
+        {"role": "assistant", "content": "Natural selection is the process by which organisms with traits better suited to their environment survive and reproduce more successfully, passing those traits to offspring."}
+      ],
+      "followups": [
+        {"input": "What about genetic drift?", "expected": "What is genetic drift in evolutionary biology?"},
+        {"input": "And sexual selection?", "expected": "What is sexual selection in evolutionary biology?"},
+        {"input": "How does mutation fit in?", "expected": "How does mutation contribute to evolutionary processes?"}
+      ]
+    },
+    {
+      "id": "nuclear_reactions",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is nuclear fission?"},
+        {"role": "assistant", "content": "Nuclear fission is the splitting of a heavy atomic nucleus (like uranium-235) into smaller fragments, releasing a large amount of energy. It is the principle behind nuclear power plants and atomic bombs."}
+      ],
+      "followups": [
+        {"input": "What about nuclear fusion?", "expected": "What is nuclear fusion and how does it differ from fission?"},
+        {"input": "Which produces more energy?", "expected": "Does nuclear fission or fusion produce more energy?"},
+        {"input": "And radioactive decay?", "expected": "What is radioactive decay?"}
+      ]
+    },
+    {
+      "id": "wave_types",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is a transverse wave?"},
+        {"role": "assistant", "content": "A transverse wave is one where the oscillation is perpendicular to the direction of wave propagation, like light waves or waves on a string."}
+      ],
+      "followups": [
+        {"input": "What about longitudinal waves?", "expected": "What is a longitudinal wave and how does it differ from a transverse wave?"},
+        {"input": "And standing waves?", "expected": "What is a standing wave?"},
+        {"input": "Which type is sound?", "expected": "Is sound a transverse or longitudinal wave?"}
+      ]
+    },
+    {
+      "id": "ecosystem_levels",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is a food chain?"},
+        {"role": "assistant", "content": "A food chain is a linear sequence showing how energy flows from producers (plants) through consumers (herbivores, carnivores) in an ecosystem."}
+      ],
+      "followups": [
+        {"input": "What about a food web?", "expected": "What is a food web and how does it differ from a food chain?"},
+        {"input": "And trophic levels?", "expected": "What are trophic levels in an ecosystem?"},
+        {"input": "What happens when a species is removed?", "expected": "What happens to an ecosystem when a species is removed from the food chain?"}
+      ]
+    },
+    {
+      "id": "cell_division",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is mitosis?"},
+        {"role": "assistant", "content": "Mitosis is the process of cell division that produces two genetically identical daughter cells from one parent cell, used for growth and tissue repair."}
+      ],
+      "followups": [
+        {"input": "What about meiosis?", "expected": "What is meiosis and how does it differ from mitosis?"},
+        {"input": "And cytokinesis?", "expected": "What is cytokinesis in cell division?"},
+        {"input": "When does mitosis go wrong?", "expected": "What happens when mitosis goes wrong?"}
+      ]
+    },
+    {
+      "id": "acids_bases",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is an acid?"},
+        {"role": "assistant", "content": "An acid is a substance that donates protons (H⁺ ions) in a solution, has a pH below 7, and typically reacts with bases to form salt and water."}
+      ],
+      "followups": [
+        {"input": "What about bases?", "expected": "What is a base in chemistry?"},
+        {"input": "And pH?", "expected": "What is pH and how does it measure acidity?"},
+        {"input": "What is a buffer?", "expected": "What is a chemical buffer and how does it work?"}
+      ]
+    },
+    {
+      "id": "electromagnetic_spectrum",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is visible light?"},
+        {"role": "assistant", "content": "Visible light is the portion of the electromagnetic spectrum detectable by the human eye, with wavelengths between roughly 380 nm (violet) and 700 nm (red)."}
+      ],
+      "followups": [
+        {"input": "What about ultraviolet light?", "expected": "What is ultraviolet light in the electromagnetic spectrum?"},
+        {"input": "And infrared?", "expected": "What is infrared radiation in the electromagnetic spectrum?"},
+        {"input": "Which has the highest energy?", "expected": "Which part of the electromagnetic spectrum has the highest energy?"}
+      ]
+    },
+    {
+      "id": "geology_rock_types",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is an igneous rock?"},
+        {"role": "assistant", "content": "Igneous rocks form from the cooling and solidification of magma or lava. Intrusive igneous rocks cool slowly underground (like granite); extrusive rocks cool quickly at the surface (like basalt)."}
+      ],
+      "followups": [
+        {"input": "What about sedimentary rocks?", "expected": "What is a sedimentary rock and how does it form?"},
+        {"input": "And metamorphic rocks?", "expected": "What is a metamorphic rock and how does it form?"},
+        {"input": "Can one type turn into another?", "expected": "Can one type of rock turn into another type of rock?"}
+      ]
+    },
+    {
+      "id": "nervous_system_types",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is the central nervous system?"},
+        {"role": "assistant", "content": "The central nervous system (CNS) consists of the brain and spinal cord, processing information and coordinating activity across the body."}
+      ],
+      "followups": [
+        {"input": "What about the peripheral nervous system?", "expected": "What is the peripheral nervous system?"},
+        {"input": "And the autonomic nervous system?", "expected": "What is the autonomic nervous system?"},
+        {"input": "How do they interact?", "expected": "How do the central and peripheral nervous systems interact?"}
+      ]
+    },
+    {
+      "id": "earth_vs_mars_atmosphere",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "How do Earth's and Mars's atmospheres compare?"},
+        {"role": "assistant", "content": "Earth's atmosphere is 78% nitrogen, 21% oxygen, and supports life. Mars's atmosphere is 95% CO₂, extremely thin (less than 1% of Earth's pressure), and cannot support unprotected human life."}
+      ],
+      "followups": [
+        {"input": "Which is colder?", "expected": "Is Earth or Mars colder on average?"},
+        {"input": "Could Mars ever support life?", "expected": "Could Mars ever support human life?"},
+        {"input": "Why is one so much thinner?", "expected": "Why is Mars's atmosphere so much thinner than Earth's?"}
+      ]
+    },
+    {
+      "id": "rna_vs_dna",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between DNA and RNA?"},
+        {"role": "assistant", "content": "DNA is double-stranded, contains deoxyribose sugar and thymine, and stores genetic information permanently in the nucleus. RNA is single-stranded, contains ribose and uracil, and carries genetic instructions to ribosomes."}
+      ],
+      "followups": [
+        {"input": "Which came first in evolution?", "expected": "Which came first in evolution — DNA or RNA?"},
+        {"input": "Which is more stable?", "expected": "Is DNA or RNA more chemically stable?"},
+        {"input": "Can both carry genetic information?", "expected": "Can both DNA and RNA carry genetic information?"}
+      ]
+    },
+    {
+      "id": "proton_neutron",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between a proton and a neutron?"},
+        {"role": "assistant", "content": "Protons carry a positive charge and determine the element's atomic number. Neutrons carry no charge and affect atomic mass and isotope stability. Both are made of quarks and found in the nucleus."}
+      ],
+      "followups": [
+        {"input": "Which is heavier?", "expected": "Is a proton or neutron heavier?"},
+        {"input": "Can either exist outside the nucleus?", "expected": "Can a proton or neutron exist outside the atomic nucleus?"},
+        {"input": "Which can be split further?", "expected": "Can protons or neutrons be split into smaller particles?"}
+      ]
+    },
+    {
+      "id": "photon_electron",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between a photon and an electron?"},
+        {"role": "assistant", "content": "Photons are massless particles of light (bosons) that carry electromagnetic force. Electrons are massive, negatively charged particles (fermions) that orbit atomic nuclei."}
+      ],
+      "followups": [
+        {"input": "Which exhibits wave-particle duality?", "expected": "Do photons or electrons exhibit wave-particle duality?"},
+        {"input": "Which has a longer wavelength typically?", "expected": "Do photons or electrons typically have longer wavelengths?"},
+        {"input": "Can they interact with each other?", "expected": "Can photons and electrons interact with each other?"}
+      ]
+    },
+    {
+      "id": "plant_animal_cell",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "How do plant and animal cells differ?"},
+        {"role": "assistant", "content": "Plant cells have a rigid cell wall, chloroplasts for photosynthesis, and a large central vacuole. Animal cells lack a cell wall and chloroplasts, and have smaller vacuoles and centrioles."}
+      ],
+      "followups": [
+        {"input": "Which is larger?", "expected": "Are plant or animal cells generally larger?"},
+        {"input": "Do both have mitochondria?", "expected": "Do both plant and animal cells have mitochondria?"},
+        {"input": "Which can make their own food?", "expected": "Can plant or animal cells make their own food?"}
+      ]
+    },
+    {
+      "id": "speed_sound_light",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "How do the speeds of sound and light compare?"},
+        {"role": "assistant", "content": "Light travels at ~300,000 km/s in a vacuum. Sound travels at ~343 m/s in air at room temperature — roughly 900,000 times slower than light."}
+      ],
+      "followups": [
+        {"input": "Which travels faster in water?", "expected": "Does sound or light travel faster in water?"},
+        {"input": "Can we travel faster than either?", "expected": "Can humans travel faster than the speed of sound or light?"},
+        {"input": "What happens at the speed of light?", "expected": "What happens to mass and time at the speed of light?"}
+      ]
+    },
+    {
+      "id": "virus_vs_bacteria",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between viruses and bacteria?"},
+        {"role": "assistant", "content": "Bacteria are single-celled living organisms that can reproduce independently. Viruses are non-living particles that can only replicate by infecting a host cell and hijacking its machinery."}
+      ],
+      "followups": [
+        {"input": "Which are treated with antibiotics?", "expected": "Are viral or bacterial infections treated with antibiotics?"},
+        {"input": "Which are smaller?", "expected": "Are viruses or bacteria smaller?"},
+        {"input": "Which cause more diseases?", "expected": "Do viruses or bacteria cause more human diseases?"}
+      ]
+    },
+    {
+      "id": "photosynthesis_vs_respiration",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between photosynthesis and cellular respiration?"},
+        {"role": "assistant", "content": "Photosynthesis converts light, CO₂, and water into glucose and oxygen in plants. Cellular respiration converts glucose and oxygen back into CO₂, water, and ATP energy in most living cells."}
+      ],
+      "followups": [
+        {"input": "Are they reverse reactions?", "expected": "Are photosynthesis and cellular respiration reverse reactions of each other?"},
+        {"input": "Which releases more energy?", "expected": "Does photosynthesis or cellular respiration release more energy?"},
+        {"input": "Which happens in the mitochondria?", "expected": "Does photosynthesis or cellular respiration happen in mitochondria?"}
+      ]
+    },
+    {
+      "id": "standalone_speed_sound",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Tell me a fun fact."},
+        {"role": "assistant", "content": "Honey never spoils — archaeologists have found 3000-year-old honey in Egyptian tombs that was still edible!"}
+      ],
+      "followups": [
+        {"input": "What is the speed of sound?", "expected": "What is the speed of sound?"},
+        {"input": "How fast does sound travel through air?", "expected": "How fast does sound travel through air?"},
+        {"input": "What is the speed of sound in m/s?", "expected": "What is the speed of sound in meters per second?"}
+      ]
+    },
+    {
+      "id": "standalone_half_life",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "How do I cook pasta?"},
+        {"role": "assistant", "content": "Boil salted water, add pasta, cook for the time on the package, then drain and sauce!"}
+      ],
+      "followups": [
+        {"input": "What is radioactive half-life?", "expected": "What is radioactive half-life?"},
+        {"input": "How is half-life measured?", "expected": "How is the half-life of a radioactive element measured?"},
+        {"input": "Explain half-life in nuclear physics.", "expected": "What is half-life in nuclear physics?"}
+      ]
+    },
+    {
+      "id": "standalone_osmosis",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is today's date?"},
+        {"role": "assistant", "content": "I don't have access to real-time information, but I can help with science questions!"}
+      ],
+      "followups": [
+        {"input": "What is osmosis?", "expected": "What is osmosis in biology?"},
+        {"input": "How does osmosis work in cells?", "expected": "How does osmosis work in biological cells?"},
+        {"input": "Define osmosis.", "expected": "What is the definition of osmosis?"}
+      ]
+    },
+    {
+      "id": "standalone_pangaea",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What's a good movie to watch?"},
+        {"role": "assistant", "content": "I'd recommend Interstellar for great science-themed drama!"}
+      ],
+      "followups": [
+        {"input": "What was Pangaea?", "expected": "What was Pangaea?"},
+        {"input": "When did Pangaea exist?", "expected": "When did the supercontinent Pangaea exist?"},
+        {"input": "Explain the Pangaea theory.", "expected": "What is the Pangaea theory in geology?"}
+      ]
+    },
+    {
+      "id": "standalone_higgs_boson",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What should I name my cat?"},
+        {"role": "assistant", "content": "How about Schrödinger, in honor of the famous physics thought experiment?"}
+      ],
+      "followups": [
+        {"input": "What is the Higgs boson?", "expected": "What is the Higgs boson?"},
+        {"input": "How was the Higgs boson discovered?", "expected": "How was the Higgs boson discovered?"},
+        {"input": "Explain the God particle.", "expected": "What is the Higgs boson and why is it called the God particle?"}
+      ]
+    },
+    {
+      "id": "standalone_plate_tectonics",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Who is your favorite scientist?"},
+        {"role": "assistant", "content": "I admire Marie Curie for her groundbreaking work in radioactivity and being the first woman to win a Nobel Prize!"}
+      ],
+      "followups": [
+        {"input": "What is plate tectonics?", "expected": "What is plate tectonics?"},
+        {"input": "How does plate tectonics work?", "expected": "How does plate tectonics theory work?"},
+        {"input": "Explain tectonic plate movement.", "expected": "How do tectonic plates move and why?"}
+      ]
+    },
+    {
+      "id": "standalone_greenhouse_effect",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Can you write me a poem?"},
+        {"role": "assistant", "content": "Roses are red, science is true, the universe is vast, and so are you!"}
+      ],
+      "followups": [
+        {"input": "What is the greenhouse effect?", "expected": "What is the greenhouse effect?"},
+        {"input": "How does the greenhouse effect work?", "expected": "How does the greenhouse effect work?"},
+        {"input": "Explain the greenhouse effect.", "expected": "What is the greenhouse effect and how does it warm the Earth?"}
+      ]
+    },
+    {
+      "id": "standalone_atp",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is the best programming language?"},
+        {"role": "assistant", "content": "It depends on your use case — Python for data science, JavaScript for web, Rust for systems programming."}
+      ],
+      "followups": [
+        {"input": "What is ATP in biology?", "expected": "What is ATP in biology?"},
+        {"input": "How does ATP store energy?", "expected": "How does ATP store energy in cells?"},
+        {"input": "What does ATP stand for?", "expected": "What does ATP stand for in biology?"}
+      ]
+    },
+    {
+      "id": "standalone_doppler",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Tell me a joke."},
+        {"role": "assistant", "content": "Why don't scientists trust atoms? Because they make up everything!"}
+      ],
+      "followups": [
+        {"input": "What is the Doppler effect?", "expected": "What is the Doppler effect?"},
+        {"input": "How does the Doppler effect work?", "expected": "How does the Doppler effect work?"},
+        {"input": "Explain the Doppler shift.", "expected": "What is the Doppler effect and how does it cause frequency shifts?"}
+      ]
+    },
+    {
+      "id": "brain_regions_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What does the brain do?"},
+        {"role": "assistant", "content": "The brain controls virtually all body functions — thought, memory, emotion, sensation, and movement — through a network of approximately 86 billion neurons."},
+        {"role": "user", "content": "What is the prefrontal cortex?"},
+        {"role": "assistant", "content": "The prefrontal cortex is the front part of the brain's frontal lobe, responsible for executive functions: decision-making, planning, social behavior, and impulse control."}
+      ],
+      "followups": [
+        {"input": "When does it fully develop?", "expected": "When does the prefrontal cortex fully develop in humans?"},
+        {"input": "What happens when it's damaged?", "expected": "What happens when the prefrontal cortex is damaged?"},
+        {"input": "Does it differ between humans and other animals?", "expected": "Does the prefrontal cortex differ significantly between humans and other animals?"}
+      ]
+    },
+    {
+      "id": "crispr_off_target_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "How does CRISPR-Cas9 work?"},
+        {"role": "assistant", "content": "CRISPR-Cas9 uses a guide RNA to target a specific DNA sequence, then the Cas9 enzyme acts as molecular scissors to cut the DNA at that location, enabling edits."},
+        {"role": "user", "content": "What are the risks of CRISPR?"},
+        {"role": "assistant", "content": "The main risks are off-target cuts (editing the wrong part of the genome), mosaicism (not all cells getting edited), and immune responses to the Cas9 protein."}
+      ],
+      "followups": [
+        {"input": "How do researchers minimize off-target effects?", "expected": "How do researchers minimize CRISPR off-target effects?"},
+        {"input": "Is there a more precise version?", "expected": "Is there a more precise version of CRISPR than Cas9?"},
+        {"input": "Has it been used in human trials?", "expected": "Has CRISPR been used in human clinical trials?"}
+      ]
+    },
+    {
+      "id": "big_bang_inflation_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is the Big Bang theory?"},
+        {"role": "assistant", "content": "The Big Bang theory describes the origin of the universe as an extremely hot, dense singularity that began expanding approximately 13.8 billion years ago."},
+        {"role": "user", "content": "What happened in the first moments?"},
+        {"role": "assistant", "content": "In the first fraction of a second, the universe underwent cosmic inflation — an exponentially rapid expansion. Then quarks formed, followed by protons and neutrons as the universe cooled."}
+      ],
+      "followups": [
+        {"input": "What evidence supports inflation?", "expected": "What evidence supports the theory of cosmic inflation after the Big Bang?"},
+        {"input": "What came before it?", "expected": "What came before the Big Bang?"},
+        {"input": "Will the universe eventually stop expanding?", "expected": "Will the universe eventually stop expanding?"}
+      ]
+    },
+    {
+      "id": "antibiotic_mechanism_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What are antibiotics?"},
+        {"role": "assistant", "content": "Antibiotics are compounds that kill or inhibit the growth of bacteria. They are derived from natural microorganisms or synthesized chemically."},
+        {"role": "user", "content": "How do beta-lactam antibiotics work?"},
+        {"role": "assistant", "content": "Beta-lactam antibiotics (like penicillin) inhibit the synthesis of the bacterial cell wall by binding to penicillin-binding proteins, causing the bacteria to burst due to osmotic pressure."}
+      ],
+      "followups": [
+        {"input": "How do bacteria become resistant to them?", "expected": "How do bacteria become resistant to beta-lactam antibiotics?"},
+        {"input": "What is beta-lactamase?", "expected": "What is beta-lactamase and how does it contribute to antibiotic resistance?"},
+        {"input": "Are there antibiotics that bypass this resistance?", "expected": "Are there antibiotics that bypass beta-lactamase resistance?"}
+      ]
+    },
+    {
+      "id": "vaccine_immune_response_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "How do vaccines work?"},
+        {"role": "assistant", "content": "Vaccines introduce an antigen — a harmless piece of a pathogen or a weakened version of it — to train the immune system to recognize and fight the real pathogen later."},
+        {"role": "user", "content": "What is the role of T cells in the immune response?"},
+        {"role": "assistant", "content": "T cells coordinate the immune response: helper T cells activate B cells to produce antibodies, cytotoxic T cells kill infected cells, and memory T cells persist to enable rapid response to future exposure."}
+      ],
+      "followups": [
+        {"input": "What are B cells responsible for?", "expected": "What are B cells responsible for in the immune response?"},
+        {"input": "How long do memory cells last?", "expected": "How long do memory T and B cells persist after vaccination?"},
+        {"input": "Why do some vaccines need boosters?", "expected": "Why do some vaccines need booster doses?"}
+      ]
+    },
+    {
+      "id": "quantum_measurement_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is the Heisenberg uncertainty principle?"},
+        {"role": "assistant", "content": "The uncertainty principle states that you cannot simultaneously know both the position and momentum of a particle with arbitrary precision — the more precisely you know one, the less precisely you can know the other."},
+        {"role": "user", "content": "Is this because of limitations in our instruments?"},
+        {"role": "assistant", "content": "No — it's a fundamental property of quantum mechanics, not an instrument limitation. The act of measuring one quantity inherently disturbs the other at the quantum level."}
+      ],
+      "followups": [
+        {"input": "Does this apply to energy and time too?", "expected": "Does the Heisenberg uncertainty principle apply to energy and time as well?"},
+        {"input": "What does this imply for quantum computing?", "expected": "What does the uncertainty principle imply for quantum computing?"},
+        {"input": "Can it be violated?", "expected": "Can the Heisenberg uncertainty principle be violated?"}
+      ]
+    },
+    {
+      "id": "climate_feedback_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What causes global warming?"},
+        {"role": "assistant", "content": "Global warming is caused by greenhouse gases — primarily CO₂ and methane — trapping heat in the atmosphere, mainly from burning fossil fuels, deforestation, and agriculture."},
+        {"role": "user", "content": "What are climate feedback loops?"},
+        {"role": "assistant", "content": "Climate feedback loops amplify or dampen warming. Positive feedbacks — like melting Arctic ice exposing darker ocean (less reflectivity) or permafrost releasing methane — accelerate warming. Negative feedbacks like increased cloud cover can dampen it."}
+      ],
+      "followups": [
+        {"input": "Which feedbacks are most dangerous?", "expected": "Which climate feedback loops pose the greatest danger for accelerating warming?"},
+        {"input": "Can they be reversed?", "expected": "Can climate feedback loops be reversed once they start?"},
+        {"input": "Is there a tipping point?", "expected": "Is there a climate tipping point beyond which warming becomes irreversible?"}
+      ]
+    },
+    {
+      "id": "enzyme_inhibition_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is an enzyme?"},
+        {"role": "assistant", "content": "An enzyme is a biological catalyst — typically a protein — that speeds up chemical reactions in living organisms by lowering the activation energy, without being consumed in the process."},
+        {"role": "user", "content": "How does enzyme inhibition work?"},
+        {"role": "assistant", "content": "Inhibitors bind to enzymes and reduce their activity. Competitive inhibitors bind to the active site (blocking the substrate). Non-competitive inhibitors bind elsewhere and change the enzyme's shape."}
+      ],
+      "followups": [
+        {"input": "What is allosteric regulation?", "expected": "What is allosteric regulation of enzymes?"},
+        {"input": "Can inhibition be reversed?", "expected": "Can enzyme inhibition be reversed?"},
+        {"input": "How are inhibitors used in medicine?", "expected": "How are enzyme inhibitors used in medicine?"}
+      ]
+    },
+    {
+      "id": "stellar_evolution_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "How do stars form?"},
+        {"role": "assistant", "content": "Stars form when clouds of gas and dust (nebulae) collapse under gravity, heating up until nuclear fusion ignites in the core, generating energy that balances the inward gravitational pull."},
+        {"role": "user", "content": "What is a main sequence star?"},
+        {"role": "assistant", "content": "Main sequence stars, like our Sun, fuse hydrogen into helium in their cores. This phase lasts billions of years; its duration depends on the star's mass — more massive stars burn faster and live shorter lives."}
+      ],
+      "followups": [
+        {"input": "What happens after a star leaves the main sequence?", "expected": "What happens after a star leaves the main sequence phase?"},
+        {"input": "What will happen to our Sun?", "expected": "What will happen to our Sun when it leaves the main sequence?"},
+        {"input": "Do all stars end as black holes?", "expected": "Do all stars end their lives as black holes?"}
+      ]
+    }
+  ]
+}

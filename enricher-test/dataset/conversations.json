@@ -1,0 +1,804 @@
+{
+  "scenarios": [
+    {
+      "id": "python_features",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is Python?"},
+        {"role": "assistant", "content": "Python is a high-level, interpreted programming language known for its readable syntax and large ecosystem."}
+      ],
+      "followups": [
+        {"input": "Tell me more about its features", "expected": "What are the main features of Python?"},
+        {"input": "What are its main advantages?", "expected": "What are the main advantages of Python?"},
+        {"input": "Can you explain its syntax?", "expected": "Can you explain Python's syntax?"}
+      ]
+    },
+    {
+      "id": "solar_system_size",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is the solar system?"},
+        {"role": "assistant", "content": "The solar system consists of the Sun and everything gravitationally bound to it, including eight planets, moons, asteroids, and comets."}
+      ],
+      "followups": [
+        {"input": "How many planets does it have?", "expected": "How many planets does the solar system have?"},
+        {"input": "How big is it?", "expected": "How big is the solar system?"},
+        {"input": "When was it discovered?", "expected": "When was the solar system discovered?"}
+      ]
+    },
+    {
+      "id": "dna_structure",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is DNA?"},
+        {"role": "assistant", "content": "DNA (deoxyribonucleic acid) is a molecule that carries the genetic instructions for the development, functioning, growth, and reproduction of all known organisms."}
+      ],
+      "followups": [
+        {"input": "How does it replicate?", "expected": "How does DNA replicate?"},
+        {"input": "What is its structure?", "expected": "What is the structure of DNA?"},
+        {"input": "Where is it found in cells?", "expected": "Where is DNA found in cells?"}
+      ]
+    },
+    {
+      "id": "machine_learning_intro",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is machine learning?"},
+        {"role": "assistant", "content": "Machine learning is a subset of artificial intelligence that enables systems to learn from data and improve their performance without being explicitly programmed."}
+      ],
+      "followups": [
+        {"input": "How does it work?", "expected": "How does machine learning work?"},
+        {"input": "What are its applications?", "expected": "What are the applications of machine learning?"},
+        {"input": "Is it the same as AI?", "expected": "Is machine learning the same as AI?"}
+      ]
+    },
+    {
+      "id": "climate_change_causes",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What causes climate change?"},
+        {"role": "assistant", "content": "Climate change is primarily caused by greenhouse gas emissions from burning fossil fuels, deforestation, and industrial activities that trap heat in the atmosphere."}
+      ],
+      "followups": [
+        {"input": "How can we stop it?", "expected": "How can we stop climate change?"},
+        {"input": "How does it affect wildlife?", "expected": "How does climate change affect wildlife?"},
+        {"input": "Will it get worse?", "expected": "Will climate change get worse?"}
+      ]
+    },
+    {
+      "id": "eiffel_tower",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "Where is the Eiffel Tower?"},
+        {"role": "assistant", "content": "The Eiffel Tower is located in Paris, France, on the Champ de Mars near the Seine River."}
+      ],
+      "followups": [
+        {"input": "When was it built?", "expected": "When was the Eiffel Tower built?"},
+        {"input": "How tall is it?", "expected": "How tall is the Eiffel Tower?"},
+        {"input": "Who designed it?", "expected": "Who designed the Eiffel Tower?"}
+      ]
+    },
+    {
+      "id": "bitcoin_intro",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is Bitcoin?"},
+        {"role": "assistant", "content": "Bitcoin is a decentralized digital currency that operates without a central bank, using cryptography and a distributed ledger called the blockchain."}
+      ],
+      "followups": [
+        {"input": "How does it work?", "expected": "How does Bitcoin work?"},
+        {"input": "Who invented it?", "expected": "Who invented Bitcoin?"},
+        {"input": "Is it safe to invest in it?", "expected": "Is it safe to invest in Bitcoin?"}
+      ]
+    },
+    {
+      "id": "black_holes",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a black hole?"},
+        {"role": "assistant", "content": "A black hole is a region of spacetime where gravity is so strong that nothing, not even light, can escape once it crosses the event horizon."}
+      ],
+      "followups": [
+        {"input": "How are they formed?", "expected": "How are black holes formed?"},
+        {"input": "Can anything escape them?", "expected": "Can anything escape a black hole?"},
+        {"input": "How massive are they?", "expected": "How massive are black holes?"}
+      ]
+    },
+    {
+      "id": "photosynthesis",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "How does photosynthesis work?"},
+        {"role": "assistant", "content": "Photosynthesis is the process by which plants convert light energy, usually from the sun, along with carbon dioxide and water into glucose and oxygen."}
+      ],
+      "followups": [
+        {"input": "What does it produce?", "expected": "What does photosynthesis produce?"},
+        {"input": "Where does it take place?", "expected": "Where does photosynthesis take place in a plant?"},
+        {"input": "Does it occur at night?", "expected": "Does photosynthesis occur at night?"}
+      ]
+    },
+    {
+      "id": "roman_empire",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What was the Roman Empire?"},
+        {"role": "assistant", "content": "The Roman Empire was the post-Republican period of ancient Rome, characterized by autocratic rule and large territorial holdings across Europe, North Africa, and the Middle East."}
+      ],
+      "followups": [
+        {"input": "When did it fall?", "expected": "When did the Roman Empire fall?"},
+        {"input": "How large did it become?", "expected": "How large did the Roman Empire become at its peak?"},
+        {"input": "Who founded it?", "expected": "Who founded the Roman Empire?"}
+      ]
+    },
+    {
+      "id": "antibiotics",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What are antibiotics?"},
+        {"role": "assistant", "content": "Antibiotics are medications that kill or inhibit the growth of bacteria. They are used to treat bacterial infections and are derived from natural sources or synthesized chemically."}
+      ],
+      "followups": [
+        {"input": "How do they work?", "expected": "How do antibiotics work?"},
+        {"input": "Can bacteria become resistant to them?", "expected": "Can bacteria become resistant to antibiotics?"},
+        {"input": "When were they discovered?", "expected": "When were antibiotics discovered?"}
+      ]
+    },
+    {
+      "id": "quantum_computing",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is quantum computing?"},
+        {"role": "assistant", "content": "Quantum computing uses principles of quantum mechanics, such as superposition and entanglement, to process information in ways that classical computers cannot."}
+      ],
+      "followups": [
+        {"input": "How does it differ from classical computing?", "expected": "How does quantum computing differ from classical computing?"},
+        {"input": "What are its current limitations?", "expected": "What are the current limitations of quantum computing?"},
+        {"input": "Where is it being used today?", "expected": "Where is quantum computing being used today?"}
+      ]
+    },
+    {
+      "id": "renaissance",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What was the Renaissance?"},
+        {"role": "assistant", "content": "The Renaissance was a cultural and intellectual movement that began in Italy in the 14th century, marked by renewed interest in classical art, literature, and learning."}
+      ],
+      "followups": [
+        {"input": "When did it begin?", "expected": "When did the Renaissance begin?"},
+        {"input": "What countries did it spread to?", "expected": "What countries did the Renaissance spread to?"},
+        {"input": "Who were its key figures?", "expected": "Who were the key figures of the Renaissance?"}
+      ]
+    },
+    {
+      "id": "the_internet",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is the internet?"},
+        {"role": "assistant", "content": "The internet is a global network of interconnected computers that communicate using standardized protocols to share information and resources."}
+      ],
+      "followups": [
+        {"input": "Who invented it?", "expected": "Who invented the internet?"},
+        {"input": "How does it transmit data?", "expected": "How does the internet transmit data?"},
+        {"input": "When was it created?", "expected": "When was the internet created?"}
+      ]
+    },
+    {
+      "id": "vaccines",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "How do vaccines work?"},
+        {"role": "assistant", "content": "Vaccines work by introducing a weakened or inactivated form of a pathogen, or its antigens, to stimulate the immune system to build memory against future infection."}
+      ],
+      "followups": [
+        {"input": "Are they safe?", "expected": "Are vaccines safe?"},
+        {"input": "How long does their protection last?", "expected": "How long does vaccine protection last?"},
+        {"input": "Who developed the first one?", "expected": "Who developed the first vaccine?"}
+      ]
+    },
+    {
+      "id": "python_loops",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "How do for loops work in Python?"},
+        {"role": "assistant", "content": "In Python, a for loop iterates over any iterable object — like a list, string, or range — executing the loop body once for each item."}
+      ],
+      "followups": [
+        {"input": "What about while loops?", "expected": "How do while loops work in Python?"},
+        {"input": "How about list comprehensions?", "expected": "How do list comprehensions work in Python?"},
+        {"input": "And generators?", "expected": "How do generators work in Python?"}
+      ]
+    },
+    {
+      "id": "sorting_algorithms",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "Can you explain bubble sort?"},
+        {"role": "assistant", "content": "Bubble sort repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order. It runs in O(n²) time."}
+      ],
+      "followups": [
+        {"input": "What about merge sort?", "expected": "How does merge sort work?"},
+        {"input": "How does quicksort compare?", "expected": "How does quicksort compare to bubble sort?"},
+        {"input": "What's the fastest sorting algorithm?", "expected": "What is the fastest sorting algorithm?"}
+      ]
+    },
+    {
+      "id": "javascript_async",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is JavaScript?"},
+        {"role": "assistant", "content": "JavaScript is a high-level, dynamic programming language primarily used for web development, both in browsers and on servers via Node.js."}
+      ],
+      "followups": [
+        {"input": "What about TypeScript?", "expected": "What is TypeScript and how does it relate to JavaScript?"},
+        {"input": "How do async functions work?", "expected": "How do async functions work in JavaScript?"},
+        {"input": "And promises?", "expected": "How do promises work in JavaScript?"}
+      ]
+    },
+    {
+      "id": "solar_energy",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "How does solar energy work?"},
+        {"role": "assistant", "content": "Solar energy works by converting sunlight into electricity using photovoltaic cells, which release electrons when struck by photons from sunlight."}
+      ],
+      "followups": [
+        {"input": "What about wind energy?", "expected": "How does wind energy work?"},
+        {"input": "How efficient is solar energy?", "expected": "How efficient is solar energy?"},
+        {"input": "And battery storage?", "expected": "How does battery storage work with solar energy?"}
+      ]
+    },
+    {
+      "id": "meditation_yoga",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What are the benefits of meditation?"},
+        {"role": "assistant", "content": "Meditation can reduce stress and anxiety, improve focus, promote emotional health, and enhance self-awareness, among other benefits."}
+      ],
+      "followups": [
+        {"input": "What about yoga?", "expected": "What are the benefits of yoga?"},
+        {"input": "How long should I meditate each day?", "expected": "How long should I meditate each day?"},
+        {"input": "What techniques work best for beginners?", "expected": "What meditation techniques work best for beginners?"}
+      ]
+    },
+    {
+      "id": "sql_databases",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is SQL?"},
+        {"role": "assistant", "content": "SQL (Structured Query Language) is a programming language used to manage and manipulate relational databases, allowing users to insert, query, update, and delete data."}
+      ],
+      "followups": [
+        {"input": "What about NoSQL?", "expected": "What is NoSQL and how does it differ from SQL?"},
+        {"input": "How do joins work?", "expected": "How do SQL joins work?"},
+        {"input": "And indexes?", "expected": "How do database indexes work in SQL?"}
+      ]
+    },
+    {
+      "id": "greek_mythology",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "Tell me about Zeus in Greek mythology."},
+        {"role": "assistant", "content": "Zeus is the king of the Olympian gods in Greek mythology, ruler of Mount Olympus and god of the sky, thunder, and lightning."}
+      ],
+      "followups": [
+        {"input": "What about Poseidon?", "expected": "Who is Poseidon in Greek mythology?"},
+        {"input": "How about Athena?", "expected": "Who is Athena in Greek mythology?"},
+        {"input": "And Apollo?", "expected": "Who is Apollo in Greek mythology?"}
+      ]
+    },
+    {
+      "id": "nutrition_protein",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "Why is protein important for the body?"},
+        {"role": "assistant", "content": "Protein is essential for building and repairing tissues, making enzymes and hormones, and supporting immune function and muscle growth."}
+      ],
+      "followups": [
+        {"input": "What about carbohydrates?", "expected": "Why are carbohydrates important for the body?"},
+        {"input": "How much fiber do I need daily?", "expected": "How much dietary fiber do I need daily?"},
+        {"input": "And vitamins?", "expected": "Why are vitamins important for the body?"}
+      ]
+    },
+    {
+      "id": "space_exploration",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "Tell me about the Apollo Moon landing."},
+        {"role": "assistant", "content": "The Apollo 11 mission in July 1969 was the first crewed lunar landing, with Neil Armstrong and Buzz Aldrin walking on the Moon while Michael Collins orbited above."}
+      ],
+      "followups": [
+        {"input": "What about Mars missions?", "expected": "What Mars missions have been undertaken so far?"},
+        {"input": "How long does it take to reach Mars?", "expected": "How long does it take to travel to Mars?"},
+        {"input": "And the International Space Station?", "expected": "What is the International Space Station?"}
+      ]
+    },
+    {
+      "id": "programming_languages",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is Python good for?"},
+        {"role": "assistant", "content": "Python is great for data science, machine learning, scripting, web development, and automation due to its readable syntax and rich library ecosystem."}
+      ],
+      "followups": [
+        {"input": "What about Java?", "expected": "What is Java good for?"},
+        {"input": "How does Rust compare?", "expected": "How does Rust compare to Python?"},
+        {"input": "And Go?", "expected": "What is Go programming language good for?"}
+      ]
+    },
+    {
+      "id": "music_theory",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is a major scale in music theory?"},
+        {"role": "assistant", "content": "A major scale is a seven-note sequence following the pattern W-W-H-W-W-W-H (whole and half steps), producing a bright, happy sound."}
+      ],
+      "followups": [
+        {"input": "What about minor scales?", "expected": "What is a minor scale in music theory?"},
+        {"input": "How do chords work?", "expected": "How do chords work in music theory?"},
+        {"input": "And harmony?", "expected": "What is harmony in music theory?"}
+      ]
+    },
+    {
+      "id": "economics_inflation",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is inflation?"},
+        {"role": "assistant", "content": "Inflation is the rate at which the general level of prices for goods and services rises over time, reducing purchasing power."}
+      ],
+      "followups": [
+        {"input": "What about deflation?", "expected": "What is deflation in economics?"},
+        {"input": "How does the Fed control it?", "expected": "How does the Federal Reserve control inflation?"},
+        {"input": "And interest rates?", "expected": "How do interest rates relate to inflation?"}
+      ]
+    },
+    {
+      "id": "art_movements",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "Tell me about the Impressionism art movement."},
+        {"role": "assistant", "content": "Impressionism was a 19th-century art movement characterized by loose brushwork, capturing fleeting light effects, and outdoor painting, pioneered by Monet, Renoir, and Degas."}
+      ],
+      "followups": [
+        {"input": "What about Cubism?", "expected": "What is the Cubism art movement?"},
+        {"input": "How does Surrealism differ?", "expected": "How does Surrealism differ from Impressionism?"},
+        {"input": "And Abstract Expressionism?", "expected": "What is Abstract Expressionism?"}
+      ]
+    },
+    {
+      "id": "blockchain_crypto",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is a blockchain?"},
+        {"role": "assistant", "content": "A blockchain is a distributed, immutable ledger that records transactions in linked blocks, secured by cryptography and maintained across a decentralized network."}
+      ],
+      "followups": [
+        {"input": "What about cryptocurrencies?", "expected": "What are cryptocurrencies and how do they relate to blockchain?"},
+        {"input": "How does mining work?", "expected": "How does cryptocurrency mining work on a blockchain?"},
+        {"input": "And NFTs?", "expected": "What are NFTs and how do they use blockchain?"}
+      ]
+    },
+    {
+      "id": "machine_learning_supervised",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is supervised learning?"},
+        {"role": "assistant", "content": "Supervised learning is a machine learning approach where a model is trained on labeled data — input-output pairs — so it learns to map inputs to correct outputs."}
+      ],
+      "followups": [
+        {"input": "What about unsupervised learning?", "expected": "What is unsupervised learning in machine learning?"},
+        {"input": "And reinforcement learning?", "expected": "What is reinforcement learning in machine learning?"},
+        {"input": "Which is most commonly used?", "expected": "Which type of machine learning is most commonly used in practice?"}
+      ]
+    },
+    {
+      "id": "python_vs_java",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "Can you compare Python and Java?"},
+        {"role": "assistant", "content": "Python is dynamically typed, concise, and great for scripting and data science. Java is statically typed, verbose, and excels in large-scale enterprise applications."}
+      ],
+      "followups": [
+        {"input": "How do they compare in terms of performance?", "expected": "How do Python and Java compare in terms of performance?"},
+        {"input": "Which one should I learn first?", "expected": "Should I learn Python or Java first?"},
+        {"input": "Are they similar in syntax?", "expected": "Are Python and Java similar in syntax?"}
+      ]
+    },
+    {
+      "id": "tcp_vs_udp",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between TCP and UDP?"},
+        {"role": "assistant", "content": "TCP provides reliable, ordered data delivery with error checking, while UDP is connectionless and faster but offers no delivery guarantees."}
+      ],
+      "followups": [
+        {"input": "When should I use each?", "expected": "When should I use TCP vs UDP?"},
+        {"input": "How do they differ in header size?", "expected": "How do TCP and UDP differ in header size?"},
+        {"input": "Which does video streaming use?", "expected": "Does video streaming use TCP or UDP?"}
+      ]
+    },
+    {
+      "id": "react_vs_vue",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What are the differences between React and Vue?"},
+        {"role": "assistant", "content": "React is a JavaScript library maintained by Meta, using JSX and a unidirectional data flow. Vue is a progressive framework with a gentler learning curve and two-way data binding."}
+      ],
+      "followups": [
+        {"input": "Which is easier to learn?", "expected": "Is React or Vue easier to learn?"},
+        {"input": "How do they handle state?", "expected": "How do React and Vue handle state management?"},
+        {"input": "Which is more popular?", "expected": "Is React or Vue more popular?"}
+      ]
+    },
+    {
+      "id": "newton_vs_einstein",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "Tell me about Newton and Einstein's theories of physics."},
+        {"role": "assistant", "content": "Newton described classical mechanics — gravity as a force between masses. Einstein's relativity described gravity as spacetime curvature, and applies at very high speeds and masses."}
+      ],
+      "followups": [
+        {"input": "How did one build on the other?", "expected": "How did Einstein's theory of relativity build on Newton's classical mechanics?"},
+        {"input": "Where do their theories diverge?", "expected": "Where do Newton's and Einstein's theories of physics diverge?"},
+        {"input": "Who had the bigger impact on physics?", "expected": "Who had a bigger impact on physics — Newton or Einstein?"}
+      ]
+    },
+    {
+      "id": "sql_vs_nosql",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What's the difference between SQL and NoSQL databases?"},
+        {"role": "assistant", "content": "SQL databases use structured tables with predefined schemas; NoSQL databases use flexible data models like documents, graphs, or key-value stores, optimized for scalability."}
+      ],
+      "followups": [
+        {"input": "Which is better for scalability?", "expected": "Are SQL or NoSQL databases better for scalability?"},
+        {"input": "When should I use each?", "expected": "When should I use SQL vs NoSQL databases?"},
+        {"input": "How do they handle transactions?", "expected": "How do SQL and NoSQL databases handle transactions?"}
+      ]
+    },
+    {
+      "id": "aerobic_vs_anaerobic",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What's the difference between aerobic and anaerobic exercise?"},
+        {"role": "assistant", "content": "Aerobic exercise (cardio) uses oxygen for sustained energy over longer periods. Anaerobic exercise (like weightlifting) uses stored energy in short, intense bursts without relying on oxygen."}
+      ],
+      "followups": [
+        {"input": "Which burns more fat?", "expected": "Does aerobic or anaerobic exercise burn more fat?"},
+        {"input": "How long should I do each?", "expected": "How long should aerobic vs anaerobic exercise sessions be?"},
+        {"input": "Which builds more muscle?", "expected": "Does aerobic or anaerobic exercise build more muscle?"}
+      ]
+    },
+    {
+      "id": "ml_vs_deep_learning",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What's the difference between machine learning and deep learning?"},
+        {"role": "assistant", "content": "Machine learning uses algorithms that learn from structured data with hand-engineered features. Deep learning is a subset using neural networks with many layers that can automatically learn features from raw data."}
+      ],
+      "followups": [
+        {"input": "How do they differ in data requirements?", "expected": "How do machine learning and deep learning differ in their data requirements?"},
+        {"input": "When should I use one over the other?", "expected": "When should I use machine learning vs deep learning?"},
+        {"input": "Which is harder to implement?", "expected": "Is machine learning or deep learning harder to implement?"}
+      ]
+    },
+    {
+      "id": "cats_vs_dogs",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "How are cats and dogs different as pets?"},
+        {"role": "assistant", "content": "Cats are generally more independent, requiring less attention, while dogs are social animals that need regular interaction, walks, and training. Both make great companions depending on lifestyle."}
+      ],
+      "followups": [
+        {"input": "Which is easier to care for?", "expected": "Are cats or dogs easier to care for?"},
+        {"input": "How do they differ in lifespan?", "expected": "How do cats and dogs differ in lifespan?"},
+        {"input": "Which makes a better pet for apartments?", "expected": "Are cats or dogs better pets for apartments?"}
+      ]
+    },
+    {
+      "id": "democratic_vs_republican",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What are the main policy differences between Democrats and Republicans?"},
+        {"role": "assistant", "content": "Democrats generally favor larger government, social programs, higher taxes on the wealthy, and strong environmental regulations. Republicans generally favor smaller government, lower taxes, deregulation, and free markets."}
+      ],
+      "followups": [
+        {"input": "How do they differ on healthcare?", "expected": "How do Democrats and Republicans differ on healthcare policy?"},
+        {"input": "Which supports more social programs?", "expected": "Do Democrats or Republicans support more social programs?"},
+        {"input": "What are their economic policies?", "expected": "What are the economic policies of Democrats vs Republicans?"}
+      ]
+    },
+    {
+      "id": "frontend_vs_backend",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between frontend and backend development?"},
+        {"role": "assistant", "content": "Frontend development handles what users see and interact with — HTML, CSS, JavaScript in the browser. Backend development manages server-side logic, databases, and APIs that power the application."}
+      ],
+      "followups": [
+        {"input": "Which is easier to learn first?", "expected": "Is frontend or backend development easier to learn first?"},
+        {"input": "How do they communicate?", "expected": "How do frontend and backend communicate with each other?"},
+        {"input": "Which pays more?", "expected": "Does frontend or backend development pay more?"}
+      ]
+    },
+    {
+      "id": "standalone_gravity",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Tell me a joke."},
+        {"role": "assistant", "content": "Why did the scarecrow win an award? Because he was outstanding in his field!"}
+      ],
+      "followups": [
+        {"input": "What is the theory of gravity?", "expected": "What is the theory of gravity?"},
+        {"input": "Can you explain Newton's law of gravitation?", "expected": "Can you explain Newton's law of gravitation?"},
+        {"input": "How does gravity work?", "expected": "How does gravity work?"}
+      ]
+    },
+    {
+      "id": "standalone_coffee",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What's the weather like today?"},
+        {"role": "assistant", "content": "I don't have access to real-time weather data, but I'd recommend checking a weather app!"}
+      ],
+      "followups": [
+        {"input": "How do I make French press coffee?", "expected": "How do I make French press coffee?"},
+        {"input": "What is the best way to brew coffee at home?", "expected": "What is the best way to brew coffee at home?"},
+        {"input": "How do you use a French press?", "expected": "How do you use a French press to make coffee?"}
+      ]
+    },
+    {
+      "id": "standalone_capital",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Who was Albert Einstein?"},
+        {"role": "assistant", "content": "Albert Einstein was a theoretical physicist who developed the theory of relativity, one of the pillars of modern physics."}
+      ],
+      "followups": [
+        {"input": "What is the capital of the United States?", "expected": "What is the capital of the United States?"},
+        {"input": "Where is the US capital located?", "expected": "Where is the US capital located?"},
+        {"input": "Name the capital city of the USA.", "expected": "What is the capital city of the USA?"}
+      ]
+    },
+    {
+      "id": "standalone_fibonacci",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Who was Beethoven?"},
+        {"role": "assistant", "content": "Ludwig van Beethoven was a German composer and pianist, one of the most admired composers in Western classical music."}
+      ],
+      "followups": [
+        {"input": "What is the Fibonacci sequence?", "expected": "What is the Fibonacci sequence?"},
+        {"input": "Can you explain the Fibonacci numbers?", "expected": "Can you explain the Fibonacci numbers?"},
+        {"input": "How does the Fibonacci sequence work?", "expected": "How does the Fibonacci sequence work?"}
+      ]
+    },
+    {
+      "id": "standalone_recursion",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Who won the 2022 FIFA World Cup?"},
+        {"role": "assistant", "content": "Argentina won the 2022 FIFA World Cup, defeating France in the final on penalties."}
+      ],
+      "followups": [
+        {"input": "Explain recursion in computer science.", "expected": "What is recursion in computer science?"},
+        {"input": "What is a recursive function?", "expected": "What is a recursive function in programming?"},
+        {"input": "How does recursion work in programming?", "expected": "How does recursion work in programming?"}
+      ]
+    },
+    {
+      "id": "standalone_speed_of_light",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Tell me about ancient Rome."},
+        {"role": "assistant", "content": "Ancient Rome was a civilization that grew from a small agricultural community to one of the largest empires in the ancient world."}
+      ],
+      "followups": [
+        {"input": "What is the speed of light?", "expected": "What is the speed of light?"},
+        {"input": "How fast does light travel?", "expected": "How fast does light travel?"},
+        {"input": "What is the speed of light in km/s?", "expected": "What is the speed of light in km/s?"}
+      ]
+    },
+    {
+      "id": "standalone_water",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What are the best programming books?"},
+        {"role": "assistant", "content": "Some highly recommended books include Clean Code by Robert Martin, The Pragmatic Programmer, and Structure and Interpretation of Computer Programs."}
+      ],
+      "followups": [
+        {"input": "What is the chemical formula for water?", "expected": "What is the chemical formula for water?"},
+        {"input": "What molecules make up water?", "expected": "What molecules make up water?"},
+        {"input": "What is H2O?", "expected": "What is H2O in chemistry?"}
+      ]
+    },
+    {
+      "id": "standalone_planets",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is poetry?"},
+        {"role": "assistant", "content": "Poetry is a literary form that uses aesthetic and rhythmic qualities of language to evoke emotion or meaning beyond what ordinary speech can convey."}
+      ],
+      "followups": [
+        {"input": "List all the planets in the solar system.", "expected": "What are all the planets in the solar system?"},
+        {"input": "How many planets are in our solar system?", "expected": "How many planets are in our solar system?"},
+        {"input": "Name every planet in the solar system.", "expected": "Name every planet in the solar system."}
+      ]
+    },
+    {
+      "id": "standalone_entropy",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Recommend me a movie."},
+        {"role": "assistant", "content": "I'd recommend Inception — a visually stunning sci-fi thriller by Christopher Nolan about dreams within dreams."}
+      ],
+      "followups": [
+        {"input": "What does entropy mean in thermodynamics?", "expected": "What does entropy mean in thermodynamics?"},
+        {"input": "Define entropy in physics.", "expected": "What is entropy in physics?"},
+        {"input": "What is thermodynamic entropy?", "expected": "What is thermodynamic entropy?"}
+      ]
+    },
+    {
+      "id": "standalone_git",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What's happening in the stock market?"},
+        {"role": "assistant", "content": "I don't have access to live market data, but I can explain how markets work or discuss economic concepts if you'd like."}
+      ],
+      "followups": [
+        {"input": "How does Git version control work?", "expected": "How does Git version control work?"},
+        {"input": "Can you explain Git?", "expected": "Can you explain how Git works?"},
+        {"input": "What is Git used for?", "expected": "What is Git version control used for?"}
+      ]
+    },
+    {
+      "id": "flask_jwt_chain",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is Flask?"},
+        {"role": "assistant", "content": "Flask is a lightweight Python web framework that provides tools for building web applications with minimal setup."},
+        {"role": "user", "content": "How do I add authentication to a Flask app?"},
+        {"role": "assistant", "content": "You can add authentication to Flask using extensions like Flask-Login for session-based auth, or Flask-JWT-Extended for token-based authentication using JSON Web Tokens."}
+      ],
+      "followups": [
+        {"input": "How does JWT work exactly?", "expected": "How does JSON Web Token (JWT) authentication work?"},
+        {"input": "What does the token contain?", "expected": "What does a JSON Web Token (JWT) contain?"},
+        {"input": "Is it more secure than sessions?", "expected": "Is JWT authentication more secure than session-based authentication in Flask?"}
+      ]
+    },
+    {
+      "id": "python_negative_indexing",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "How do Python lists work?"},
+        {"role": "assistant", "content": "Python lists are ordered, mutable collections that can hold items of any type. You access elements by index, starting at 0."},
+        {"role": "user", "content": "How does list slicing work?"},
+        {"role": "assistant", "content": "Slicing lets you extract a portion of a list using the syntax list[start:stop:step]. The start is inclusive, stop is exclusive, and step defaults to 1."}
+      ],
+      "followups": [
+        {"input": "What do negative indices do?", "expected": "How do negative indices work in Python list slicing?"},
+        {"input": "Can I use negative numbers in slices?", "expected": "Can you use negative numbers in Python list slices?"},
+        {"input": "How do I reverse a list with slicing?", "expected": "How do I reverse a Python list using slicing?"}
+      ]
+    },
+    {
+      "id": "backpropagation",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is a neural network?"},
+        {"role": "assistant", "content": "A neural network is a machine learning model inspired by the brain, consisting of layers of interconnected nodes (neurons) that transform input data into output predictions."},
+        {"role": "user", "content": "How does training work?"},
+        {"role": "assistant", "content": "Training adjusts the network's weights to minimize a loss function by comparing predictions to true labels. This is done iteratively using gradient descent."}
+      ],
+      "followups": [
+        {"input": "What is backpropagation specifically?", "expected": "What is backpropagation in neural network training?"},
+        {"input": "How does it compute gradients?", "expected": "How does backpropagation compute gradients in a neural network?"},
+        {"input": "Why is it important?", "expected": "Why is backpropagation important in neural network training?"}
+      ]
+    },
+    {
+      "id": "docker_compose",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is containerization?"},
+        {"role": "assistant", "content": "Containerization packages an application and its dependencies into a container, ensuring it runs consistently across different environments."},
+        {"role": "user", "content": "How does Docker work?"},
+        {"role": "assistant", "content": "Docker uses images (blueprints) to create containers — isolated runtime environments. You build images from a Dockerfile and run them as containers."}
+      ],
+      "followups": [
+        {"input": "What is Docker Compose for?", "expected": "What is Docker Compose used for?"},
+        {"input": "How does it differ from Docker alone?", "expected": "How does Docker Compose differ from using Docker alone?"},
+        {"input": "Can it manage multiple containers?", "expected": "Can Docker Compose manage multiple containers?"}
+      ]
+    },
+    {
+      "id": "smart_contracts",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is Bitcoin?"},
+        {"role": "assistant", "content": "Bitcoin is a decentralized digital currency that uses cryptography and a distributed ledger (blockchain) to enable peer-to-peer transactions without a central authority."},
+        {"role": "user", "content": "How does the blockchain work?"},
+        {"role": "assistant", "content": "A blockchain is a chain of blocks, each containing transaction data, a timestamp, and a cryptographic hash of the previous block, making it tamper-resistant."}
+      ],
+      "followups": [
+        {"input": "What are smart contracts?", "expected": "What are smart contracts in blockchain technology?"},
+        {"input": "How do they work?", "expected": "How do smart contracts work on a blockchain?"},
+        {"input": "Which blockchain supports them best?", "expected": "Which blockchain platform supports smart contracts best?"}
+      ]
+    },
+    {
+      "id": "carbon_capture",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What causes climate change?"},
+        {"role": "assistant", "content": "Climate change is primarily driven by greenhouse gas emissions — especially CO₂ — from fossil fuels, deforestation, and industry."},
+        {"role": "user", "content": "Why is carbon dioxide such a problem?"},
+        {"role": "assistant", "content": "CO₂ traps heat in the atmosphere through the greenhouse effect. It persists for centuries, and its concentration has risen 50% since pre-industrial times."}
+      ],
+      "followups": [
+        {"input": "What is carbon capture?", "expected": "What is carbon capture technology?"},
+        {"input": "How does it remove CO2 from the air?", "expected": "How does carbon capture technology remove CO2 from the atmosphere?"},
+        {"input": "Is it effective enough to matter?", "expected": "Is carbon capture effective enough to significantly reduce atmospheric CO2?"}
+      ]
+    },
+    {
+      "id": "homo_sapiens_neanderthals",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "How did life evolve on Earth?"},
+        {"role": "assistant", "content": "Life evolved over ~3.8 billion years through natural selection — mutations that improve survival are passed on, leading to increasing complexity from single-celled organisms to complex animals."},
+        {"role": "user", "content": "How did humans evolve?"},
+        {"role": "assistant", "content": "Modern humans (Homo sapiens) evolved in Africa around 300,000 years ago from earlier hominid ancestors, gradually developing larger brains, language, and tool use."}
+      ],
+      "followups": [
+        {"input": "What happened to the Neanderthals?", "expected": "What happened to the Neanderthals after Homo sapiens appeared?"},
+        {"input": "Did we interbreed with them?", "expected": "Did Homo sapiens interbreed with Neanderthals?"},
+        {"input": "Are we smarter than they were?", "expected": "Were Homo sapiens more intelligent than Neanderthals?"}
+      ]
+    },
+    {
+      "id": "roman_fall_barbarians",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What was the Roman Empire?"},
+        {"role": "assistant", "content": "The Roman Empire was one of history's largest empires, spanning Europe, North Africa, and the Middle East, known for its law, engineering, and military power."},
+        {"role": "user", "content": "Why did it fall?"},
+        {"role": "assistant", "content": "The fall of Rome had many causes: political instability, economic troubles, overextension, and pressure from external groups including Germanic tribes and the Huns."}
+      ],
+      "followups": [
+        {"input": "What role did the Barbarian invasions play?", "expected": "What role did Barbarian invasions play in the fall of the Roman Empire?"},
+        {"input": "Who were the main groups that attacked Rome?", "expected": "Who were the main Barbarian groups that attacked the Roman Empire?"},
+        {"input": "When exactly did it fall?", "expected": "When did the Western Roman Empire officially fall?"}
+      ]
+    },
+    {
+      "id": "antibiotic_resistance",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What are bacteria?"},
+        {"role": "assistant", "content": "Bacteria are single-celled microorganisms found virtually everywhere. Some are beneficial (gut flora), while others cause infectious diseases."},
+        {"role": "user", "content": "How do antibiotics kill bacteria?"},
+        {"role": "assistant", "content": "Antibiotics work by targeting bacterial structures not present in human cells — such as cell walls, protein synthesis machinery, or DNA replication enzymes — disrupting essential functions."}
+      ],
+      "followups": [
+        {"input": "How do bacteria become resistant?", "expected": "How do bacteria become resistant to antibiotics?"},
+        {"input": "What mechanisms do they use to resist?", "expected": "What mechanisms do bacteria use to resist antibiotic treatment?"},
+        {"input": "Is resistance a big global problem?", "expected": "Is antibiotic resistance a major global health problem?"}
+      ]
+    },
+    {
+      "id": "event_loop_internals",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is concurrency in programming?"},
+        {"role": "assistant", "content": "Concurrency is the ability to handle multiple tasks simultaneously. In programming, it can be achieved through threads, processes, or async patterns."},
+        {"role": "user", "content": "How does async/await work?"},
+        {"role": "assistant", "content": "Async/await is a syntax for writing asynchronous code that looks synchronous. An async function returns a coroutine; awaiting it pauses the function until the result is ready, yielding control back to the event loop."}
+      ],
+      "followups": [
+        {"input": "What is the event loop exactly?", "expected": "What is the event loop in async programming?"},
+        {"input": "How does it schedule tasks?", "expected": "How does the event loop schedule async tasks?"},
+        {"input": "Is it single-threaded?", "expected": "Is the async event loop single-threaded?"}
+      ]
+    }
+  ]
+}

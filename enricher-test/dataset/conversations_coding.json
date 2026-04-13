@@ -1,0 +1,724 @@
+{
+  "scenarios": [
+    {
+      "id": "git_branching",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a Git branch?"},
+        {"role": "assistant", "content": "A Git branch is a lightweight pointer to a specific commit, allowing you to work on features or fixes in isolation from the main codebase."}
+      ],
+      "followups": [
+        {"input": "How do I delete it?", "expected": "How do I delete a Git branch?"},
+        {"input": "Can I rename it?", "expected": "Can I rename a Git branch?"},
+        {"input": "How do I merge it into main?", "expected": "How do I merge a Git branch into main?"}
+      ]
+    },
+    {
+      "id": "docker_image",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a Docker image?"},
+        {"role": "assistant", "content": "A Docker image is a read-only template that contains the application code, runtime, libraries, and configuration needed to run a container."}
+      ],
+      "followups": [
+        {"input": "How do I build it?", "expected": "How do I build a Docker image?"},
+        {"input": "How big can it get?", "expected": "How big can a Docker image get?"},
+        {"input": "Where is it stored?", "expected": "Where is a Docker image stored?"}
+      ]
+    },
+    {
+      "id": "rest_api",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a REST API?"},
+        {"role": "assistant", "content": "A REST API is an interface that allows systems to communicate over HTTP using standard methods like GET, POST, PUT, and DELETE, following stateless, resource-based conventions."}
+      ],
+      "followups": [
+        {"input": "How do I authenticate it?", "expected": "How do I authenticate a REST API?"},
+        {"input": "What are its main constraints?", "expected": "What are the main constraints of a REST API?"},
+        {"input": "How does it differ from GraphQL?", "expected": "How does a REST API differ from GraphQL?"}
+      ]
+    },
+    {
+      "id": "python_decorator",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a Python decorator?"},
+        {"role": "assistant", "content": "A Python decorator is a function that takes another function as input and extends or modifies its behavior without changing its source code, using the @syntax."}
+      ],
+      "followups": [
+        {"input": "How do I write one?", "expected": "How do I write a Python decorator?"},
+        {"input": "Can it accept arguments?", "expected": "Can a Python decorator accept arguments?"},
+        {"input": "When should I use it?", "expected": "When should I use a Python decorator?"}
+      ]
+    },
+    {
+      "id": "sql_index",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a database index?"},
+        {"role": "assistant", "content": "A database index is a data structure that improves query speed by allowing the database engine to find rows faster without scanning the entire table."}
+      ],
+      "followups": [
+        {"input": "How does it work internally?", "expected": "How does a database index work internally?"},
+        {"input": "Does it slow down writes?", "expected": "Does a database index slow down write operations?"},
+        {"input": "When should I add one?", "expected": "When should I add a database index?"}
+      ]
+    },
+    {
+      "id": "websocket",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a WebSocket?"},
+        {"role": "assistant", "content": "A WebSocket is a communication protocol that provides a persistent, full-duplex connection between a client and server over a single TCP connection, enabling real-time data exchange."}
+      ],
+      "followups": [
+        {"input": "How does it differ from HTTP?", "expected": "How does WebSocket differ from HTTP?"},
+        {"input": "When should I use it?", "expected": "When should I use WebSocket?"},
+        {"input": "How do I implement it in Python?", "expected": "How do I implement a WebSocket in Python?"}
+      ]
+    },
+    {
+      "id": "kubernetes_pod",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a Kubernetes Pod?"},
+        {"role": "assistant", "content": "A Kubernetes Pod is the smallest deployable unit in Kubernetes, containing one or more containers that share network and storage resources."}
+      ],
+      "followups": [
+        {"input": "How do I restart it?", "expected": "How do I restart a Kubernetes Pod?"},
+        {"input": "How do I check its logs?", "expected": "How do I check the logs of a Kubernetes Pod?"},
+        {"input": "Can it run multiple containers?", "expected": "Can a Kubernetes Pod run multiple containers?"}
+      ]
+    },
+    {
+      "id": "binary_search",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is binary search?"},
+        {"role": "assistant", "content": "Binary search is an efficient algorithm for finding an element in a sorted array by repeatedly halving the search space, achieving O(log n) time complexity."}
+      ],
+      "followups": [
+        {"input": "How do I implement it?", "expected": "How do I implement binary search?"},
+        {"input": "Does it work on unsorted arrays?", "expected": "Does binary search work on unsorted arrays?"},
+        {"input": "What is its space complexity?", "expected": "What is the space complexity of binary search?"}
+      ]
+    },
+    {
+      "id": "closure_js",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a closure in JavaScript?"},
+        {"role": "assistant", "content": "A closure is a function that retains access to its outer scope's variables even after the outer function has returned, enabling data encapsulation and stateful behavior."}
+      ],
+      "followups": [
+        {"input": "Can you show me an example of it?", "expected": "Can you show me an example of a closure in JavaScript?"},
+        {"input": "What problems does it solve?", "expected": "What problems does a JavaScript closure solve?"},
+        {"input": "How is it related to scope?", "expected": "How is a JavaScript closure related to scope?"}
+      ]
+    },
+    {
+      "id": "virtual_env",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a Python virtual environment?"},
+        {"role": "assistant", "content": "A Python virtual environment is an isolated directory that contains its own Python installation and packages, preventing dependency conflicts between projects."}
+      ],
+      "followups": [
+        {"input": "How do I create one?", "expected": "How do I create a Python virtual environment?"},
+        {"input": "How do I activate it?", "expected": "How do I activate a Python virtual environment?"},
+        {"input": "Why do I need it?", "expected": "Why do I need a Python virtual environment?"}
+      ]
+    },
+    {
+      "id": "hash_map",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a hash map?"},
+        {"role": "assistant", "content": "A hash map (or hash table) is a data structure that maps keys to values using a hash function for O(1) average-case lookup, insertion, and deletion."}
+      ],
+      "followups": [
+        {"input": "How does it handle collisions?", "expected": "How does a hash map handle collisions?"},
+        {"input": "What is its worst-case complexity?", "expected": "What is the worst-case time complexity of a hash map?"},
+        {"input": "How is it implemented in Python?", "expected": "How is a hash map implemented in Python?"}
+      ]
+    },
+    {
+      "id": "microservices",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a microservices architecture?"},
+        {"role": "assistant", "content": "Microservices architecture structures an application as a collection of small, independently deployable services that communicate over APIs, each responsible for a specific business capability."}
+      ],
+      "followups": [
+        {"input": "What are its advantages?", "expected": "What are the advantages of microservices architecture?"},
+        {"input": "What are its downsides?", "expected": "What are the downsides of microservices architecture?"},
+        {"input": "How does it compare to monolithic architecture?", "expected": "How does microservices architecture compare to monolithic architecture?"}
+      ]
+    },
+    {
+      "id": "jwt_token",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a JSON Web Token?"},
+        {"role": "assistant", "content": "A JSON Web Token (JWT) is a compact, self-contained token that encodes claims as a JSON object, signed with a secret or public/private key pair, used for authentication and authorization."}
+      ],
+      "followups": [
+        {"input": "How do I verify it?", "expected": "How do I verify a JSON Web Token?"},
+        {"input": "Where should I store it?", "expected": "Where should I store a JSON Web Token?"},
+        {"input": "What are its security risks?", "expected": "What are the security risks of using JSON Web Tokens?"}
+      ]
+    },
+    {
+      "id": "linked_list",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a linked list?"},
+        {"role": "assistant", "content": "A linked list is a linear data structure where elements (nodes) are stored in non-contiguous memory, each containing a value and a pointer to the next node."}
+      ],
+      "followups": [
+        {"input": "How do I reverse it?", "expected": "How do I reverse a linked list?"},
+        {"input": "How does it compare to an array?", "expected": "How does a linked list compare to an array?"},
+        {"input": "When should I use it?", "expected": "When should I use a linked list instead of an array?"}
+      ]
+    },
+    {
+      "id": "regex",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a regular expression?"},
+        {"role": "assistant", "content": "A regular expression (regex) is a pattern that describes a set of strings, used to search, match, and manipulate text based on character patterns."}
+      ],
+      "followups": [
+        {"input": "How do I use it in Python?", "expected": "How do I use regular expressions in Python?"},
+        {"input": "What are its common use cases?", "expected": "What are the common use cases of regular expressions?"},
+        {"input": "How do I write one for email validation?", "expected": "How do I write a regular expression for email validation?"}
+      ]
+    },
+    {
+      "id": "class_inheritance",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is a class in Python?"},
+        {"role": "assistant", "content": "A Python class is a blueprint for creating objects that bundle data (attributes) and behavior (methods) together, following object-oriented programming principles."}
+      ],
+      "followups": [
+        {"input": "What about inheritance?", "expected": "How does class inheritance work in Python?"},
+        {"input": "And multiple inheritance?", "expected": "How does multiple inheritance work in Python?"},
+        {"input": "What about abstract classes?", "expected": "What are abstract classes in Python?"}
+      ]
+    },
+    {
+      "id": "async_await",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is asynchronous programming?"},
+        {"role": "assistant", "content": "Asynchronous programming allows a program to start tasks and continue executing other work without waiting for those tasks to complete, improving efficiency for I/O-bound operations."}
+      ],
+      "followups": [
+        {"input": "What about async/await syntax?", "expected": "How does async/await syntax work in Python?"},
+        {"input": "And the event loop?", "expected": "What is the event loop in async programming?"},
+        {"input": "How about asyncio?", "expected": "What is asyncio and how does it work?"}
+      ]
+    },
+    {
+      "id": "testing_types",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is unit testing?"},
+        {"role": "assistant", "content": "Unit testing is the practice of testing individual functions or components in isolation to verify they behave correctly, typically using a testing framework like pytest."}
+      ],
+      "followups": [
+        {"input": "What about integration testing?", "expected": "What is integration testing in software development?"},
+        {"input": "And end-to-end testing?", "expected": "What is end-to-end testing in software development?"},
+        {"input": "What about mocking?", "expected": "What is mocking in software testing?"}
+      ]
+    },
+    {
+      "id": "design_patterns",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is the Singleton design pattern?"},
+        {"role": "assistant", "content": "The Singleton pattern ensures a class has only one instance and provides a global access point to it, commonly used for shared resources like database connections."}
+      ],
+      "followups": [
+        {"input": "What about the Factory pattern?", "expected": "What is the Factory design pattern?"},
+        {"input": "And the Observer pattern?", "expected": "What is the Observer design pattern?"},
+        {"input": "How about Strategy?", "expected": "What is the Strategy design pattern?"}
+      ]
+    },
+    {
+      "id": "ci_cd",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is continuous integration?"},
+        {"role": "assistant", "content": "Continuous integration (CI) is the practice of automatically building and testing code changes whenever developers commit to a shared repository, catching issues early."}
+      ],
+      "followups": [
+        {"input": "What about continuous deployment?", "expected": "What is continuous deployment (CD) in software development?"},
+        {"input": "What tools are used?", "expected": "What tools are commonly used for CI/CD?"},
+        {"input": "How does GitHub Actions fit in?", "expected": "How does GitHub Actions work for CI/CD?"}
+      ]
+    },
+    {
+      "id": "caching_strategies",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is caching in software systems?"},
+        {"role": "assistant", "content": "Caching stores frequently accessed data in fast storage (like memory) to reduce latency and backend load, trading storage for speed."}
+      ],
+      "followups": [
+        {"input": "What about cache invalidation?", "expected": "What is cache invalidation and why is it hard?"},
+        {"input": "What are common eviction policies?", "expected": "What are common cache eviction policies like LRU and LFU?"},
+        {"input": "And distributed caching?", "expected": "What is distributed caching and how does it work?"}
+      ]
+    },
+    {
+      "id": "functional_programming",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is functional programming?"},
+        {"role": "assistant", "content": "Functional programming is a paradigm that treats computation as the evaluation of pure functions, avoiding shared state and mutable data."}
+      ],
+      "followups": [
+        {"input": "What about higher-order functions?", "expected": "What are higher-order functions in functional programming?"},
+        {"input": "And immutability?", "expected": "What is immutability in functional programming?"},
+        {"input": "How does it compare to OOP?", "expected": "How does functional programming compare to object-oriented programming?"}
+      ]
+    },
+    {
+      "id": "memory_management",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "How does garbage collection work?"},
+        {"role": "assistant", "content": "Garbage collection automatically reclaims memory occupied by objects that are no longer reachable by the program, preventing memory leaks."}
+      ],
+      "followups": [
+        {"input": "What about reference counting?", "expected": "What is reference counting in memory management?"},
+        {"input": "How does Python do it?", "expected": "How does Python implement garbage collection?"},
+        {"input": "And manual memory management in C?", "expected": "How does manual memory management work in C?"}
+      ]
+    },
+    {
+      "id": "graph_algorithms",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is depth-first search?"},
+        {"role": "assistant", "content": "Depth-first search (DFS) is a graph traversal algorithm that explores as far as possible along each branch before backtracking, using a stack or recursion."}
+      ],
+      "followups": [
+        {"input": "What about breadth-first search?", "expected": "What is breadth-first search (BFS) and how does it differ from DFS?"},
+        {"input": "And Dijkstra's algorithm?", "expected": "What is Dijkstra's algorithm for shortest paths?"},
+        {"input": "When do I use DFS vs BFS?", "expected": "When should I use DFS vs BFS in graph traversal?"}
+      ]
+    },
+    {
+      "id": "api_versioning",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is API versioning?"},
+        {"role": "assistant", "content": "API versioning is the practice of managing changes to an API over time so that existing clients can continue to work while new clients use updated functionality."}
+      ],
+      "followups": [
+        {"input": "What are the versioning strategies?", "expected": "What are the common API versioning strategies?"},
+        {"input": "What about URL path versioning?", "expected": "How does URL path versioning work for APIs?"},
+        {"input": "And header-based versioning?", "expected": "How does header-based API versioning work?"}
+      ]
+    },
+    {
+      "id": "python_vs_go",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "How do Python and Go compare for backend development?"},
+        {"role": "assistant", "content": "Python is slower but has a massive ecosystem for data science and scripting. Go is statically typed, compiled, and much faster, designed for high-concurrency backend systems."}
+      ],
+      "followups": [
+        {"input": "Which is better for microservices?", "expected": "Is Python or Go better for microservices?"},
+        {"input": "How do they handle concurrency?", "expected": "How do Python and Go handle concurrency differently?"},
+        {"input": "Which has better tooling?", "expected": "Does Python or Go have better developer tooling?"}
+      ]
+    },
+    {
+      "id": "sql_vs_orm",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "Should I use raw SQL or an ORM?"},
+        {"role": "assistant", "content": "Raw SQL gives you full control and performance; ORMs like SQLAlchemy or Django ORM provide a higher-level abstraction, reducing boilerplate and preventing some SQL injection risks."}
+      ],
+      "followups": [
+        {"input": "Which is faster?", "expected": "Is raw SQL or ORM faster for database queries?"},
+        {"input": "Which is more secure?", "expected": "Is raw SQL or ORM more secure?"},
+        {"input": "When should I mix them?", "expected": "When should I mix raw SQL and an ORM in the same project?"}
+      ]
+    },
+    {
+      "id": "docker_vs_vm",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between Docker containers and virtual machines?"},
+        {"role": "assistant", "content": "Containers share the host OS kernel and are lightweight, starting in seconds. VMs include a full OS, are heavier, but provide stronger isolation."}
+      ],
+      "followups": [
+        {"input": "Which is more secure?", "expected": "Are Docker containers or virtual machines more secure?"},
+        {"input": "Which uses less memory?", "expected": "Do Docker containers or virtual machines use less memory?"},
+        {"input": "When should I use each?", "expected": "When should I use Docker containers vs virtual machines?"}
+      ]
+    },
+    {
+      "id": "rest_vs_graphql",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What are the differences between REST and GraphQL APIs?"},
+        {"role": "assistant", "content": "REST uses fixed endpoints for each resource. GraphQL uses a single endpoint where clients specify exactly what data they need, reducing over-fetching and under-fetching."}
+      ],
+      "followups": [
+        {"input": "Which is easier to cache?", "expected": "Is REST or GraphQL easier to cache?"},
+        {"input": "Which is better for mobile clients?", "expected": "Is REST or GraphQL better for mobile clients?"},
+        {"input": "Which has better tooling?", "expected": "Does REST or GraphQL have better developer tooling?"}
+      ]
+    },
+    {
+      "id": "interpreted_vs_compiled",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between interpreted and compiled languages?"},
+        {"role": "assistant", "content": "Compiled languages (C, Go, Rust) translate source code to machine code ahead of time for fast execution. Interpreted languages (Python, Ruby) execute via an interpreter at runtime, trading speed for flexibility."}
+      ],
+      "followups": [
+        {"input": "Which is faster at runtime?", "expected": "Are compiled or interpreted languages faster at runtime?"},
+        {"input": "Which is easier to debug?", "expected": "Are compiled or interpreted languages easier to debug?"},
+        {"input": "Which is better for scripting?", "expected": "Are compiled or interpreted languages better for scripting?"}
+      ]
+    },
+    {
+      "id": "multithreading_vs_multiprocessing",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between multithreading and multiprocessing in Python?"},
+        {"role": "assistant", "content": "Python threads share memory but are limited by the GIL for CPU-bound tasks. Multiprocessing spawns separate processes with independent memory, bypassing the GIL for true parallelism."}
+      ],
+      "followups": [
+        {"input": "Which is better for CPU-bound work?", "expected": "Is multithreading or multiprocessing better for CPU-bound work in Python?"},
+        {"input": "Which uses more memory?", "expected": "Does multithreading or multiprocessing use more memory in Python?"},
+        {"input": "Which is easier to implement?", "expected": "Is multithreading or multiprocessing easier to implement in Python?"}
+      ]
+    },
+    {
+      "id": "mongodb_vs_postgres",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "How do MongoDB and PostgreSQL differ?"},
+        {"role": "assistant", "content": "MongoDB is a document database with flexible schemas, ideal for unstructured data and rapid iteration. PostgreSQL is a relational database with strong ACID compliance, ideal for structured data with complex queries."}
+      ],
+      "followups": [
+        {"input": "Which scales better horizontally?", "expected": "Does MongoDB or PostgreSQL scale better horizontally?"},
+        {"input": "Which is better for analytics?", "expected": "Is MongoDB or PostgreSQL better for analytics workloads?"},
+        {"input": "Which has stronger consistency guarantees?", "expected": "Does MongoDB or PostgreSQL have stronger data consistency guarantees?"}
+      ]
+    },
+    {
+      "id": "stack_queue",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between a stack and a queue?"},
+        {"role": "assistant", "content": "A stack is LIFO (last-in, first-out) — the most recently added item is removed first. A queue is FIFO (first-in, first-out) — items are removed in the order they were added."}
+      ],
+      "followups": [
+        {"input": "Which is used for BFS vs DFS?", "expected": "Which data structure — stack or queue — is used for DFS vs BFS?"},
+        {"input": "How are they implemented in Python?", "expected": "How are stacks and queues implemented in Python?"},
+        {"input": "Can either be implemented with a linked list?", "expected": "Can a stack or queue be implemented with a linked list?"}
+      ]
+    },
+    {
+      "id": "nginx_apache",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between Nginx and Apache as web servers?"},
+        {"role": "assistant", "content": "Nginx is event-driven and handles high concurrency with low memory. Apache uses a process/thread-per-request model, offering more flexibility through modules but using more resources under load."}
+      ],
+      "followups": [
+        {"input": "Which is better for static files?", "expected": "Is Nginx or Apache better for serving static files?"},
+        {"input": "Which is more commonly used as a reverse proxy?", "expected": "Is Nginx or Apache more commonly used as a reverse proxy?"},
+        {"input": "Which is easier to configure?", "expected": "Is Nginx or Apache easier to configure?"}
+      ]
+    },
+    {
+      "id": "pytest_basics",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between pytest fixtures and setup/teardown methods?"},
+        {"role": "assistant", "content": "Pytest fixtures are reusable, composable functions declared with @pytest.fixture, injected as arguments. Setup/teardown methods (setUp/tearDown) are OOP-style hooks tied to test classes."}
+      ],
+      "followups": [
+        {"input": "Which is more flexible?", "expected": "Are pytest fixtures or setup/teardown methods more flexible?"},
+        {"input": "Which is easier to share across test files?", "expected": "Are pytest fixtures or setup/teardown methods easier to share across test files?"},
+        {"input": "Can I use both together?", "expected": "Can I use pytest fixtures and setup/teardown methods together?"}
+      ]
+    },
+    {
+      "id": "standalone_big_o",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is your favorite programming language?"},
+        {"role": "assistant", "content": "As an AI I don't have preferences, but many developers enjoy Python for its readability!"}
+      ],
+      "followups": [
+        {"input": "What is Big O notation?", "expected": "What is Big O notation?"},
+        {"input": "How do you measure algorithm complexity?", "expected": "How do you measure algorithm complexity?"},
+        {"input": "Explain time complexity in algorithms.", "expected": "What is time complexity in algorithms?"}
+      ]
+    },
+    {
+      "id": "standalone_solid",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Tell me something interesting."},
+        {"role": "assistant", "content": "The first computer bug was an actual bug — a moth found in a relay of the Harvard Mark II computer in 1947."}
+      ],
+      "followups": [
+        {"input": "What are the SOLID principles?", "expected": "What are the SOLID principles in software engineering?"},
+        {"input": "Explain SOLID design principles.", "expected": "What are the SOLID design principles?"},
+        {"input": "What does SOLID stand for in programming?", "expected": "What does SOLID stand for in software development?"}
+      ]
+    },
+    {
+      "id": "standalone_tcp_handshake",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "How do I stay productive?"},
+        {"role": "assistant", "content": "Try time-blocking, taking regular breaks, and minimizing distractions."}
+      ],
+      "followups": [
+        {"input": "How does the TCP three-way handshake work?", "expected": "How does the TCP three-way handshake work?"},
+        {"input": "What is the TCP connection establishment process?", "expected": "What is the TCP connection establishment process?"},
+        {"input": "Explain TCP handshake.", "expected": "How does the TCP handshake work?"}
+      ]
+    },
+    {
+      "id": "standalone_csrf",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is a good podcast?"},
+        {"role": "assistant", "content": "Lex Fridman Podcast and Darknet Diaries are popular choices in tech."}
+      ],
+      "followups": [
+        {"input": "What is a CSRF attack?", "expected": "What is a CSRF attack in web security?"},
+        {"input": "How does cross-site request forgery work?", "expected": "How does a cross-site request forgery (CSRF) attack work?"},
+        {"input": "Explain CSRF vulnerabilities.", "expected": "What is a CSRF vulnerability and how does it work?"}
+      ]
+    },
+    {
+      "id": "standalone_deadlock",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What's the weather forecast?"},
+        {"role": "assistant", "content": "I don't have access to live weather data, but I can help with software questions!"}
+      ],
+      "followups": [
+        {"input": "What is a deadlock in concurrent programming?", "expected": "What is a deadlock in concurrent programming?"},
+        {"input": "How do deadlocks occur in multithreaded programs?", "expected": "How do deadlocks occur in multithreaded programs?"},
+        {"input": "Explain deadlock in operating systems.", "expected": "What is deadlock in operating systems?"}
+      ]
+    },
+    {
+      "id": "standalone_heap",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Give me a motivational quote."},
+        {"role": "assistant", "content": "\"The best time to plant a tree was 20 years ago. The second best time is now.\""}
+      ],
+      "followups": [
+        {"input": "What is a heap data structure?", "expected": "What is a heap data structure?"},
+        {"input": "How does a min-heap work?", "expected": "How does a min-heap data structure work?"},
+        {"input": "Explain the heap data structure.", "expected": "What is the heap data structure and how does it work?"}
+      ]
+    },
+    {
+      "id": "standalone_dependency_injection",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What should I have for lunch?"},
+        {"role": "assistant", "content": "How about a salad or a sandwich? Nutritious and quick!"}
+      ],
+      "followups": [
+        {"input": "What is dependency injection?", "expected": "What is dependency injection in software engineering?"},
+        {"input": "How does dependency injection work?", "expected": "How does dependency injection work in practice?"},
+        {"input": "Explain dependency injection.", "expected": "What is dependency injection and how is it used?"}
+      ]
+    },
+    {
+      "id": "standalone_race_condition",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Who invented the internet?"},
+        {"role": "assistant", "content": "The internet evolved from ARPANET, with key contributions from Vint Cerf and Bob Kahn who designed the TCP/IP protocol suite."}
+      ],
+      "followups": [
+        {"input": "What is a race condition?", "expected": "What is a race condition in concurrent programming?"},
+        {"input": "How do race conditions occur?", "expected": "How do race conditions occur in multithreaded code?"},
+        {"input": "Explain race conditions.", "expected": "What is a race condition and why is it a problem?"}
+      ]
+    },
+    {
+      "id": "standalone_load_balancer",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is your name?"},
+        {"role": "assistant", "content": "I'm Claude, an AI assistant made by Anthropic."}
+      ],
+      "followups": [
+        {"input": "What is a load balancer?", "expected": "What is a load balancer in web infrastructure?"},
+        {"input": "How does load balancing work?", "expected": "How does load balancing work in web systems?"},
+        {"input": "Explain load balancing.", "expected": "What is load balancing and how does it work?"}
+      ]
+    },
+    {
+      "id": "standalone_orm",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Recommend a good book."},
+        {"role": "assistant", "content": "I'd recommend \"Clean Code\" by Robert C. Martin for software developers."}
+      ],
+      "followups": [
+        {"input": "What is an ORM?", "expected": "What is an ORM (Object-Relational Mapper)?"},
+        {"input": "How does an ORM work?", "expected": "How does an ORM work in web development?"},
+        {"input": "What is object-relational mapping?", "expected": "What is object-relational mapping (ORM)?"}
+      ]
+    },
+    {
+      "id": "flask_to_fastapi_migration",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is Flask?"},
+        {"role": "assistant", "content": "Flask is a lightweight Python web framework with minimal defaults, giving developers full control over components they add."},
+        {"role": "user", "content": "How does FastAPI compare to Flask?"},
+        {"role": "assistant", "content": "FastAPI is async-first, has automatic OpenAPI docs, built-in data validation via Pydantic, and is significantly faster. Flask is simpler to start with but requires more manual setup for these features."}
+      ],
+      "followups": [
+        {"input": "How hard is migrating from one to the other?", "expected": "How hard is it to migrate from Flask to FastAPI?"},
+        {"input": "Which should I pick for a new project?", "expected": "Should I use Flask or FastAPI for a new Python web project?"},
+        {"input": "Does FastAPI support WebSockets too?", "expected": "Does FastAPI support WebSockets?"}
+      ]
+    },
+    {
+      "id": "react_hooks_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is React?"},
+        {"role": "assistant", "content": "React is a JavaScript library for building user interfaces using reusable components and a virtual DOM for efficient rendering."},
+        {"role": "user", "content": "What are React hooks?"},
+        {"role": "assistant", "content": "Hooks are functions like useState and useEffect that let you use state and lifecycle features in functional components without writing class components."}
+      ],
+      "followups": [
+        {"input": "When should I use useCallback?", "expected": "When should I use the useCallback hook in React?"},
+        {"input": "How does useMemo differ?", "expected": "How does useMemo differ from useCallback in React?"},
+        {"input": "Can I write custom ones?", "expected": "Can I write custom React hooks?"}
+      ]
+    },
+    {
+      "id": "postgres_query_plan",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "My PostgreSQL query is slow. What should I do?"},
+        {"role": "assistant", "content": "Start by running EXPLAIN ANALYZE on the query to see the query plan — it shows whether indexes are being used, estimated vs actual rows, and where time is being spent."},
+        {"role": "user", "content": "What am I looking for in the query plan?"},
+        {"role": "assistant", "content": "Look for sequential scans on large tables (Seq Scan), high row estimates vs actuals (stale statistics), nested loop joins on large datasets, and high cost nodes."}
+      ],
+      "followups": [
+        {"input": "How do I fix a sequential scan?", "expected": "How do I fix a sequential scan in a PostgreSQL query plan?"},
+        {"input": "When should I add an index?", "expected": "When should I add an index in PostgreSQL to improve query performance?"},
+        {"input": "What does the cost number mean?", "expected": "What does the cost number in a PostgreSQL query plan mean?"}
+      ]
+    },
+    {
+      "id": "python_package_publish",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "How do I structure a Python package?"},
+        {"role": "assistant", "content": "Create a directory with your package name, an __init__.py, a pyproject.toml for metadata and dependencies, and a src/ layout if you want to avoid import conflicts."},
+        {"role": "user", "content": "How do I publish it to PyPI?"},
+        {"role": "assistant", "content": "Build the package with python -m build, then upload it using twine upload dist/*. You'll need a PyPI account and an API token."}
+      ],
+      "followups": [
+        {"input": "How do I version it properly?", "expected": "How do I version a Python package properly for PyPI?"},
+        {"input": "What is semantic versioning?", "expected": "What is semantic versioning (semver) for Python packages?"},
+        {"input": "How do I handle pre-release versions?", "expected": "How do I handle pre-release versions in Python package versioning?"}
+      ]
+    },
+    {
+      "id": "k8s_scaling",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is Kubernetes?"},
+        {"role": "assistant", "content": "Kubernetes is an open-source container orchestration platform that automates deployment, scaling, and management of containerized applications."},
+        {"role": "user", "content": "How does auto-scaling work in Kubernetes?"},
+        {"role": "assistant", "content": "The Horizontal Pod Autoscaler (HPA) monitors metrics like CPU or memory and automatically adjusts the number of running pods to match demand."}
+      ],
+      "followups": [
+        {"input": "What metrics can trigger it?", "expected": "What metrics can trigger Kubernetes Horizontal Pod Autoscaler scaling?"},
+        {"input": "Is there a vertical version too?", "expected": "Is there a Vertical Pod Autoscaler in Kubernetes?"},
+        {"input": "How do I configure minimum and maximum replicas?", "expected": "How do I configure minimum and maximum replicas in a Kubernetes HPA?"}
+      ]
+    },
+    {
+      "id": "redis_caching_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is Redis?"},
+        {"role": "assistant", "content": "Redis is an in-memory data structure store used as a cache, message broker, and database, known for sub-millisecond latency."},
+        {"role": "user", "content": "How should I set expiration on keys?"},
+        {"role": "assistant", "content": "Use EXPIRE key seconds or set TTL at creation with SET key value EX seconds. Choose TTL based on how stale your data can afford to be."}
+      ],
+      "followups": [
+        {"input": "What happens when a key expires?", "expected": "What happens in Redis when a key expires?"},
+        {"input": "Can I extend it before it expires?", "expected": "Can I extend the TTL of a Redis key before it expires?"},
+        {"input": "What is the difference between EXPIRE and EXPIREAT?", "expected": "What is the difference between EXPIRE and EXPIREAT in Redis?"}
+      ]
+    },
+    {
+      "id": "graphql_resolver_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is GraphQL?"},
+        {"role": "assistant", "content": "GraphQL is a query language and runtime for APIs that allows clients to request exactly the data they need, using a strongly typed schema."},
+        {"role": "user", "content": "What is the N+1 problem in GraphQL?"},
+        {"role": "assistant", "content": "The N+1 problem occurs when resolving a list of items triggers a separate database query for each item's related data, resulting in N+1 total queries instead of one batched query."}
+      ],
+      "followups": [
+        {"input": "How does DataLoader solve it?", "expected": "How does DataLoader solve the N+1 problem in GraphQL?"},
+        {"input": "Is it specific to GraphQL?", "expected": "Is the N+1 query problem specific to GraphQL?"},
+        {"input": "Can I prevent it without DataLoader?", "expected": "Can I prevent the GraphQL N+1 problem without DataLoader?"}
+      ]
+    },
+    {
+      "id": "git_rebase_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is the difference between git merge and git rebase?"},
+        {"role": "assistant", "content": "Merge creates a merge commit that preserves history. Rebase replays your commits on top of the target branch, producing a linear history without a merge commit."},
+        {"role": "user", "content": "When should I use rebase?"},
+        {"role": "assistant", "content": "Use rebase to clean up local commits before pushing to keep history linear. Avoid rebasing commits already pushed to a shared branch — it rewrites history and causes problems for collaborators."}
+      ],
+      "followups": [
+        {"input": "What is an interactive rebase?", "expected": "What is an interactive rebase in Git?"},
+        {"input": "How do I squash commits with it?", "expected": "How do I squash commits using git interactive rebase?"},
+        {"input": "What is the golden rule of rebasing?", "expected": "What is the golden rule of git rebase?"}
+      ]
+    },
+    {
+      "id": "oauth_flow_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is OAuth 2.0?"},
+        {"role": "assistant", "content": "OAuth 2.0 is an authorization framework that allows third-party applications to obtain limited access to a user's account without exposing their credentials."},
+        {"role": "user", "content": "What is the authorization code flow?"},
+        {"role": "assistant", "content": "In the authorization code flow, the app redirects the user to the auth server, which returns an authorization code. The app then exchanges this code for access and refresh tokens server-to-server."}
+      ],
+      "followups": [
+        {"input": "What is PKCE and why is it needed?", "expected": "What is PKCE in OAuth 2.0 and why is it needed?"},
+        {"input": "When should I use the client credentials flow instead?", "expected": "When should I use the OAuth 2.0 client credentials flow instead of authorization code flow?"},
+        {"input": "How do refresh tokens work?", "expected": "How do refresh tokens work in OAuth 2.0?"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+[project]
+name = "enricher-test"
+version = "0.1.0"
+description = "Standalone harness to evaluate DejaQ context enricher configs against a fixed dataset."
+requires-python = ">=3.13"
+dependencies = [
+    "llama-cpp-python>=0.3.20",
+    "sentence-transformers>=2.2.0",
+    "numpy>=1.26.0",
+    "tqdm>=4.65.0",
+    "accelerate>=1.13.0",
+]
+
+[tool.uv]
+package = false

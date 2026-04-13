@@ -1,0 +1,657 @@
+{
+  "scenarios": [
+    {
+      "id": "sourdough_starter",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a sourdough starter?"},
+        {"role": "assistant", "content": "A sourdough starter is a fermented culture of flour and water containing wild yeasts and bacteria. It's used to leaven bread and gives sourdough its characteristic tangy flavor."}
+      ],
+      "followups": [
+        {"input": "How do I feed it?", "expected": "How do I feed a sourdough starter?"},
+        {"input": "How do I know when it's ready?", "expected": "How do I know when a sourdough starter is ready to use?"},
+        {"input": "How long does it last?", "expected": "How long does a sourdough starter last?"}
+      ]
+    },
+    {
+      "id": "compound_interest",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is compound interest?"},
+        {"role": "assistant", "content": "Compound interest is interest calculated on both the initial principal and the accumulated interest from previous periods, causing savings or debt to grow exponentially over time."}
+      ],
+      "followups": [
+        {"input": "How do I calculate it?", "expected": "How do I calculate compound interest?"},
+        {"input": "How does it differ from simple interest?", "expected": "How does compound interest differ from simple interest?"},
+        {"input": "How can I use it to my advantage?", "expected": "How can I use compound interest to grow my savings?"}
+      ]
+    },
+    {
+      "id": "index_fund",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is an index fund?"},
+        {"role": "assistant", "content": "An index fund is a type of mutual fund or ETF that tracks a market index like the S&P 500, offering broad diversification and low fees compared to actively managed funds."}
+      ],
+      "followups": [
+        {"input": "How do I invest in it?", "expected": "How do I invest in an index fund?"},
+        {"input": "What are its fees?", "expected": "What are the typical fees of an index fund?"},
+        {"input": "Is it better than individual stocks?", "expected": "Is investing in an index fund better than picking individual stocks?"}
+      ]
+    },
+    {
+      "id": "meditation_mindfulness",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is mindfulness?"},
+        {"role": "assistant", "content": "Mindfulness is the practice of intentionally focusing attention on the present moment — thoughts, feelings, and sensations — without judgment, often through meditation."}
+      ],
+      "followups": [
+        {"input": "How do I practice it daily?", "expected": "How do I practice mindfulness daily?"},
+        {"input": "Does it reduce anxiety?", "expected": "Does mindfulness reduce anxiety?"},
+        {"input": "How long does it take to see results?", "expected": "How long does it take to see results from mindfulness practice?"}
+      ]
+    },
+    {
+      "id": "roth_ira",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a Roth IRA?"},
+        {"role": "assistant", "content": "A Roth IRA is a retirement account funded with after-tax dollars, allowing investments to grow tax-free, with qualified withdrawals in retirement also tax-free."}
+      ],
+      "followups": [
+        {"input": "Who is eligible for it?", "expected": "Who is eligible for a Roth IRA?"},
+        {"input": "What are its contribution limits?", "expected": "What are the contribution limits for a Roth IRA?"},
+        {"input": "How does it differ from a traditional IRA?", "expected": "How does a Roth IRA differ from a traditional IRA?"}
+      ]
+    },
+    {
+      "id": "circadian_rhythm",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is the circadian rhythm?"},
+        {"role": "assistant", "content": "The circadian rhythm is the body's internal 24-hour biological clock that regulates sleep-wake cycles, hormone release, metabolism, and other functions in response to light and dark cues."}
+      ],
+      "followups": [
+        {"input": "How does it affect sleep quality?", "expected": "How does the circadian rhythm affect sleep quality?"},
+        {"input": "Can I reset it?", "expected": "Can I reset my circadian rhythm?"},
+        {"input": "What disrupts it?", "expected": "What disrupts the circadian rhythm?"}
+      ]
+    },
+    {
+      "id": "whole_foods_diet",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a whole foods diet?"},
+        {"role": "assistant", "content": "A whole foods diet focuses on eating minimally processed foods in their natural state — vegetables, fruits, whole grains, legumes, nuts, and lean proteins — avoiding refined sugars and artificial additives."}
+      ],
+      "followups": [
+        {"input": "How do I start it?", "expected": "How do I start a whole foods diet?"},
+        {"input": "What are its benefits?", "expected": "What are the health benefits of a whole foods diet?"},
+        {"input": "Is it expensive?", "expected": "Is eating a whole foods diet expensive?"}
+      ]
+    },
+    {
+      "id": "mortgage",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a mortgage?"},
+        {"role": "assistant", "content": "A mortgage is a loan used to purchase property, where the property itself serves as collateral. You repay it in monthly installments of principal and interest over a fixed term, typically 15 or 30 years."}
+      ],
+      "followups": [
+        {"input": "How do I qualify for it?", "expected": "How do I qualify for a mortgage?"},
+        {"input": "What affects its interest rate?", "expected": "What factors affect mortgage interest rates?"},
+        {"input": "Should I get a fixed or adjustable rate?", "expected": "Should I get a fixed-rate or adjustable-rate mortgage?"}
+      ]
+    },
+    {
+      "id": "strength_training",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is progressive overload in strength training?"},
+        {"role": "assistant", "content": "Progressive overload is the principle of gradually increasing the stress placed on the body during exercise — through heavier weights, more reps, or reduced rest — to continuously stimulate muscle adaptation and growth."}
+      ],
+      "followups": [
+        {"input": "How do I apply it?", "expected": "How do I apply progressive overload in my strength training?"},
+        {"input": "How fast should I increase the weight?", "expected": "How fast should I increase the weight when applying progressive overload?"},
+        {"input": "Can it cause injury?", "expected": "Can progressive overload cause injury if done incorrectly?"}
+      ]
+    },
+    {
+      "id": "credit_score",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a credit score?"},
+        {"role": "assistant", "content": "A credit score is a numerical rating (typically 300–850) that represents your creditworthiness based on your payment history, credit utilization, length of credit history, and other factors."}
+      ],
+      "followups": [
+        {"input": "How do I improve it?", "expected": "How do I improve my credit score?"},
+        {"input": "What impacts it most?", "expected": "What factors impact a credit score the most?"},
+        {"input": "How quickly can it change?", "expected": "How quickly can a credit score change?"}
+      ]
+    },
+    {
+      "id": "ketogenic_diet",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is the ketogenic diet?"},
+        {"role": "assistant", "content": "The ketogenic (keto) diet is a very low-carbohydrate, high-fat diet that shifts the body into ketosis — a metabolic state where fat is burned for fuel instead of glucose."}
+      ],
+      "followups": [
+        {"input": "Is it safe long-term?", "expected": "Is the ketogenic diet safe for long-term use?"},
+        {"input": "What can I eat on it?", "expected": "What can I eat on the ketogenic diet?"},
+        {"input": "How long does it take to reach ketosis?", "expected": "How long does it take to reach ketosis on the ketogenic diet?"}
+      ]
+    },
+    {
+      "id": "emergency_fund",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is an emergency fund?"},
+        {"role": "assistant", "content": "An emergency fund is a savings reserve of 3–6 months of living expenses set aside specifically for unexpected financial emergencies like job loss, medical bills, or car repairs."}
+      ],
+      "followups": [
+        {"input": "Where should I keep it?", "expected": "Where should I keep my emergency fund?"},
+        {"input": "How much should I save in it?", "expected": "How much should I save in my emergency fund?"},
+        {"input": "When should I use it?", "expected": "When should I use my emergency fund?"}
+      ]
+    },
+    {
+      "id": "intermittent_fasting",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is intermittent fasting?"},
+        {"role": "assistant", "content": "Intermittent fasting is an eating pattern that cycles between periods of fasting and eating. Popular methods include 16:8 (16 hours fasting, 8-hour eating window) and 5:2 (normal eating 5 days, restricted calories 2 days)."}
+      ],
+      "followups": [
+        {"input": "Is it effective for weight loss?", "expected": "Is intermittent fasting effective for weight loss?"},
+        {"input": "Can I exercise during it?", "expected": "Can I exercise while doing intermittent fasting?"},
+        {"input": "What are its health risks?", "expected": "What are the health risks of intermittent fasting?"}
+      ]
+    },
+    {
+      "id": "visa_travel",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a travel visa?"},
+        {"role": "assistant", "content": "A travel visa is an official authorization from a country's government that allows a foreign national to enter, stay, or transit through that country for a specified period and purpose."}
+      ],
+      "followups": [
+        {"input": "How do I apply for it?", "expected": "How do I apply for a travel visa?"},
+        {"input": "How long does it take to get it?", "expected": "How long does it take to get a travel visa?"},
+        {"input": "When do I not need it?", "expected": "When do I not need a travel visa to visit a country?"}
+      ]
+    },
+    {
+      "id": "401k",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is a 401(k)?"},
+        {"role": "assistant", "content": "A 401(k) is an employer-sponsored retirement savings account that lets you contribute pre-tax income, reducing your taxable income, while investments grow tax-deferred until withdrawal in retirement."}
+      ],
+      "followups": [
+        {"input": "Should I max it out?", "expected": "Should I max out my 401(k) contributions?"},
+        {"input": "What happens if I withdraw early?", "expected": "What happens if I withdraw from my 401(k) early?"},
+        {"input": "What is an employer match?", "expected": "What is an employer match in a 401(k) plan?"}
+      ]
+    },
+    {
+      "id": "diets_compared",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is the Mediterranean diet?"},
+        {"role": "assistant", "content": "The Mediterranean diet emphasizes fruits, vegetables, whole grains, legumes, fish, and olive oil, with limited red meat and dairy. It's associated with reduced risk of heart disease and longevity."}
+      ],
+      "followups": [
+        {"input": "What about the DASH diet?", "expected": "What is the DASH diet?"},
+        {"input": "And the paleo diet?", "expected": "What is the paleo diet?"},
+        {"input": "Which is healthiest?", "expected": "Which diet — Mediterranean, DASH, or paleo — is considered healthiest?"}
+      ]
+    },
+    {
+      "id": "cooking_techniques",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is sautéing?"},
+        {"role": "assistant", "content": "Sautéing is a cooking method using a small amount of fat in a hot pan to quickly cook food, often vegetables or proteins, over high heat while stirring."}
+      ],
+      "followups": [
+        {"input": "What about braising?", "expected": "What is braising as a cooking technique?"},
+        {"input": "And roasting?", "expected": "What is roasting as a cooking technique?"},
+        {"input": "What about sous vide?", "expected": "What is sous vide cooking?"}
+      ]
+    },
+    {
+      "id": "exercise_types",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is HIIT training?"},
+        {"role": "assistant", "content": "HIIT (High-Intensity Interval Training) alternates short bursts of intense exercise with brief recovery periods, efficiently burning calories and improving cardiovascular fitness in less time than steady-state cardio."}
+      ],
+      "followups": [
+        {"input": "What about Pilates?", "expected": "What is Pilates and how does it differ from HIIT?"},
+        {"input": "And steady-state cardio?", "expected": "What is steady-state cardio and how does it compare to HIIT?"},
+        {"input": "How many days per week should I train?", "expected": "How many days per week should I do HIIT or cardio training?"}
+      ]
+    },
+    {
+      "id": "investing_basics",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is dollar-cost averaging?"},
+        {"role": "assistant", "content": "Dollar-cost averaging is an investment strategy of investing fixed amounts of money at regular intervals regardless of market price, reducing the impact of volatility and avoiding trying to time the market."}
+      ],
+      "followups": [
+        {"input": "What about lump-sum investing?", "expected": "What is lump-sum investing and how does it compare to dollar-cost averaging?"},
+        {"input": "And value investing?", "expected": "What is value investing?"},
+        {"input": "Which works best?", "expected": "Which investment strategy works best — dollar-cost averaging or lump-sum investing?"}
+      ]
+    },
+    {
+      "id": "travel_planning",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "How do I plan a budget trip?"},
+        {"role": "assistant", "content": "For budget travel: fly off-peak, use budget airlines or trains, book accommodation in advance (hostels, Airbnb), cook some meals yourself, prioritize free attractions, and use a daily spending limit."}
+      ],
+      "followups": [
+        {"input": "What about travel insurance?", "expected": "What is travel insurance and should I get it for a budget trip?"},
+        {"input": "How do I find cheap flights?", "expected": "How do I find cheap flights when planning travel?"},
+        {"input": "And travel credit cards?", "expected": "What are travel credit cards and how can they help reduce travel costs?"}
+      ]
+    },
+    {
+      "id": "sleep_hygiene",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is sleep hygiene?"},
+        {"role": "assistant", "content": "Sleep hygiene refers to habits and practices that promote consistent, quality sleep: keeping a regular sleep schedule, creating a dark cool room, avoiding screens before bed, and limiting caffeine."}
+      ],
+      "followups": [
+        {"input": "What about melatonin?", "expected": "What is melatonin and does it help with sleep?"},
+        {"input": "And sleep tracking?", "expected": "What is sleep tracking and is it helpful?"},
+        {"input": "How many hours do adults need?", "expected": "How many hours of sleep do adults need per night?"}
+      ]
+    },
+    {
+      "id": "debt_strategies",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is the debt snowball method?"},
+        {"role": "assistant", "content": "The debt snowball method is a debt payoff strategy where you pay minimums on all debts but put extra money toward the smallest debt first, then roll that payment to the next smallest once paid off, building momentum."}
+      ],
+      "followups": [
+        {"input": "What about the avalanche method?", "expected": "What is the debt avalanche method and how does it compare to the snowball method?"},
+        {"input": "Which saves more money?", "expected": "Does the debt snowball or avalanche method save more money?"},
+        {"input": "What about debt consolidation?", "expected": "What is debt consolidation and when should I use it?"}
+      ]
+    },
+    {
+      "id": "meal_prep",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What are the benefits of meal prepping?"},
+        {"role": "assistant", "content": "Meal prepping saves time and money, helps control portion sizes and nutrition, reduces decision fatigue around eating, and makes healthy eating easier by having ready-made food available."}
+      ],
+      "followups": [
+        {"input": "What foods are best for it?", "expected": "What foods are best for meal prepping?"},
+        {"input": "How long do prepped meals last?", "expected": "How long do meal prepped foods last in the fridge?"},
+        {"input": "What containers should I use?", "expected": "What containers should I use for meal prepping?"}
+      ]
+    },
+    {
+      "id": "skincare_routine",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is SPF and why is it important?"},
+        {"role": "assistant", "content": "SPF (Sun Protection Factor) measures how well a sunscreen protects against UVB rays. Using SPF 30+ daily prevents sunburn, premature aging, and reduces skin cancer risk — even on cloudy days."}
+      ],
+      "followups": [
+        {"input": "What about retinol?", "expected": "What is retinol and what does it do for skin?"},
+        {"input": "And hyaluronic acid?", "expected": "What is hyaluronic acid and how does it benefit the skin?"},
+        {"input": "What should a basic skincare routine include?", "expected": "What should a basic daily skincare routine include?"}
+      ]
+    },
+    {
+      "id": "productivity_methods",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is the Pomodoro technique?"},
+        {"role": "assistant", "content": "The Pomodoro technique is a time management method: work for 25 minutes focused (a 'Pomodoro'), take a 5-minute break, then after 4 Pomodoros take a longer 15–30 minute break."}
+      ],
+      "followups": [
+        {"input": "What about time blocking?", "expected": "What is time blocking and how does it improve productivity?"},
+        {"input": "And Getting Things Done?", "expected": "What is the Getting Things Done (GTD) productivity method?"},
+        {"input": "Which works best?", "expected": "Which productivity method works best — Pomodoro, time blocking, or GTD?"}
+      ]
+    },
+    {
+      "id": "keto_vs_mediterranean",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "How do the ketogenic diet and Mediterranean diet compare?"},
+        {"role": "assistant", "content": "Keto is very low-carb and high-fat, prioritizing ketosis for fat burning. The Mediterranean diet is balanced, emphasizing plants, fish, and olive oil with moderate carbs. Both are healthy but suit different goals."}
+      ],
+      "followups": [
+        {"input": "Which is better for weight loss?", "expected": "Is the ketogenic diet or Mediterranean diet better for weight loss?"},
+        {"input": "Which is easier to maintain long-term?", "expected": "Is the ketogenic or Mediterranean diet easier to maintain long-term?"},
+        {"input": "Which is safer for heart health?", "expected": "Is the ketogenic diet or Mediterranean diet safer for heart health?"}
+      ]
+    },
+    {
+      "id": "renting_vs_buying",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "Should I rent or buy a home?"},
+        {"role": "assistant", "content": "Buying builds equity and offers stability but requires a large down payment and ties up capital. Renting is more flexible and avoids maintenance costs but doesn't build equity. The right choice depends on your timeline, finances, and location."}
+      ],
+      "followups": [
+        {"input": "Which is cheaper over 10 years?", "expected": "Is renting or buying a home cheaper over 10 years?"},
+        {"input": "Which makes more sense in a hot market?", "expected": "Does renting or buying make more financial sense in a hot real estate market?"},
+        {"input": "What hidden costs does each have?", "expected": "What are the hidden costs of renting vs buying a home?"}
+      ]
+    },
+    {
+      "id": "running_vs_cycling",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "Is running or cycling better exercise?"},
+        {"role": "assistant", "content": "Running burns more calories per hour and builds bone density but is high-impact on joints. Cycling is lower-impact, better for those with joint issues, and excellent for endurance. Both improve cardiovascular fitness."}
+      ],
+      "followups": [
+        {"input": "Which is better for weight loss?", "expected": "Is running or cycling better for weight loss?"},
+        {"input": "Which is easier on knees?", "expected": "Is running or cycling easier on the knees?"},
+        {"input": "Can I combine them?", "expected": "Can I combine running and cycling for a better fitness routine?"}
+      ]
+    },
+    {
+      "id": "term_vs_whole_life",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between term and whole life insurance?"},
+        {"role": "assistant", "content": "Term life insurance covers a specific period (e.g., 20 years) and pays a death benefit if you die during that term — it's cheap and straightforward. Whole life insurance covers you permanently and builds cash value, but costs much more."}
+      ],
+      "followups": [
+        {"input": "Which is better for most people?", "expected": "Is term or whole life insurance better for most people?"},
+        {"input": "Which is more affordable?", "expected": "Is term or whole life insurance more affordable?"},
+        {"input": "Can I switch from one to the other?", "expected": "Can I switch from term life insurance to whole life insurance?"}
+      ]
+    },
+    {
+      "id": "stocks_vs_bonds",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between stocks and bonds?"},
+        {"role": "assistant", "content": "Stocks represent ownership in a company and offer higher potential returns with higher risk. Bonds are debt instruments where you lend money to a company or government and receive fixed interest payments — lower risk, lower return."}
+      ],
+      "followups": [
+        {"input": "Which is safer?", "expected": "Are stocks or bonds safer investments?"},
+        {"input": "Which should I prioritize when young?", "expected": "Should I prioritize stocks or bonds when I am young?"},
+        {"input": "How do they perform in recessions?", "expected": "How do stocks and bonds perform differently during recessions?"}
+      ]
+    },
+    {
+      "id": "cardio_vs_weights",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "Should I prioritize cardio or weight training?"},
+        {"role": "assistant", "content": "Cardio improves heart health, burns calories, and boosts endurance. Weight training builds muscle, boosts metabolism, and improves body composition. Most experts recommend combining both for optimal health."}
+      ],
+      "followups": [
+        {"input": "Which burns more fat overall?", "expected": "Does cardio or weight training burn more fat overall?"},
+        {"input": "Which is better for mental health?", "expected": "Is cardio or weight training better for mental health?"},
+        {"input": "Which should I do first in a workout?", "expected": "Should I do cardio or weights first in a workout session?"}
+      ]
+    },
+    {
+      "id": "cash_vs_credit",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What are the pros and cons of paying with cash vs credit cards?"},
+        {"role": "assistant", "content": "Cash limits overspending and has no debt risk. Credit cards offer rewards, fraud protection, and build credit history, but carry risk of high-interest debt if balances aren't paid monthly."}
+      ],
+      "followups": [
+        {"input": "Which is better for building credit?", "expected": "Is paying with cash or credit cards better for building credit?"},
+        {"input": "Which is safer to use online?", "expected": "Is using cash or credit cards safer for online purchases?"},
+        {"input": "Which is accepted more widely internationally?", "expected": "Are cash or credit cards more widely accepted internationally?"}
+      ]
+    },
+    {
+      "id": "gym_vs_home",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "Is it better to work out at a gym or at home?"},
+        {"role": "assistant", "content": "Gyms offer equipment variety, classes, and social motivation but cost money and require commuting. Home workouts are free, convenient, and private but require discipline and limited equipment unless you invest in it."}
+      ],
+      "followups": [
+        {"input": "Which gives better results?", "expected": "Do gym or home workouts give better fitness results?"},
+        {"input": "Which is cheaper in the long run?", "expected": "Is a gym membership or home workout setup cheaper in the long run?"},
+        {"input": "What equipment do I need for effective home workouts?", "expected": "What equipment do I need for an effective home workout?"}
+      ]
+    },
+    {
+      "id": "standalone_budget",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is the capital of Japan?"},
+        {"role": "assistant", "content": "Tokyo is the capital of Japan."}
+      ],
+      "followups": [
+        {"input": "How do I create a personal budget?", "expected": "How do I create a personal budget?"},
+        {"input": "What is the 50/30/20 budgeting rule?", "expected": "What is the 50/30/20 budgeting rule?"},
+        {"input": "How do I track my monthly spending?", "expected": "How do I track my monthly spending?"}
+      ]
+    },
+    {
+      "id": "standalone_sunscreen",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What year did World War II end?"},
+        {"role": "assistant", "content": "World War II ended in 1945."}
+      ],
+      "followups": [
+        {"input": "What SPF should I use daily?", "expected": "What SPF sunscreen should I use daily?"},
+        {"input": "How often should I reapply sunscreen?", "expected": "How often should I reapply sunscreen?"},
+        {"input": "Does sunscreen prevent skin aging?", "expected": "Does sunscreen prevent skin aging?"}
+      ]
+    },
+    {
+      "id": "standalone_hydration",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is photosynthesis?"},
+        {"role": "assistant", "content": "Photosynthesis is the process by which plants convert sunlight, CO₂, and water into glucose and oxygen."}
+      ],
+      "followups": [
+        {"input": "How much water should I drink per day?", "expected": "How much water should I drink per day?"},
+        {"input": "What are the signs of dehydration?", "expected": "What are the signs of dehydration?"},
+        {"input": "Does coffee count toward daily water intake?", "expected": "Does coffee count toward your daily water intake?"}
+      ]
+    },
+    {
+      "id": "standalone_negotiation",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Who wrote Pride and Prejudice?"},
+        {"role": "assistant", "content": "Pride and Prejudice was written by Jane Austen, published in 1813."}
+      ],
+      "followups": [
+        {"input": "How do I negotiate a higher salary?", "expected": "How do I negotiate a higher salary?"},
+        {"input": "What are effective salary negotiation strategies?", "expected": "What are effective salary negotiation strategies?"},
+        {"input": "When is the best time to negotiate salary?", "expected": "When is the best time to negotiate salary at a new job?"}
+      ]
+    },
+    {
+      "id": "standalone_protein",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is the Fibonacci sequence?"},
+        {"role": "assistant", "content": "The Fibonacci sequence is a series where each number is the sum of the two preceding ones: 0, 1, 1, 2, 3, 5, 8, 13..."}
+      ],
+      "followups": [
+        {"input": "How much protein do I need per day?", "expected": "How much protein do I need per day?"},
+        {"input": "What foods are high in protein?", "expected": "What foods are high in protein?"},
+        {"input": "Do I need protein supplements?", "expected": "Do I need protein supplements to build muscle?"}
+      ]
+    },
+    {
+      "id": "standalone_emergency",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What causes thunder?"},
+        {"role": "assistant", "content": "Thunder is caused by the rapid expansion of air heated by a lightning bolt, creating a pressure wave that produces the characteristic rumbling sound."}
+      ],
+      "followups": [
+        {"input": "What should I do in a financial emergency?", "expected": "What should I do in a financial emergency?"},
+        {"input": "How do I handle unexpected large expenses?", "expected": "How do I handle unexpected large expenses?"},
+        {"input": "What financial safety net should everyone have?", "expected": "What financial safety net should everyone have?"}
+      ]
+    },
+    {
+      "id": "standalone_passive_income",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is Newton's first law of motion?"},
+        {"role": "assistant", "content": "Newton's first law states that an object at rest stays at rest, and an object in motion stays in motion, unless acted upon by an external force."}
+      ],
+      "followups": [
+        {"input": "What is passive income?", "expected": "What is passive income?"},
+        {"input": "How can I generate passive income?", "expected": "How can I generate passive income?"},
+        {"input": "What are the best passive income ideas?", "expected": "What are the best passive income ideas?"}
+      ]
+    },
+    {
+      "id": "standalone_posture",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "How does the stock market work?"},
+        {"role": "assistant", "content": "The stock market is a marketplace where buyers and sellers trade shares of publicly listed companies, with prices determined by supply and demand."}
+      ],
+      "followups": [
+        {"input": "How do I improve my posture?", "expected": "How do I improve my posture?"},
+        {"input": "What causes bad posture?", "expected": "What causes bad posture?"},
+        {"input": "Can poor posture cause back pain?", "expected": "Can poor posture cause back pain?"}
+      ]
+    },
+    {
+      "id": "fasting_insulin_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is insulin resistance?"},
+        {"role": "assistant", "content": "Insulin resistance is a condition where cells don't respond effectively to insulin, causing the pancreas to produce more insulin to compensate, which can eventually lead to type 2 diabetes."},
+        {"role": "user", "content": "What causes insulin resistance?"},
+        {"role": "assistant", "content": "Insulin resistance is primarily caused by excess visceral fat (around organs), physical inactivity, poor diet high in refined carbs and sugars, chronic stress, and poor sleep — all of which impair insulin signaling."}
+      ],
+      "followups": [
+        {"input": "Can fasting reverse it?", "expected": "Can intermittent fasting help reverse insulin resistance?"},
+        {"input": "How do I know if I have it?", "expected": "How do I know if I have insulin resistance?"},
+        {"input": "What diet changes help most?", "expected": "What dietary changes help reduce insulin resistance the most?"}
+      ]
+    },
+    {
+      "id": "mortgage_refinancing_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is a mortgage?"},
+        {"role": "assistant", "content": "A mortgage is a loan secured by real property that you repay in monthly installments of principal and interest over a fixed term, typically 15 or 30 years."},
+        {"role": "user", "content": "What is mortgage refinancing?"},
+        {"role": "assistant", "content": "Refinancing replaces your existing mortgage with a new one, typically to get a lower interest rate, reduce monthly payments, change the loan term, or tap into home equity."}
+      ],
+      "followups": [
+        {"input": "When does it make financial sense?", "expected": "When does it make financial sense to refinance a mortgage?"},
+        {"input": "What are the closing costs?", "expected": "What are the closing costs when refinancing a mortgage?"},
+        {"input": "How many times can I do it?", "expected": "How many times can I refinance my mortgage?"}
+      ]
+    },
+    {
+      "id": "muscle_recovery_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "How does muscle growth work?"},
+        {"role": "assistant", "content": "Muscle growth (hypertrophy) occurs when exercise creates micro-tears in muscle fibers. During recovery, satellite cells repair and reinforce the fibers, making them thicker and stronger than before."},
+        {"role": "user", "content": "How important is protein for muscle growth?"},
+        {"role": "assistant", "content": "Protein is essential — muscles are made of protein, and repair requires amino acids. Most research suggests 1.6–2.2g of protein per kg of body weight per day for people training for hypertrophy."}
+      ],
+      "followups": [
+        {"input": "How long should I rest between sessions?", "expected": "How long should I rest between strength training sessions for the same muscle group?"},
+        {"input": "Does sleep affect muscle growth?", "expected": "Does sleep quality affect muscle growth and recovery?"},
+        {"input": "What is overtraining?", "expected": "What is overtraining and how do I avoid it?"}
+      ]
+    },
+    {
+      "id": "travel_hacking_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What are travel credit card rewards?"},
+        {"role": "assistant", "content": "Travel credit card rewards earn points or miles on purchases that can be redeemed for flights, hotels, and upgrades, often offering signup bonuses worth hundreds of dollars in travel."},
+        {"role": "user", "content": "What is a travel card signup bonus?"},
+        {"role": "assistant", "content": "A signup bonus is a large points or miles reward offered to new cardholders who spend a minimum amount (typically $3,000–$5,000) within the first 3 months, often worth $500–$1,000+ in travel."}
+      ],
+      "followups": [
+        {"input": "How do I maximize the bonus?", "expected": "How do I maximize a travel credit card signup bonus?"},
+        {"input": "Does applying for cards hurt my credit?", "expected": "Does applying for travel credit cards hurt my credit score?"},
+        {"input": "What is churning?", "expected": "What is credit card churning and is it worth it?"}
+      ]
+    },
+    {
+      "id": "gut_health_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is the gut microbiome?"},
+        {"role": "assistant", "content": "The gut microbiome is the community of trillions of bacteria, fungi, and other microorganisms living in the digestive tract. It plays a role in digestion, immune function, mood, and overall health."},
+        {"role": "user", "content": "How does diet affect the gut microbiome?"},
+        {"role": "assistant", "content": "A diet rich in fiber feeds beneficial bacteria (prebiotics), while fermented foods like yogurt, kefir, and kimchi introduce beneficial bacteria directly (probiotics). High-sugar and processed food diets can disrupt microbial balance (dysbiosis)."}
+      ],
+      "followups": [
+        {"input": "What is dysbiosis?", "expected": "What is gut dysbiosis and what causes it?"},
+        {"input": "Can antibiotics damage the microbiome?", "expected": "Can antibiotics damage the gut microbiome?"},
+        {"input": "How do I restore a healthy microbiome?", "expected": "How do I restore a healthy gut microbiome?"}
+      ]
+    },
+    {
+      "id": "stock_market_crash_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is a stock market crash?"},
+        {"role": "assistant", "content": "A stock market crash is a sudden, severe drop in stock prices — typically 20%+ — often triggered by economic panic, speculation bubbles bursting, or major external shocks."},
+        {"role": "user", "content": "What caused the 2008 financial crisis?"},
+        {"role": "assistant", "content": "The 2008 crisis was caused by a housing bubble fueled by subprime mortgages packaged into complex financial instruments (CDOs). When housing prices collapsed, these instruments became worthless, triggering bank failures and a global recession."}
+      ],
+      "followups": [
+        {"input": "What is quantitative easing?", "expected": "What is quantitative easing and how was it used after the 2008 crisis?"},
+        {"input": "How do I protect investments during a crash?", "expected": "How do I protect my investments during a stock market crash?"},
+        {"input": "How long do crashes typically last?", "expected": "How long do stock market crashes typically last before recovery?"}
+      ]
+    },
+    {
+      "id": "cognitive_bias_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is a cognitive bias?"},
+        {"role": "assistant", "content": "A cognitive bias is a systematic error in thinking that affects how people process information and make decisions, often causing irrational judgments based on heuristics, emotions, or limited information."},
+        {"role": "user", "content": "What is confirmation bias?"},
+        {"role": "assistant", "content": "Confirmation bias is the tendency to search for, interpret, and remember information that confirms your existing beliefs, while ignoring or dismissing contradictory evidence."}
+      ],
+      "followups": [
+        {"input": "How can I overcome it?", "expected": "How can I overcome confirmation bias in my thinking?"},
+        {"input": "What is sunk cost fallacy?", "expected": "What is the sunk cost fallacy and how does it relate to cognitive biases?"},
+        {"input": "How do these biases affect financial decisions?", "expected": "How do cognitive biases like confirmation bias affect financial decision-making?"}
+      ]
+    },
+    {
+      "id": "sleep_deprivation_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "Why is sleep important?"},
+        {"role": "assistant", "content": "Sleep is essential for memory consolidation, tissue repair, hormone regulation, immune function, and cognitive performance. Most adults need 7–9 hours per night for optimal health."},
+        {"role": "user", "content": "What happens when you don't get enough sleep?"},
+        {"role": "assistant", "content": "Chronic sleep deprivation impairs cognition, reaction time, and emotional regulation. It raises risks of obesity, heart disease, diabetes, and weakened immunity. Even one night of poor sleep affects mood and focus significantly."}
+      ],
+      "followups": [
+        {"input": "Can you catch up on sleep on weekends?", "expected": "Can you catch up on lost sleep by sleeping more on weekends?"},
+        {"input": "How does it affect weight?", "expected": "How does chronic sleep deprivation affect body weight?"},
+        {"input": "What is sleep debt?", "expected": "What is sleep debt and can it be fully repaid?"}
+      ]
+    }
+  ]
+}

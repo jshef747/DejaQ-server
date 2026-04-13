@@ -11,7 +11,22 @@ import logging
 import re
 import time
 
+from spellchecker import SpellChecker
+
 from app.services.model_loader import ModelManager
+
+_spell = SpellChecker()
+# Common proper nouns the base dictionary lacks.
+# Load at high frequency so they're preferred over phonetically similar common words
+# (e.g., "ukrine" → "ukraine" not "urine").
+_PROPER_NOUNS = [
+    "ukraine", "ukrainian", "russia", "russian", "israel", "israeli", "palestine",
+    "palestinian", "iran", "iranian", "china", "chinese", "taiwan", "taiwanese",
+    "korean", "korea", "japan", "japanese", "nato", "biden", "putin", "zelensky",
+    "elon", "musk", "openai", "chatgpt", "llm", "api", "gpu", "cpu",
+]
+_spell.word_frequency.load_words(_PROPER_NOUNS * 10_000)
+_WORD_RE = re.compile(r"([a-zA-Z'-]+|[^a-zA-Z'-]+)")
 
 logger = logging.getLogger("dejaq.services.normalizer")
 
@@ -90,6 +105,39 @@ _FEW_SHOTS: list[tuple[str, str]] = [
 ]
 
 
+def _spell_correct(query: str) -> str:
+    """Correct misspelled words in the query.
+
+    Tokenizes on word/non-word boundaries so punctuation isn't swallowed into
+    tokens. Only fixes unknown alphabetic tokens ≥ 4 chars; leaves proper nouns
+    in the custom word list, short tokens, and non-alpha tokens unchanged.
+    """
+    tokens = _WORD_RE.findall(query)
+    # Collect alphabetic tokens to batch-check
+    alpha_tokens = [t for t in tokens if t.isalpha() and len(t) >= 4]
+    unknown = _spell.unknown(alpha_tokens)
+    if not unknown:
+        return query
+
+    changed = []
+    result = []
+    for token in tokens:
+        low = token.lower()
+        if token.isalpha() and len(token) >= 4 and low in unknown:
+            fix = _spell.correction(low)
+            if fix and fix != low:
+                result.append(fix)
+                changed.append(f"{token!r}→{fix!r}")
+            else:
+                result.append(token)
+        else:
+            result.append(token)
+
+    if changed:
+        logger.debug("Spell corrections: %s", ", ".join(changed))
+    return "".join(result)
+
+
 def _is_opinion(query: str) -> bool:
     return bool(_OPINION_GATE.search(query) and not _HOWTO_ADVERBIAL.search(query))
 
@@ -120,8 +168,10 @@ class NormalizerService:
         logger.debug("Normalizing query: %s", raw_query)
         start = time.time()
 
-        if not _is_opinion(raw_query):
-            normalized = raw_query.strip().lower()
+        query = _spell_correct(raw_query)
+
+        if not _is_opinion(query):
+            normalized = query.strip().lower()
             latency = (time.time() - start) * 1000
             logger.info(
                 "Normalization (passthrough) in %.2f ms. Raw: %r -> Normalized: %r",
@@ -131,7 +181,7 @@ class NormalizerService:
 
         # Opinion path: lazy-load Gemma E2B
         llm = ModelManager.load_gemma_e2b()
-        messages = _build_opinion_messages(raw_query)
+        messages = _build_opinion_messages(query)
         output = llm.create_chat_completion(messages=messages, max_tokens=8, temperature=0.0)
         raw_output = output["choices"][0]["message"]["content"].strip()
         normalized = _postprocess(raw_output, raw_query)

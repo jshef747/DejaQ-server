@@ -1,6 +1,5 @@
 import logging
 import time
-from typing import Optional
 
 from app.services.model_loader import ModelManager
 
@@ -11,13 +10,14 @@ class ContextEnricherService:
     """Rewrites context-dependent queries into standalone questions using conversation history."""
 
     def __init__(self):
-        self.llm = ModelManager.load_qwen()
+        self.llm = ModelManager.load_qwen_1_5b()
 
     def enrich(self, message: str, history: list[dict]) -> str:
         """Enrich a message with conversation context to make it standalone.
 
         If there's no history, returns the message as-is (skip inference).
         Uses last 3 turns (6 messages) of history for context.
+        The 1.5B model returns the input unchanged when it's already standalone.
         """
         if not history:
             logger.debug("No history — skipping enrichment for: %s", message[:80])

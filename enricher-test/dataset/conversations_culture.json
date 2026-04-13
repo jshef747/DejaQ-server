@@ -1,0 +1,657 @@
+{
+  "scenarios": [
+    {
+      "id": "french_revolution",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What was the French Revolution?"},
+        {"role": "assistant", "content": "The French Revolution (1789–1799) was a period of radical political and social transformation in France that overthrew the monarchy, established a republic, and culminated in Napoleon's rise."}
+      ],
+      "followups": [
+        {"input": "What caused it?", "expected": "What caused the French Revolution?"},
+        {"input": "How long did it last?", "expected": "How long did the French Revolution last?"},
+        {"input": "What were its main outcomes?", "expected": "What were the main outcomes of the French Revolution?"}
+      ]
+    },
+    {
+      "id": "hamlet",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is Shakespeare's Hamlet about?"},
+        {"role": "assistant", "content": "Hamlet is a tragedy about Prince Hamlet of Denmark, who seeks revenge against his uncle Claudius, who murdered Hamlet's father to seize the throne and marry Hamlet's mother."}
+      ],
+      "followups": [
+        {"input": "What is its most famous quote?", "expected": "What is the most famous quote from Hamlet?"},
+        {"input": "How does it end?", "expected": "How does Hamlet end?"},
+        {"input": "What are its main themes?", "expected": "What are the main themes of Hamlet?"}
+      ]
+    },
+    {
+      "id": "sistine_chapel",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "Who painted the Sistine Chapel?"},
+        {"role": "assistant", "content": "Michelangelo painted the Sistine Chapel ceiling between 1508 and 1512, commissioned by Pope Julius II. The work includes the famous Creation of Adam."}
+      ],
+      "followups": [
+        {"input": "How long did it take him?", "expected": "How long did it take Michelangelo to paint the Sistine Chapel?"},
+        {"input": "What technique did he use?", "expected": "What painting technique did Michelangelo use for the Sistine Chapel?"},
+        {"input": "Where is it located?", "expected": "Where is the Sistine Chapel located?"}
+      ]
+    },
+    {
+      "id": "magna_carta",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is the Magna Carta?"},
+        {"role": "assistant", "content": "The Magna Carta is a charter signed in 1215 by King John of England under pressure from barons, establishing for the first time that the king was subject to the rule of law."}
+      ],
+      "followups": [
+        {"input": "Why was it significant?", "expected": "Why was the Magna Carta historically significant?"},
+        {"input": "Is it still in effect?", "expected": "Is the Magna Carta still in effect today?"},
+        {"input": "Where is it kept?", "expected": "Where is the Magna Carta kept?"}
+      ]
+    },
+    {
+      "id": "beethoven_ninth",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "Tell me about Beethoven's Ninth Symphony."},
+        {"role": "assistant", "content": "Beethoven's Ninth Symphony (1824) is his final complete symphony, famous for including the choral finale 'Ode to Joy,' and remarkable because Beethoven was almost completely deaf when he composed it."}
+      ],
+      "followups": [
+        {"input": "When was it first performed?", "expected": "When was Beethoven's Ninth Symphony first performed?"},
+        {"input": "How long does it take to perform?", "expected": "How long does it take to perform Beethoven's Ninth Symphony?"},
+        {"input": "Why is it considered a masterpiece?", "expected": "Why is Beethoven's Ninth Symphony considered a musical masterpiece?"}
+      ]
+    },
+    {
+      "id": "cold_war",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What was the Cold War?"},
+        {"role": "assistant", "content": "The Cold War was a period of geopolitical tension between the United States and the Soviet Union from roughly 1947 to 1991, characterized by political rivalry, nuclear arms race, and proxy conflicts."}
+      ],
+      "followups": [
+        {"input": "How did it end?", "expected": "How did the Cold War end?"},
+        {"input": "What were its most dangerous moments?", "expected": "What were the most dangerous moments of the Cold War?"},
+        {"input": "How did it affect everyday life?", "expected": "How did the Cold War affect everyday life for ordinary people?"}
+      ]
+    },
+    {
+      "id": "odyssey",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is Homer's Odyssey?"},
+        {"role": "assistant", "content": "The Odyssey is an ancient Greek epic poem attributed to Homer, following the hero Odysseus's ten-year journey home to Ithaca after the Trojan War, facing monsters, gods, and temptation."}
+      ],
+      "followups": [
+        {"input": "Who are its main characters?", "expected": "Who are the main characters in Homer's Odyssey?"},
+        {"input": "What obstacles does he face?", "expected": "What obstacles does Odysseus face in the Odyssey?"},
+        {"input": "How does it end?", "expected": "How does Homer's Odyssey end?"}
+      ]
+    },
+    {
+      "id": "impressionism_monet",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "Who was Claude Monet?"},
+        {"role": "assistant", "content": "Claude Monet was a 19th-century French painter and a founder of the Impressionist movement, famous for his series paintings of water lilies, haystacks, and Rouen Cathedral."}
+      ],
+      "followups": [
+        {"input": "What is his most famous painting?", "expected": "What is Claude Monet's most famous painting?"},
+        {"input": "Where can I see his works?", "expected": "Where can I see Claude Monet's paintings?"},
+        {"input": "How did his style evolve?", "expected": "How did Claude Monet's painting style evolve over his career?"}
+      ]
+    },
+    {
+      "id": "ww1_causes",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What caused World War I?"},
+        {"role": "assistant", "content": "World War I was triggered by the assassination of Archduke Franz Ferdinand in 1914, but its deeper causes included a complex web of alliances, nationalism, imperial competition, and militarism across Europe."}
+      ],
+      "followups": [
+        {"input": "How long did it last?", "expected": "How long did World War I last?"},
+        {"input": "What were its consequences?", "expected": "What were the major consequences of World War I?"},
+        {"input": "How many died in it?", "expected": "How many people died in World War I?"}
+      ]
+    },
+    {
+      "id": "martin_luther_king",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "Who was Martin Luther King Jr.?"},
+        {"role": "assistant", "content": "Martin Luther King Jr. was a Baptist minister and civil rights leader who led the nonviolent movement to end racial segregation in the United States, best known for his 'I Have a Dream' speech."}
+      ],
+      "followups": [
+        {"input": "What were his most significant achievements?", "expected": "What were Martin Luther King Jr.'s most significant achievements?"},
+        {"input": "How was he assassinated?", "expected": "How was Martin Luther King Jr. assassinated?"},
+        {"input": "What inspired his nonviolent approach?", "expected": "What inspired Martin Luther King Jr.'s nonviolent approach to civil rights?"}
+      ]
+    },
+    {
+      "id": "ancient_egypt",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What is ancient Egypt known for?"},
+        {"role": "assistant", "content": "Ancient Egypt is known for its pyramids, pharaohs, hieroglyphics, the Sphinx, and one of the world's earliest and longest-lasting civilizations along the Nile River."}
+      ],
+      "followups": [
+        {"input": "How were its pyramids built?", "expected": "How were the ancient Egyptian pyramids built?"},
+        {"input": "When did it fall?", "expected": "When did ancient Egypt fall?"},
+        {"input": "What was its religion like?", "expected": "What was the religion of ancient Egypt like?"}
+      ]
+    },
+    {
+      "id": "socrates",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "Who was Socrates?"},
+        {"role": "assistant", "content": "Socrates was an ancient Greek philosopher (470–399 BC) who is considered a founder of Western philosophy, known for the Socratic method of inquiry and his influence on Plato and Aristotle."}
+      ],
+      "followups": [
+        {"input": "Why was he put on trial?", "expected": "Why was Socrates put on trial in ancient Athens?"},
+        {"input": "How did he die?", "expected": "How did Socrates die?"},
+        {"input": "What is the Socratic method?", "expected": "What is the Socratic method of philosophical inquiry?"}
+      ]
+    },
+    {
+      "id": "silk_road",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What was the Silk Road?"},
+        {"role": "assistant", "content": "The Silk Road was an ancient network of trade routes connecting China to the Mediterranean, facilitating the exchange of goods, ideas, culture, and religion between East and West for centuries."}
+      ],
+      "followups": [
+        {"input": "When was it most active?", "expected": "When was the Silk Road most active?"},
+        {"input": "What goods were traded on it?", "expected": "What goods were traded on the Silk Road?"},
+        {"input": "Why did it decline?", "expected": "Why did the Silk Road decline?"}
+      ]
+    },
+    {
+      "id": "mona_lisa",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "Who painted the Mona Lisa?"},
+        {"role": "assistant", "content": "The Mona Lisa was painted by Leonardo da Vinci between approximately 1503 and 1519. It is a portrait believed to depict Lisa Gherardini and is housed in the Louvre Museum in Paris."}
+      ],
+      "followups": [
+        {"input": "Why is it considered so important?", "expected": "Why is the Mona Lisa considered so important in art history?"},
+        {"input": "Has it ever been stolen?", "expected": "Has the Mona Lisa ever been stolen?"},
+        {"input": "What technique was used to create it?", "expected": "What painting technique did Leonardo da Vinci use to create the Mona Lisa?"}
+      ]
+    },
+    {
+      "id": "american_revolution",
+      "category": "pronoun_resolution",
+      "history": [
+        {"role": "user", "content": "What was the American Revolution?"},
+        {"role": "assistant", "content": "The American Revolution (1775–1783) was the political and military struggle through which thirteen American colonies gained independence from Great Britain, leading to the creation of the United States."}
+      ],
+      "followups": [
+        {"input": "What triggered it?", "expected": "What triggered the American Revolution?"},
+        {"input": "Who were its key leaders?", "expected": "Who were the key leaders of the American Revolution?"},
+        {"input": "How did it influence other countries?", "expected": "How did the American Revolution influence other countries?"}
+      ]
+    },
+    {
+      "id": "greek_philosophy_schools",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What did Plato believe?"},
+        {"role": "assistant", "content": "Plato believed in a world of ideal Forms — perfect abstract entities that physical objects imperfectly imitate. He argued that reason and philosophy, not senses, reveal true reality."}
+      ],
+      "followups": [
+        {"input": "What about Aristotle?", "expected": "What did Aristotle believe, and how did he differ from Plato?"},
+        {"input": "And the Stoics?", "expected": "What did the Stoic philosophers believe?"},
+        {"input": "How about Epicurus?", "expected": "What did Epicurus believe in philosophy?"}
+      ]
+    },
+    {
+      "id": "world_religions",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What are the core beliefs of Christianity?"},
+        {"role": "assistant", "content": "Christianity centers on belief in Jesus Christ as the Son of God and savior of humanity, the authority of the Bible, the Trinity (Father, Son, Holy Spirit), and salvation through faith and grace."}
+      ],
+      "followups": [
+        {"input": "What about Islam?", "expected": "What are the core beliefs of Islam?"},
+        {"input": "And Buddhism?", "expected": "What are the core beliefs of Buddhism?"},
+        {"input": "How about Hinduism?", "expected": "What are the core beliefs of Hinduism?"}
+      ]
+    },
+    {
+      "id": "literary_movements",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What was the Romantic literary movement?"},
+        {"role": "assistant", "content": "Romanticism was a literary and artistic movement of the late 18th to mid-19th century that emphasized emotion, imagination, nature, and individualism as reactions against Enlightenment rationalism."}
+      ],
+      "followups": [
+        {"input": "What about Realism?", "expected": "What was the Realism literary movement?"},
+        {"input": "And Modernism?", "expected": "What was the Modernism literary movement?"},
+        {"input": "How about Postmodernism?", "expected": "What was the Postmodernism literary movement?"}
+      ]
+    },
+    {
+      "id": "music_genres",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "How did jazz originate?"},
+        {"role": "assistant", "content": "Jazz emerged in New Orleans in the early 20th century from a blend of African American musical traditions including blues, ragtime, and gospel, characterized by improvisation and syncopation."}
+      ],
+      "followups": [
+        {"input": "What about blues?", "expected": "How did blues music originate?"},
+        {"input": "And rock and roll?", "expected": "How did rock and roll emerge as a music genre?"},
+        {"input": "How about hip-hop?", "expected": "How did hip-hop music originate?"}
+      ]
+    },
+    {
+      "id": "empires_of_history",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What was the Mongol Empire?"},
+        {"role": "assistant", "content": "The Mongol Empire, founded by Genghis Khan in 1206, was the largest contiguous land empire in history, stretching from the Pacific to Eastern Europe, known for both brutal conquest and the Pax Mongolica trade era."}
+      ],
+      "followups": [
+        {"input": "What about the British Empire?", "expected": "What was the British Empire?"},
+        {"input": "And the Ottoman Empire?", "expected": "What was the Ottoman Empire?"},
+        {"input": "Which was the largest?", "expected": "Which was the largest empire in history?"}
+      ]
+    },
+    {
+      "id": "architecture_styles",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is Gothic architecture?"},
+        {"role": "assistant", "content": "Gothic architecture emerged in medieval Europe (12th–16th century), characterized by pointed arches, ribbed vaults, flying buttresses, and large stained-glass windows designed to let in light."}
+      ],
+      "followups": [
+        {"input": "What about Baroque architecture?", "expected": "What is Baroque architecture?"},
+        {"input": "And Modernist architecture?", "expected": "What is Modernist architecture?"},
+        {"input": "How does Renaissance differ?", "expected": "How does Renaissance architecture differ from Gothic architecture?"}
+      ]
+    },
+    {
+      "id": "philosophy_of_mind",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is the mind-body problem in philosophy?"},
+        {"role": "assistant", "content": "The mind-body problem asks how the mind (consciousness, thoughts, feelings) relates to the physical brain. Dualists say mind and body are distinct; physicalists argue the mind is entirely physical."}
+      ],
+      "followups": [
+        {"input": "What is dualism?", "expected": "What is dualism in the philosophy of mind?"},
+        {"input": "And physicalism?", "expected": "What is physicalism in the philosophy of mind?"},
+        {"input": "What about emergentism?", "expected": "What is emergentism as an approach to the mind-body problem?"}
+      ]
+    },
+    {
+      "id": "revolutions_compare",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What was the Industrial Revolution?"},
+        {"role": "assistant", "content": "The Industrial Revolution (late 18th–19th century) transformed manufacturing from hand production to machine-based factory work, beginning in Britain and spreading globally, dramatically changing society and economy."}
+      ],
+      "followups": [
+        {"input": "What about the Digital Revolution?", "expected": "What is the Digital Revolution?"},
+        {"input": "And the Agricultural Revolution?", "expected": "What was the Agricultural Revolution?"},
+        {"input": "Which had the biggest impact?", "expected": "Which revolution — Industrial, Agricultural, or Digital — had the biggest impact on human society?"}
+      ]
+    },
+    {
+      "id": "ancient_religions",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What was ancient Egyptian religion?"},
+        {"role": "assistant", "content": "Ancient Egyptian religion was polytheistic, involving worship of gods like Ra, Osiris, and Isis, with a strong focus on the afterlife, mummification, and the pharaoh as divine intermediary."}
+      ],
+      "followups": [
+        {"input": "What about ancient Greek religion?", "expected": "What was ancient Greek religion?"},
+        {"input": "And ancient Roman religion?", "expected": "What was ancient Roman religion?"},
+        {"input": "How did they influence each other?", "expected": "How did ancient Egyptian, Greek, and Roman religions influence each other?"}
+      ]
+    },
+    {
+      "id": "shakespeare_plays",
+      "category": "topic_continuation",
+      "history": [
+        {"role": "user", "content": "What is Romeo and Juliet about?"},
+        {"role": "assistant", "content": "Romeo and Juliet is Shakespeare's tragedy of two young lovers from rival families — the Montagues and Capulets — in Verona, whose forbidden romance ends in both their deaths."}
+      ],
+      "followups": [
+        {"input": "What about Macbeth?", "expected": "What is Shakespeare's Macbeth about?"},
+        {"input": "And King Lear?", "expected": "What is Shakespeare's King Lear about?"},
+        {"input": "Which is considered his greatest tragedy?", "expected": "Which of Shakespeare's plays is considered his greatest tragedy?"}
+      ]
+    },
+    {
+      "id": "homer_vs_virgil",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "How do Homer's Iliad and Virgil's Aeneid compare?"},
+        {"role": "assistant", "content": "Both are epic poems about the Trojan War era. Homer's Iliad depicts the Greek hero Achilles and the siege of Troy. Virgil's Aeneid follows the Trojan hero Aeneas founding what would become Rome, written to glorify the Roman Empire."}
+      ],
+      "followups": [
+        {"input": "Which came first?", "expected": "Which was written first — Homer's Iliad or Virgil's Aeneid?"},
+        {"input": "Which is considered greater?", "expected": "Is Homer's Iliad or Virgil's Aeneid considered the greater epic?"},
+        {"input": "Which is harder to read today?", "expected": "Is Homer's Iliad or Virgil's Aeneid harder to read for a modern reader?"}
+      ]
+    },
+    {
+      "id": "plato_aristotle_politics",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "How did Plato and Aristotle differ on politics?"},
+        {"role": "assistant", "content": "Plato favored rule by philosopher-kings in his ideal Republic, distrusting democracy as prone to mob rule. Aristotle was more empirical, studying 158 constitutions and concluding mixed government was most stable."}
+      ],
+      "followups": [
+        {"input": "Which was more influential on modern democracy?", "expected": "Was Plato or Aristotle more influential on modern democratic thought?"},
+        {"input": "Who had the more realistic vision?", "expected": "Did Plato or Aristotle have a more realistic political vision?"},
+        {"input": "What did each think of tyranny?", "expected": "What did Plato and Aristotle each think about tyranny?"}
+      ]
+    },
+    {
+      "id": "baroque_vs_classical_music",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between Baroque and Classical music?"},
+        {"role": "assistant", "content": "Baroque music (1600–1750) features ornate, complex counterpoint and figured bass — think Bach and Handel. Classical music (1750–1820) became cleaner, more structured, emphasizing clarity and form — think Mozart and Haydn."}
+      ],
+      "followups": [
+        {"input": "Which is more complex?", "expected": "Is Baroque or Classical music more complex?"},
+        {"input": "Which produced more famous composers?", "expected": "Did the Baroque or Classical period produce more famous composers?"},
+        {"input": "Which came first?", "expected": "Did Baroque or Classical music come first historically?"}
+      ]
+    },
+    {
+      "id": "democracy_vs_republic",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between a democracy and a republic?"},
+        {"role": "assistant", "content": "A direct democracy lets citizens vote directly on laws. A republic is representative — citizens elect officials who make laws on their behalf. Most modern 'democracies' are actually representative republics."}
+      ],
+      "followups": [
+        {"input": "Which is more stable?", "expected": "Are democracies or republics more politically stable?"},
+        {"input": "Which gives citizens more power?", "expected": "Does a direct democracy or republic give citizens more political power?"},
+        {"input": "Which is more common today?", "expected": "Are direct democracies or republics more common in the modern world?"}
+      ]
+    },
+    {
+      "id": "east_west_philosophy",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "How do Western and Eastern philosophy differ?"},
+        {"role": "assistant", "content": "Western philosophy (Greco-Roman tradition) emphasizes logic, individual reason, and metaphysics. Eastern philosophy (Buddhism, Confucianism, Taoism) focuses more on harmony, impermanence, duty, and inner experience."}
+      ],
+      "followups": [
+        {"input": "Which tradition emphasizes ethics more?", "expected": "Does Western or Eastern philosophy emphasize ethics more?"},
+        {"input": "Which had more influence on modern science?", "expected": "Did Western or Eastern philosophy have more influence on modern science?"},
+        {"input": "Are they converging today?", "expected": "Are Western and Eastern philosophical traditions converging in modern times?"}
+      ]
+    },
+    {
+      "id": "renaissance_vs_enlightenment",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between the Renaissance and the Enlightenment?"},
+        {"role": "assistant", "content": "The Renaissance (14th–17th century) was an artistic and cultural revival of classical knowledge. The Enlightenment (17th–18th century) applied reason and science to political, social, and philosophical questions."}
+      ],
+      "followups": [
+        {"input": "Which had more impact on modern governments?", "expected": "Did the Renaissance or Enlightenment have more impact on modern governments?"},
+        {"input": "Which came first?", "expected": "Did the Renaissance or the Enlightenment come first?"},
+        {"input": "Which produced more lasting art?", "expected": "Did the Renaissance or the Enlightenment produce more lasting art?"}
+      ]
+    },
+    {
+      "id": "communism_vs_fascism",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between communism and fascism?"},
+        {"role": "assistant", "content": "Communism is a far-left ideology aiming for collective ownership and classless society. Fascism is a far-right ideology emphasizing ultranationalism, authoritarian state power, and suppression of opposition. Both are totalitarian in practice."}
+      ],
+      "followups": [
+        {"input": "Which caused more deaths historically?", "expected": "Did communism or fascism cause more deaths historically?"},
+        {"input": "Which is more anti-democratic?", "expected": "Is communism or fascism more anti-democratic?"},
+        {"input": "Can they coexist?", "expected": "Can communist and fascist governments coexist or cooperate?"}
+      ]
+    },
+    {
+      "id": "capitalism_vs_socialism",
+      "category": "multi_reference",
+      "history": [
+        {"role": "user", "content": "What is the difference between capitalism and socialism?"},
+        {"role": "assistant", "content": "Capitalism is an economic system based on private ownership of production and market-driven allocation. Socialism involves collective or state ownership of key industries, aiming to redistribute wealth more equally."}
+      ],
+      "followups": [
+        {"input": "Which produces more wealth?", "expected": "Does capitalism or socialism produce more total wealth?"},
+        {"input": "Which reduces inequality more?", "expected": "Does capitalism or socialism reduce economic inequality more effectively?"},
+        {"input": "Can they be mixed?", "expected": "Can capitalism and socialism be mixed in a single economy?"}
+      ]
+    },
+    {
+      "id": "standalone_haiku",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is your favorite color?"},
+        {"role": "assistant", "content": "As an AI I don't have sensory experiences, but I find the concept of blue fascinating — it's rare in nature!"}
+      ],
+      "followups": [
+        {"input": "What is a haiku?", "expected": "What is a haiku?"},
+        {"input": "How do you write a haiku?", "expected": "How do you write a haiku?"},
+        {"input": "What are the rules of haiku poetry?", "expected": "What are the rules of haiku poetry?"}
+      ]
+    },
+    {
+      "id": "standalone_stoicism",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What did you have for breakfast?"},
+        {"role": "assistant", "content": "I don't eat — I'm an AI — but I'm here to help with any questions you have!"}
+      ],
+      "followups": [
+        {"input": "What is Stoicism?", "expected": "What is Stoicism?"},
+        {"input": "What are the core principles of Stoicism?", "expected": "What are the core principles of Stoicism?"},
+        {"input": "Who founded Stoicism?", "expected": "Who founded Stoicism?"}
+      ]
+    },
+    {
+      "id": "standalone_feudalism",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Can you translate 'hello' into French?"},
+        {"role": "assistant", "content": "Bonjour! That means hello in French."}
+      ],
+      "followups": [
+        {"input": "What is feudalism?", "expected": "What is feudalism?"},
+        {"input": "How did feudalism work in medieval Europe?", "expected": "How did feudalism work in medieval Europe?"},
+        {"input": "Explain the feudal system.", "expected": "What was the feudal system in medieval society?"}
+      ]
+    },
+    {
+      "id": "standalone_democracy",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Who is the richest person in the world?"},
+        {"role": "assistant", "content": "As of my knowledge cutoff, Elon Musk and Jeff Bezos have frequently been among the wealthiest individuals globally."}
+      ],
+      "followups": [
+        {"input": "Where did democracy originate?", "expected": "Where did democracy originate?"},
+        {"input": "How did ancient Greek democracy work?", "expected": "How did ancient Greek democracy work?"},
+        {"input": "What is the origin of democracy?", "expected": "What is the origin of democracy?"}
+      ]
+    },
+    {
+      "id": "standalone_baroque",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is your opinion on AI?"},
+        {"role": "assistant", "content": "As an AI, I think AI has great potential to benefit humanity, but careful ethical development is important."}
+      ],
+      "followups": [
+        {"input": "What is the Baroque period in art?", "expected": "What is the Baroque period in art?"},
+        {"input": "What defines Baroque art and music?", "expected": "What defines art and music of the Baroque period?"},
+        {"input": "When was the Baroque period?", "expected": "When was the Baroque period in art history?"}
+      ]
+    },
+    {
+      "id": "standalone_colonialism",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "Tell me something surprising."},
+        {"role": "assistant", "content": "The shortest war in history was the Anglo-Zanzibar War in 1896, lasting between 38 and 45 minutes!"}
+      ],
+      "followups": [
+        {"input": "What is colonialism?", "expected": "What is colonialism?"},
+        {"input": "What were the effects of European colonialism?", "expected": "What were the effects of European colonialism on colonized countries?"},
+        {"input": "Explain the impact of colonialism.", "expected": "What is colonialism and what were its historical impacts?"}
+      ]
+    },
+    {
+      "id": "standalone_existentialism",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is 2 + 2?"},
+        {"role": "assistant", "content": "4!"}
+      ],
+      "followups": [
+        {"input": "What is existentialism?", "expected": "What is existentialism?"},
+        {"input": "What do existentialist philosophers believe?", "expected": "What do existentialist philosophers believe?"},
+        {"input": "Who are the main existentialist thinkers?", "expected": "Who are the main existentialist philosophers?"}
+      ]
+    },
+    {
+      "id": "standalone_renaissance_art",
+      "category": "passthrough",
+      "history": [
+        {"role": "user", "content": "What is the speed of light?"},
+        {"role": "assistant", "content": "The speed of light in a vacuum is approximately 299,792 km/s."}
+      ],
+      "followups": [
+        {"input": "What are the main characteristics of Renaissance art?", "expected": "What are the main characteristics of Renaissance art?"},
+        {"input": "How is Renaissance art different from medieval art?", "expected": "How is Renaissance art different from medieval art?"},
+        {"input": "Who were the greatest Renaissance artists?", "expected": "Who were the greatest Renaissance artists?"}
+      ]
+    },
+    {
+      "id": "napoleon_waterloo_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "Who was Napoleon Bonaparte?"},
+        {"role": "assistant", "content": "Napoleon Bonaparte was a French military general who rose to power during the French Revolution, became Emperor of the French in 1804, and conquered much of Europe before his eventual defeat."},
+        {"role": "user", "content": "What was the Battle of Waterloo?"},
+        {"role": "assistant", "content": "The Battle of Waterloo in 1815 was Napoleon's final defeat, fought in Belgium against a coalition of British, Dutch, and Prussian forces led by the Duke of Wellington and Field Marshal Blücher."}
+      ],
+      "followups": [
+        {"input": "What happened to him after the battle?", "expected": "What happened to Napoleon after the Battle of Waterloo?"},
+        {"input": "Could he have won?", "expected": "Could Napoleon have won the Battle of Waterloo?"},
+        {"input": "Who was Wellington?", "expected": "Who was the Duke of Wellington and what was his role at Waterloo?"}
+      ]
+    },
+    {
+      "id": "reformation_counter_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What was the Protestant Reformation?"},
+        {"role": "assistant", "content": "The Protestant Reformation was a 16th-century religious movement led by figures like Martin Luther and John Calvin that challenged the authority of the Catholic Church, leading to the creation of Protestant denominations."},
+        {"role": "user", "content": "What did Martin Luther object to?"},
+        {"role": "assistant", "content": "Luther objected primarily to the sale of indulgences (buying forgiveness from the Church), the Pope's authority over scripture, and the Catholic doctrine of salvation through works rather than faith alone."}
+      ],
+      "followups": [
+        {"input": "What was the Counter-Reformation?", "expected": "What was the Catholic Counter-Reformation?"},
+        {"input": "Did it lead to wars?", "expected": "Did the Protestant Reformation lead to religious wars?"},
+        {"input": "What denominations did it create?", "expected": "What Protestant denominations did the Reformation create?"}
+      ]
+    },
+    {
+      "id": "greek_tragedy_form_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What is Greek tragedy?"},
+        {"role": "assistant", "content": "Greek tragedy is an ancient theatrical form featuring noble characters who suffer calamitous downfalls, often due to hamartia (a fatal flaw) or hubris (excessive pride), evoking catharsis in the audience."},
+        {"role": "user", "content": "What is catharsis in this context?"},
+        {"role": "assistant", "content": "Catharsis, as described by Aristotle, is the emotional purification or release audiences experience watching tragedy — feeling pity for the hero and fear for themselves, they leave the theater emotionally cleansed."}
+      ],
+      "followups": [
+        {"input": "What is hamartia?", "expected": "What is hamartia in Greek tragedy?"},
+        {"input": "Who were the great Greek tragedians?", "expected": "Who were the great Greek tragedians?"},
+        {"input": "How does it differ from Greek comedy?", "expected": "How does Greek tragedy differ from Greek comedy?"}
+      ]
+    },
+    {
+      "id": "renaissance_humanism_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What was the Renaissance?"},
+        {"role": "assistant", "content": "The Renaissance was a cultural rebirth in Europe from the 14th to 17th century, marked by renewed interest in classical Greco-Roman knowledge, art, literature, and science."},
+        {"role": "user", "content": "What is Renaissance humanism?"},
+        {"role": "assistant", "content": "Renaissance humanism was an intellectual movement that placed humans — rather than God or the Church — at the center of intellectual inquiry, emphasizing reason, classical texts, individual potential, and earthly life."}
+      ],
+      "followups": [
+        {"input": "How did it change art?", "expected": "How did Renaissance humanism change art and painting?"},
+        {"input": "Did it conflict with the Church?", "expected": "Did Renaissance humanism conflict with the Catholic Church?"},
+        {"input": "Who were its key figures?", "expected": "Who were the key figures of Renaissance humanism?"}
+      ]
+    },
+    {
+      "id": "cold_war_arms_race_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What was the Cold War?"},
+        {"role": "assistant", "content": "The Cold War was a period of geopolitical tension between the United States and Soviet Union from 1947 to 1991, characterized by ideological rivalry, proxy conflicts, and competition for global influence."},
+        {"role": "user", "content": "What was the nuclear arms race?"},
+        {"role": "assistant", "content": "The nuclear arms race was the competition between the US and USSR to develop and stockpile nuclear weapons. By the 1980s, both sides had enough warheads to destroy civilization multiple times over — mutual assured destruction (MAD)."}
+      ],
+      "followups": [
+        {"input": "What was MAD strategy?", "expected": "What was the Mutually Assured Destruction (MAD) strategy during the Cold War?"},
+        {"input": "What was the closest we came to nuclear war?", "expected": "What was the closest the US and USSR came to nuclear war during the Cold War?"},
+        {"input": "How did arms control treaties help?", "expected": "How did arms control treaties help reduce nuclear tensions during the Cold War?"}
+      ]
+    },
+    {
+      "id": "enlightenment_revolution_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "Who was John Locke?"},
+        {"role": "assistant", "content": "John Locke (1632–1704) was an English philosopher considered the father of liberalism, arguing that governments derive authority from the consent of the governed and that people have natural rights to life, liberty, and property."},
+        {"role": "user", "content": "How did his ideas influence the American Revolution?"},
+        {"role": "assistant", "content": "Locke's ideas directly influenced the Declaration of Independence — Jefferson echoed his theory of natural rights and government by consent. The Founders saw the Revolution as restoring the rights the British had violated."}
+      ],
+      "followups": [
+        {"input": "Did his ideas also influence the French Revolution?", "expected": "Did John Locke's ideas also influence the French Revolution?"},
+        {"input": "What did Rousseau add to these ideas?", "expected": "What did Jean-Jacques Rousseau add to Enlightenment political philosophy?"},
+        {"input": "Which thinker was most influential?", "expected": "Which Enlightenment thinker was most influential on modern democracy?"}
+      ]
+    },
+    {
+      "id": "cubism_origin_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "Who was Pablo Picasso?"},
+        {"role": "assistant", "content": "Pablo Picasso (1881–1973) was a Spanish painter and sculptor, one of the most influential artists of the 20th century, co-founder of Cubism and known for works like Guernica and Les Demoiselles d'Avignon."},
+        {"role": "user", "content": "What is Cubism?"},
+        {"role": "assistant", "content": "Cubism is an early 20th-century art movement developed by Picasso and Georges Braque that depicts subjects from multiple viewpoints simultaneously, fragmenting objects into geometric forms."}
+      ],
+      "followups": [
+        {"input": "What influenced Picasso to develop it?", "expected": "What influenced Picasso to develop Cubism?"},
+        {"input": "How does analytic differ from synthetic Cubism?", "expected": "How does analytic Cubism differ from synthetic Cubism?"},
+        {"input": "What impact did it have on later art?", "expected": "What impact did Cubism have on later art movements?"}
+      ]
+    },
+    {
+      "id": "civil_rights_legislation_deep",
+      "category": "deep_chain",
+      "history": [
+        {"role": "user", "content": "What was the Civil Rights Movement?"},
+        {"role": "assistant", "content": "The Civil Rights Movement was a decades-long struggle by African Americans and allies in the 1950s–60s to end racial segregation and discrimination in the United States, using nonviolent protest."},
+        {"role": "user", "content": "What legislation did it produce?"},
+        {"role": "assistant", "content": "The movement produced landmark legislation: the Civil Rights Act of 1964 (banning discrimination in public life and employment) and the Voting Rights Act of 1965 (protecting Black Americans' voting rights)."}
+      ],
+      "followups": [
+        {"input": "Has that legislation been weakened since?", "expected": "Has the Civil Rights Act or Voting Rights Act been weakened since their passage?"},
+        {"input": "What key Supreme Court cases supported it?", "expected": "What key Supreme Court cases supported the Civil Rights Movement?"},
+        {"input": "What role did nonviolent protest play?", "expected": "What role did nonviolent protest play in achieving Civil Rights legislation?"}
+      ]
+    }
+  ]
+}
