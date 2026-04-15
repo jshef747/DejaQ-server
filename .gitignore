@@ -14,3 +14,10 @@ __pycache__/
 *.so
 .venv/
 venv/
+
+# VS Code
+.vscode/
+
+# Frontend build artifacts
+dejaq-ui/dist/
+dejaq-ui/.vite/
