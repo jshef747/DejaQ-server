@@ -23,7 +23,7 @@ from app.services.normalizer import NormalizerService
 from app.services.llm_router import LLMRouterService, _LOCAL_MODEL_NAME
 from app.services.external_llm import ExternalLLMService
 from app.services.context_adjuster import ContextAdjusterService
-from app.services.memory_chromaDB import MemoryService
+from app.services.memory_chromaDB import get_memory_service
 from app.services.context_enricher import ContextEnricherService
 from app.services import cache_filter
 from app.services.classifier import ClassifierService
@@ -41,10 +41,10 @@ logger.info("Initializing OpenAI-compat services...")
 _normalizer = NormalizerService()
 _llm_router = LLMRouterService()
 _adjuster = ContextAdjusterService()
-_memory = MemoryService()
 _enricher = ContextEnricherService()
 _classifier = ClassifierService()
 _external_llm = ExternalLLMService()
+# MemoryService is namespace-aware; use get_memory_service(namespace) per-request
 logger.info("OpenAI-compat services ready.")
 
 
@@ -73,14 +73,15 @@ def _is_suppressed(clean_query: str) -> bool:
 
 
 def _bg_generalize_and_store(
-    clean_query: str, answer: str, original_query: str, tenant_id: str
+    clean_query: str, answer: str, original_query: str, tenant_id: str, cache_namespace: str = "dejaq_default"
 ) -> None:
     if _is_suppressed(clean_query):
         logger.info("Storage suppressed for query '%s'", clean_query[:60])
         return
     try:
         generalized = _adjuster.generalize(answer)
-        _memory.store_interaction(clean_query, generalized, original_query, tenant_id)
+        memory = get_memory_service(cache_namespace)
+        memory.store_interaction(clean_query, generalized, original_query, tenant_id)
     except Exception:
         logger.error("Failed to generalize/store: %s", traceback.format_exc())
 
@@ -159,12 +160,14 @@ async def chat_completions(
     raw_request: Request,
     background_tasks: BackgroundTasks,
 ):
-    tenant_id: str = getattr(raw_request.state, "tenant_id", "anonymous")
+    cache_namespace: str = getattr(raw_request.state, "cache_namespace", "dejaq_default")
+    org_slug: str = getattr(raw_request.state, "org_slug", "anonymous")
     logger.info(
-        "POST /v1/chat/completions model=%s stream=%s tenant=%s",
+        "POST /v1/chat/completions model=%s stream=%s org=%s namespace=%s",
         oai_request.model,
         oai_request.stream,
-        tenant_id,
+        org_slug,
+        cache_namespace,
     )
 
     user_query, history, system_prompt = _extract_pipeline_inputs(oai_request)
@@ -193,7 +196,7 @@ async def chat_completions(
     # 3. Cache lookup
     cache_result = None
     try:
-        cache_result = _memory.check_cache(clean_query)
+        cache_result = get_memory_service(cache_namespace).check_cache(clean_query)
     except Exception:
         logger.error("Cache check failed: %s", traceback.format_exc())
 
@@ -292,10 +295,10 @@ async def chat_completions(
 
     if will_cache:
         if USE_CELERY:
-            generalize_and_store_task.delay(clean_query, answer, user_query, tenant_id)
+            generalize_and_store_task.delay(clean_query, answer, user_query, org_slug, cache_namespace)
         else:
             background_tasks.add_task(
-                _bg_generalize_and_store, clean_query, answer, user_query, tenant_id
+                _bg_generalize_and_store, clean_query, answer, user_query, org_slug, cache_namespace
             )
 
     # 6. Return response

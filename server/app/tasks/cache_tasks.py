@@ -7,7 +7,7 @@ import redis as redis_lib
 from app.celery_app import celery_app
 from app.config import REDIS_URL
 from app.services.context_adjuster import ContextAdjusterService
-from app.services.memory_chromaDB import MemoryService
+from app.services.memory_chromaDB import get_memory_service
 
 logger = logging.getLogger("dejaq.tasks.cache")
 
@@ -21,21 +21,17 @@ def _is_suppressed(clean_query: str) -> bool:
     except redis_lib.exceptions.RedisError:
         return False  # Redis unavailable: proceed with storage
 
-# Lazy-initialized service instances (one per worker process)
+# Lazy-initialized adjuster (one per worker process; MemoryService is pooled per namespace)
 _context_adjuster: ContextAdjusterService | None = None
-_memory: MemoryService | None = None
 
 
-def _get_services() -> tuple[ContextAdjusterService, MemoryService]:
-    """Lazy-load services on first task execution in this worker process."""
-    global _context_adjuster, _memory
+def _get_adjuster() -> ContextAdjusterService:
+    """Lazy-load ContextAdjusterService on first task execution in this worker process."""
+    global _context_adjuster
     if _context_adjuster is None:
         logger.info("Initializing ContextAdjusterService in worker...")
         _context_adjuster = ContextAdjusterService()
-    if _memory is None:
-        logger.info("Initializing MemoryService in worker...")
-        _memory = MemoryService()
-    return _context_adjuster, _memory
+    return _context_adjuster
 
 
 @celery_app.task(
@@ -51,21 +47,28 @@ def generalize_and_store_task(
     answer: str,
     original_query: str,
     user_id: str,
+    cache_namespace: str = "dejaq_default",
 ) -> dict:
     """Generalize an LLM answer (via Phi-3.5) and store in ChromaDB cache.
 
     All arguments are plain strings — no model objects or unpickleable data.
+    cache_namespace selects the ChromaDB collection (department isolation).
     """
     if _is_suppressed(clean_query):
         logger.info("Storage suppressed for query '%s'", clean_query[:60])
         return {"status": "suppressed", "clean_query": clean_query}
 
     try:
-        context_adjuster, memory = _get_services()
+        context_adjuster = _get_adjuster()
+        memory = get_memory_service(cache_namespace)
         generalized = context_adjuster.generalize(answer)
         memory.store_interaction(clean_query, generalized, original_query, user_id)
-        logger.info("Task complete: generalized + stored for query '%s'", clean_query[:60])
-        return {"status": "stored", "clean_query": clean_query}
+        logger.info(
+            "Task complete: generalized + stored for query '%s' (namespace=%s)",
+            clean_query[:60],
+            cache_namespace,
+        )
+        return {"status": "stored", "clean_query": clean_query, "namespace": cache_namespace}
     except Exception as exc:
         logger.error("generalize_and_store_task failed: %s", traceback.format_exc())
         raise self.retry(exc=exc)

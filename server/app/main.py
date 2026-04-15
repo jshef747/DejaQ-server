@@ -3,7 +3,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import chat, feedback, openai_compat
+from app.routers import chat, feedback, openai_compat, departments
 from app.middleware.api_key import ApiKeyMiddleware
 from app.utils.logger import setup_logging
 from app.config import USE_CELERY
@@ -40,6 +40,7 @@ app.add_middleware(ApiKeyMiddleware)
 app.include_router(chat.router)
 app.include_router(feedback.router)
 app.include_router(openai_compat.router, prefix="/v1")
+app.include_router(departments.router)
 
 # Replaced by lifespan context manager
 

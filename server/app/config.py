@@ -11,6 +11,9 @@ CHROMA_PORT = int(os.getenv("DEJAQ_CHROMA_PORT", "8001"))
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 EXTERNAL_MODEL_NAME = os.getenv("DEJAQ_EXTERNAL_MODEL", "gemini-2.5-flash")
 
+# API key cache
+KEY_CACHE_TTL = int(os.getenv("DEJAQ_KEY_CACHE_TTL", "60"))
+
 # Feature flags
 USE_CELERY = os.getenv("DEJAQ_USE_CELERY", "true").lower() == "true"
 

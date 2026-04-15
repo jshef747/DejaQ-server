@@ -2,7 +2,7 @@
 DejaQ Admin TUI — interactive terminal interface.
 
 Usage:  uv run dejaq-admin-tui
-Keys:   n = new  |  d = delete  |  q = quit  |  ↑↓ = navigate
+Keys:   n = new  |  d = delete  |  k = generate key  |  r = revoke key  |  q = quit  |  ↑↓ = navigate
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from textual.widgets import (
 )
 
 from app.db import dept_repo, org_repo
+from app.db import api_key_repo
 from app.db.session import get_session
 from app.schemas.org import OrgRead
 
@@ -108,6 +109,84 @@ class NewDeptScreen(ModalScreen[str | None]):
 
 
 # ---------------------------------------------------------------------------
+# Modal: Confirm key generation (force-revoke warning)
+# ---------------------------------------------------------------------------
+
+class ConfirmKeyScreen(ModalScreen[bool]):
+    CSS = """
+    ConfirmKeyScreen {
+        align: center middle;
+    }
+    #dialog {
+        width: 64;
+        height: auto;
+        border: thick $warning;
+        background: $surface;
+        padding: 1 2;
+    }
+    #dialog Label { margin-bottom: 1; }
+    #buttons { margin-top: 1; }
+    """
+
+    def __init__(self, org_slug: str) -> None:
+        super().__init__()
+        self.org_slug = org_slug
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="dialog"):
+            yield Label(
+                f"[bold yellow]'{self.org_slug}' already has an active key.[/bold yellow]\n"
+                "Generating a new one will [bold red]revoke[/bold red] the existing key immediately.\n"
+                "Any chatbot using the old key will stop working."
+            )
+            with Horizontal(id="buttons"):
+                yield Button("Revoke & Generate", variant="warning", id="confirm")
+                yield Button("Cancel", variant="default", id="cancel")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        self.dismiss(event.button.id == "confirm")
+
+
+# ---------------------------------------------------------------------------
+# Modal: Display generated key (read-only, copy prompt)
+# ---------------------------------------------------------------------------
+
+class ShowKeyScreen(ModalScreen[None]):
+    CSS = """
+    ShowKeyScreen {
+        align: center middle;
+    }
+    #dialog {
+        width: 72;
+        height: auto;
+        border: thick $success;
+        background: $surface;
+        padding: 1 2;
+    }
+    #dialog Label { margin-bottom: 1; }
+    #token-box {
+        background: $surface-darken-2;
+        padding: 0 1;
+        margin-bottom: 1;
+    }
+    """
+
+    def __init__(self, token: str) -> None:
+        super().__init__()
+        self.token = token
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="dialog"):
+            yield Label("[bold green]API key generated[/bold green]  —  copy it now, it won't be shown again in full.")
+            with Static(id="token-box"):
+                yield Label(self.token)
+            yield Button("Done", variant="success", id="done")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        self.dismiss(None)
+
+
+# ---------------------------------------------------------------------------
 # Main App
 # ---------------------------------------------------------------------------
 
@@ -135,6 +214,7 @@ class DejaQAdminApp(App):
     #main {
         width: 1fr;
         padding: 0 1;
+        layout: vertical;
     }
     #dept-title {
         padding: 0 1;
@@ -144,6 +224,22 @@ class DejaQAdminApp(App):
     }
     #dept-table {
         height: 1fr;
+    }
+    #key-panel {
+        height: auto;
+        border-top: solid $accent-darken-2;
+        padding: 0 1;
+        background: $surface-darken-1;
+    }
+    #key-title {
+        color: $accent;
+        text-style: bold;
+        height: 1;
+        padding-top: 1;
+    }
+    #key-value {
+        height: 1;
+        color: $text-muted;
     }
     #status-bar {
         height: 1;
@@ -156,6 +252,8 @@ class DejaQAdminApp(App):
     BINDINGS = [
         Binding("n", "new", "New"),
         Binding("d", "delete", "Delete"),
+        Binding("k", "generate_key", "Gen Key"),
+        Binding("r", "revoke_key", "Revoke Key"),
         Binding("q", "quit", "Quit"),
     ]
 
@@ -170,6 +268,9 @@ class DejaQAdminApp(App):
             with Vertical(id="main"):
                 yield Static("Select an org to view departments", id="dept-title")
                 yield DataTable(id="dept-table", cursor_type="row")
+                with Vertical(id="key-panel"):
+                    yield Static("API Key", id="key-title")
+                    yield Static("[dim]—[/dim]", id="key-value")
                 yield Static("", id="status-bar")
         yield Footer()
 
@@ -208,6 +309,26 @@ class DejaQAdminApp(App):
             f"Departments — [cyan]{org.name}[/cyan]  [dim]({len(depts)} total)[/dim]"
         )
 
+    def _refresh_key(self, org: OrgRead) -> None:
+        with get_session() as session:
+            active = api_key_repo.get_active_key_for_org(session, org.id)
+            if active:
+                token = active.token
+                key_id = active.id
+                created = active.created_at
+            else:
+                token = None
+
+        key_widget = self.query_one("#key-value", Static)
+        if token:
+            key_widget.update(
+                f"[bold cyan]{token[:20]}…[/bold cyan]  "
+                f"[dim]id={key_id}  created {created.strftime('%Y-%m-%d')}[/dim]  "
+                f"[dim](r to revoke)[/dim]"
+            )
+        else:
+            key_widget.update("[dim]No active key — press k to generate[/dim]")
+
     def _set_status(self, msg: str) -> None:
         self.query_one("#status-bar", Static).update(msg)
 
@@ -221,6 +342,7 @@ class DejaQAdminApp(App):
             self.selected_org = next((o for o in self._orgs if o.id == org_id), None)
             if self.selected_org:
                 self._refresh_depts(self.selected_org)
+                self._refresh_key(self.selected_org)
 
     # ------------------------------------------------------------------
     # Actions
@@ -252,6 +374,53 @@ class DejaQAdminApp(App):
             self._set_status(f"✓ Created department '{name}'")
         except ValueError as e:
             self._set_status(f"✗ {e}")
+
+    def action_generate_key(self) -> None:
+        if self.selected_org is None:
+            self._set_status("✗ Select an org first")
+            return
+
+        with get_session() as session:
+            existing = api_key_repo.get_active_key_for_org(session, self.selected_org.id)
+
+        if existing:
+            self.push_screen(ConfirmKeyScreen(self.selected_org.slug), self._handle_generate_key)
+        else:
+            self._do_generate_key(force=False)
+
+    def _handle_generate_key(self, confirmed: bool) -> None:
+        if confirmed:
+            self._do_generate_key(force=True)
+
+    def _do_generate_key(self, force: bool) -> None:
+        assert self.selected_org is not None
+        try:
+            with get_session() as session:
+                if force:
+                    existing = api_key_repo.get_active_key_for_org(session, self.selected_org.id)
+                    if existing:
+                        api_key_repo.revoke_key(session, existing.id)
+                new_key = api_key_repo.create_key(session, self.selected_org.id)
+                token = new_key.token
+            self._refresh_key(self.selected_org)
+            self._set_status(f"✓ Key generated for '{self.selected_org.slug}'")
+            self.push_screen(ShowKeyScreen(token))
+        except Exception as e:
+            self._set_status(f"✗ {e}")
+
+    def action_revoke_key(self) -> None:
+        if self.selected_org is None:
+            self._set_status("✗ Select an org first")
+            return
+        with get_session() as session:
+            existing = api_key_repo.get_active_key_for_org(session, self.selected_org.id)
+            if existing is None:
+                self._set_status("No active key to revoke")
+                return
+            key_id = existing.id
+            api_key_repo.revoke_key(session, key_id)
+        self._refresh_key(self.selected_org)
+        self._set_status(f"✓ Key id={key_id} revoked")
 
     async def action_delete(self) -> None:
         table = self.query_one("#dept-table", DataTable)
@@ -286,6 +455,7 @@ class DejaQAdminApp(App):
                         await self._refresh_orgs()
                         table.clear()
                         self.query_one("#dept-title", Static).update("Select an org to view departments")
+                        self.query_one("#key-value", Static).update("[dim]—[/dim]")
                         self._set_status(f"✓ Deleted org '{target_org.slug}'")
                     except ValueError as e:
                         self._set_status(f"✗ {e}")

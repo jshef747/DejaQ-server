@@ -182,3 +182,21 @@ class MemoryService:
     @property
     def count(self) -> int:
         return self._collection.count()
+
+
+# ---------------------------------------------------------------------------
+# Namespace-aware pool — lazy, one MemoryService per ChromaDB collection name
+# ---------------------------------------------------------------------------
+
+_pool: dict[str, "MemoryService"] = {}
+
+
+def get_memory_service(namespace: str = "dejaq_default") -> "MemoryService":
+    """Return a cached MemoryService for the given namespace (ChromaDB collection name).
+
+    Creates a new instance on first access; subsequent calls for the same namespace
+    return the same instance without re-initializing the ChromaDB collection.
+    """
+    if namespace not in _pool:
+        _pool[namespace] = MemoryService(collection_name=namespace)
+    return _pool[namespace]

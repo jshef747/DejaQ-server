@@ -19,3 +19,6 @@ class Organization(Base):
     departments: Mapped[list["Department"]] = relationship(  # noqa: F821
         "Department", back_populates="organization", cascade="all, delete-orphan"
     )
+    api_keys: Mapped[list["ApiKey"]] = relationship(  # noqa: F821
+        "ApiKey", back_populates="organization", cascade="all, delete-orphan"
+    )

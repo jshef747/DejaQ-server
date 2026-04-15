@@ -6,6 +6,7 @@ from rich.prompt import Confirm
 from rich.text import Text
 
 from app.db import dept_repo, org_repo
+from app.db import api_key_repo
 from app.db.session import get_session
 from cli.ui import console, print_error, print_header, print_success, print_table, print_warning
 
@@ -213,4 +214,114 @@ def dept_delete(org_slug: str, slug: str) -> None:
     print_success(
         f"Department [bold]{deleted.slug}[/bold] deleted. "
         f"Freed namespace: [cyan]{deleted.cache_namespace}[/cyan]"
+    )
+
+
+# ---------------------------------------------------------------------------
+# key commands
+# ---------------------------------------------------------------------------
+
+@cli.group()
+def key() -> None:
+    """Manage org API keys."""
+
+
+@key.command("generate")
+@click.option("--org", "org_slug", required=True, help="Org slug to generate a key for.")
+@click.option("--force", is_flag=True, default=False, help="Revoke existing active key and generate a new one.")
+def key_generate(org_slug: str, force: bool) -> None:
+    """Generate an API key for an org."""
+    with get_session() as session:
+        org_data = org_repo.get_org_by_slug(session, org_slug)
+        if org_data is None:
+            print_error(f"Organization '{org_slug}' not found.")
+            sys.exit(1)
+
+        existing = api_key_repo.get_active_key_for_org(session, org_data.id)
+        if existing and not force:
+            print_error(
+                f"Organization '{org_slug}' already has an active key (id={existing.id}). "
+                "Use --force to revoke it and generate a new one."
+            )
+            sys.exit(1)
+
+        if existing and force:
+            api_key_repo.revoke_key(session, existing.id)
+            print_warning(f"Revoked existing key id={existing.id}.")
+
+        new_key = api_key_repo.create_key(session, org_data.id)
+        key_id = new_key.id
+        key_token = new_key.token
+        key_created_at = new_key.created_at
+
+    content = Text()
+    content.append("  id           ", style="dim")
+    content.append(f"{key_id}\n", style="bright_white")
+    content.append("  org          ", style="dim")
+    content.append(f"{org_slug}\n", style="bright_white")
+    content.append("  token        ", style="dim")
+    content.append(f"{key_token}\n", style="bold bright_cyan")
+    content.append("  created_at   ", style="dim")
+    content.append(f"{key_created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}", style="bright_white")
+
+    console.print(Panel(content, title="[green]API key generated[/green]", border_style="green", padding=(0, 2)))
+
+
+@key.command("list")
+@click.option("--org", "org_slug", required=True, help="Org slug to list keys for.")
+def key_list(org_slug: str) -> None:
+    """List all API keys for an org."""
+    with get_session() as session:
+        org_data = org_repo.get_org_by_slug(session, org_slug)
+        if org_data is None:
+            print_error(f"Organization '{org_slug}' not found.")
+            sys.exit(1)
+        raw_keys = api_key_repo.list_keys_for_org(session, org_data.id)
+        # Snapshot values before session closes to avoid DetachedInstanceError
+        keys = [
+            (k.id, k.token, k.created_at, k.revoked_at)
+            for k in raw_keys
+        ]
+
+    if not keys:
+        console.print(f"[dim]No API keys found for org '{org_slug}'.[/dim]")
+        return
+
+    print_table(
+        f"API Keys — {org_slug}",
+        ["ID", "Token", "Created", "Revoked"],
+        [
+            [
+                str(kid),
+                token[:12] + "...",
+                created_at.strftime("%Y-%m-%d %H:%M"),
+                revoked_at.strftime("%Y-%m-%d %H:%M") if revoked_at else "—",
+            ]
+            for kid, token, created_at, revoked_at in keys
+        ],
+    )
+
+
+@key.command("revoke")
+@click.option("--id", "key_id", required=True, type=int, help="ID of the key to revoke.")
+def key_revoke(key_id: int) -> None:
+    """Revoke an API key by its ID."""
+    with get_session() as session:
+        from app.db.models.api_key import ApiKey as ApiKeyModel
+        existing = session.query(ApiKeyModel).filter(ApiKeyModel.id == key_id).first()
+        if existing is None:
+            print_error(f"Key id={key_id} not found.")
+            sys.exit(1)
+        already_revoked = existing.revoked_at is not None
+        result = api_key_repo.revoke_key(session, key_id)
+        # Snapshot before session closes
+        result_id = result.id
+        result_revoked_at = result.revoked_at
+
+    if already_revoked:
+        print_warning(f"Key id={key_id} was already revoked at {result_revoked_at.strftime('%Y-%m-%d %H:%M:%S UTC')}.")
+        return
+
+    print_success(
+        f"Key id={result_id} revoked at {result_revoked_at.strftime('%Y-%m-%d %H:%M:%S UTC')}."
     )
