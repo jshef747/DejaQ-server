@@ -29,7 +29,7 @@ usage() {
   echo "  --keep    Retain demo org/departments after exit (dev seeding)"
   echo "  --help    Show this message"
   echo ""
-  echo -e "${BOLD}Prerequisites:${NC}  cd server && ./start.sh"
+  echo -e "${BOLD}Prerequisites:${NC}  ./server/scripts/start.sh"
   echo ""
 }
 
@@ -100,7 +100,7 @@ echo ""
 # ── Preflight ────────────────────────────────────────────────────────────────
 echo -e "${DIM}Checking server...${NC}"
 if ! curl -sf http://127.0.0.1:8000/health > /dev/null 2>&1; then
-  die "Server not reachable at http://127.0.0.1:8000 — start it first:\n  cd server && ./start.sh"
+  die "Server not reachable at http://127.0.0.1:8000 — start it first:\n  ./server/scripts/start.sh"
 fi
 ok "Server is up at http://127.0.0.1:8000"
 

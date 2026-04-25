@@ -12,7 +12,7 @@ def _make_svc(collection_name: str) -> MemoryService:
 
 def _chroma_available() -> bool:
     try:
-        svc = _make_svc("_probe")
+        svc = _make_svc("probe_test")
         svc.count  # noqa: B018
         return True
     except Exception:

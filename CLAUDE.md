@@ -26,6 +26,9 @@ uv sync
 
 ### Run
 ```bash
+# Preferred: start the full local stack with deployment-mode selection
+./server/scripts/start.sh
+
 # Terminal 1: Start Redis
 redis-server
 
@@ -39,60 +42,115 @@ uv run celery -A app.celery_app:celery_app worker --queues=background --pool=sol
 
 # Without Redis (fallback mode — generalize+store runs in-process):
 DEJAQ_USE_CELERY=false uv run uvicorn app.main:app --reload
+
+# Benchmark backend concurrency directly
+cd server
+uv run python scripts/benchmark_backend_concurrency.py --backend in_process --model qwen_0_5b --concurrency 10
+uv run python scripts/benchmark_backend_concurrency.py --backend ollama --model qwen_0_5b --concurrency 10
 ```
 
 ### Environment Variables
+When adding a new `DEJAQ_*_BACKEND` variable, update the env examples in all three Deployment Modes blocks.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DEJAQ_REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL (broker + result backend) |
+| `DEJAQ_ADMIN_TOKEN` | `` | Shared bearer token for `/admin/v1/*`; unset/empty/whitespace-only disables admin endpoints with 503 |
 | `DEJAQ_USE_CELERY` | `true` | Set to `false` to disable Celery and run tasks in-process |
 | `DEJAQ_STATS_DB` | `dejaq_stats.db` | Path to SQLite request log (used by `dejaq-admin stats`) |
 | `DEJAQ_EVICTION_FLOOR` | `-5.0` | Score floor for cache eviction; entries below this are deleted by the beat task |
+| `GEMINI_API_KEY` | `` | API key for Google Gemini (external LLM for hard queries) |
+| `DEJAQ_EXTERNAL_MODEL` | `gemini-2.5-flash` | Gemini model name for hard-query routing |
+| `DEJAQ_ROUTING_THRESHOLD` | `0.3` | Default per-org LLM routing threshold used when no org override exists |
+| `DEJAQ_CHROMA_HOST` | `127.0.0.1` | ChromaDB HTTP server host |
+| `DEJAQ_CHROMA_PORT` | `8001` | ChromaDB HTTP server port |
+| `DEJAQ_OLLAMA_URL` | `http://127.0.0.1:11434` | Shared Ollama HTTP endpoint for service roles using `ollama` backend |
+| `DEJAQ_OLLAMA_TIMEOUT_SECONDS` | `60.0` | Timeout for Ollama backend requests |
+| `DEJAQ_ENRICHER_BACKEND` | `in_process` | Backend mode for context enricher (`in_process` or `ollama`) |
+| `DEJAQ_NORMALIZER_BACKEND` | `in_process` | Backend mode for normalizer opinion-rewrite path (`in_process` or `ollama`) |
+| `DEJAQ_LOCAL_LLM_BACKEND` | `in_process` | Backend mode for local generation (`in_process` or `ollama`) |
+| `DEJAQ_GENERALIZER_BACKEND` | `in_process` | Backend mode for background tone-stripping generalizer |
+| `DEJAQ_CONTEXT_ADJUSTER_BACKEND` | `in_process` | Backend mode for tone-adjustment path on cache hits |
 
 ### Endpoints
-- `GET /health` — health check
+- `GET /health` — health check; also reports Celery worker status
 - `POST /v1/chat/completions` — OpenAI-compatible chat (streaming + non-streaming); requires `Authorization: Bearer <api-key>` and optional `X-DejaQ-Department` header; response includes `X-DejaQ-Response-Id` header when the response is cached or stored to cache
-- `POST /v1/feedback` — submit thumbs-up/down feedback on a cached response; requires `Authorization: Bearer <api-key>`; body: `{"response_id": "<X-DejaQ-Response-Id value>", "rating": "positive"|"negative", "comment": "<optional>"}`
-- Org/department management endpoints — see `dejaq-admin` CLI (`dejaq-admin org`, `dept`, `key`)
+- `POST /v1/feedback` — thumbs-up/down feedback on a cached response; requires `Authorization: Bearer <api-key>`; body: `{"response_id": "<X-DejaQ-Response-Id value>", "rating": "positive"|"negative", "comment": "<optional>"}`; first negative deletes entry, subsequent negatives decrement score by 2.0; positive increments score by 1.0
+- `/admin/v1/*` management endpoints — require `Authorization: Bearer <DEJAQ_ADMIN_TOKEN>`; unset/blank token returns 503:
+  - `GET /admin/v1/whoami`
+  - `GET|POST|DELETE /admin/v1/orgs[/{slug}]`
+  - `GET /admin/v1/departments`, `POST|DELETE /admin/v1/orgs/{org_slug}/departments[/{dept_slug}]`
+  - `GET|POST /admin/v1/orgs/{org_slug}/keys`, `DELETE /admin/v1/keys/{key_id}`
+  - `GET /admin/v1/stats/orgs`, `GET /admin/v1/stats/orgs/{org_slug}/departments`
+  - `GET|PUT /admin/v1/orgs/{org_slug}/llm-config`
+  - `GET|POST /admin/v1/feedback`
 
 ## Architecture
 
 ```
 app/
 ├── main.py              # FastAPI init, CORS, startup/shutdown, health check
-├── config.py            # Centralized settings (Redis URL, feature flags)
+├── config.py            # Centralized settings (Redis URL, Gemini key, ChromaDB host/port, feature flags)
 ├── celery_app.py        # Celery configuration (broker, queues, serialization)
+├── db/
+│   ├── base.py          # SQLAlchemy declarative base
+│   ├── session.py       # Sync session factory (SQLite via Alembic)
+│   ├── org_repo.py      # Org CRUD
+│   ├── dept_repo.py     # Department CRUD
+│   ├── api_key_repo.py  # API key lookup + caching
+│   ├── llm_config_repo.py # Per-org LLM config CRUD
+│   └── models/
+│       ├── org.py       # Organization ORM model
+│       ├── department.py # Department ORM model (cache_namespace, org FK)
+│       ├── api_key.py   # ApiKey ORM model
+│       └── org_llm_config.py # Org-level LLM routing config
+├── dependencies/
+│   ├── auth.py          # FastAPI dependency: resolve org/dept from Bearer token
+│   └── admin_auth.py    # Shared admin-token guard for /admin/v1/*
 ├── middleware/
 │   └── api_key.py       # Bearer token → org/department resolution; sets request.state
 ├── routers/
+│   ├── admin/           # Management REST API (/admin/v1/*)
 │   ├── openai_compat.py # Sole chat endpoint (POST /v1/chat/completions), stateless, OpenAI-compatible
-│   └── departments.py   # Org/department CRUD
+│   ├── departments.py   # Org/department CRUD
+│   └── feedback.py      # POST /v1/feedback — score-based cache feedback
 ├── tasks/
 │   └── cache_tasks.py   # Celery task: generalize_and_store_task (Phi-3.5 + ChromaDB)
 ├── services/
-│   ├── model_loader.py  # ModelManager singleton (Qwen 0.5B, Qwen 1.5B, Llama 3.2 1B, Phi-3.5 Mini)
+│   ├── model_loader.py  # ModelManager singleton (Qwen 0.5B, Qwen 1.5B, Gemma 4 E4B, Gemma 4 E2B, Phi-3.5 Mini)
+│   ├── admin_service.py # Shared org/dept/API-key management business logic
+│   ├── stats_service.py # Shared request-log aggregate queries for CLI + admin API
+│   ├── llm_config_service.py # Per-org LLM config defaults/update logic
+│   ├── feedback_service.py # Shared cache feedback score/logging behavior
 │   ├── normalizer.py    # Query cleaning via Qwen 2.5-0.5B
-│   ├── llm_router.py    # Routes "easy"→Llama 3.2 1B local, "hard"→external API
+│   ├── llm_router.py    # Routes "easy"→Gemma 4 E4B local, "hard"→Gemini
+│   ├── external_llm.py  # Gemini client singleton (google-genai, async)
 │   ├── context_adjuster.py # generalize() strips tone via Phi-3.5 Mini, adjust() adds tone via Qwen 2.5-1.5B
 │   ├── context_enricher.py # Rewrites context-dependent queries into standalone ones (Qwen 1.5B + regex gate, v5)
 │   ├── cache_filter.py  # Smart heuristic filter: skips non-cacheable prompts (too short, filler, vague)
 │   ├── classifier.py    # NVIDIA DeBERTa-based prompt complexity classifier (easy/hard routing)
-│   ├── memory_chromaDB.py # ChromaDB semantic cache (HttpClient, cosine ≤ 0.15)
-│   └── request_logger.py  # Async SQLite request log (org, dept, latency, cache hit/miss, model)
+│   ├── memory_chromaDB.py # ChromaDB semantic cache (HttpClient, cosine ≤ 0.15); score-based eviction
+│   └── request_logger.py  # Async SQLite request log (org, dept, latency, cache hit/miss, model, feedback)
 ├── schemas/
 │   ├── chat.py          # ExternalLLMRequest/Response only
-│   └── openai_compat.py # OpenAI-compatible request/response schemas
-├── models/              # TODO: DB models (PostgreSQL)
-├── repositories/        # TODO: DB access layer
-└── utils/logger.py      # Centralized logging config
+│   ├── openai_compat.py # OpenAI-compatible request/response schemas
+│   ├── feedback.py      # FeedbackRequest schema
+│   ├── org.py           # Org schemas
+│   └── department.py    # Department schemas
+└── utils/
+    ├── logger.py        # Centralized logging config
+    └── exceptions.py    # ExternalLLMError, ExternalLLMAuthError, ExternalLLMTimeoutError
 cli/
 ├── admin.py             # dejaq-admin CLI (org, dept, key, stats subcommands)
-└── stats.py             # dejaq-admin stats — Rich TUI usage dashboard
+├── stats.py             # Stats queries + Rich table rendering
+├── tui.py               # dejaq-admin-tui — full Textual TUI dashboard
+└── ui.py                # Shared Rich console helpers
 ```
 
 **Key patterns:**
 - ModelManager is a singleton — models load once on first use
 - Models use GGUF format via `llama-cpp-python` for cross-platform GPU support (Metal/CUDA)
+- In-process backend runs blocking local completion work in `asyncio.to_thread` so one request does not stall the main FastAPI event loop
 - All schemas use Pydantic BaseModel
 - Client sends full message history in the `messages` array (stateless; no server-side conversation store)
 - Cache miss triggers background generalization + storage via Celery task queue (falls back to in-process if Celery disabled) — only if cache filter passes
@@ -100,6 +158,15 @@ cli/
 - Context enricher rewrites follow-up queries ("tell me more") into standalone questions before normalization
 - Cache filter skips storing trivial messages (filler words, too short, too vague)
 - Per-request stats logged to SQLite (fire-and-forget via asyncio.create_task)
+- Feedback adjusts ChromaDB entry scores (+1.0 positive, −2.0 negative); first negative deletes immediately
+- External LLM is Google Gemini via `google-genai` async client; `ExternalLLMService` is a singleton
+- Org/dept/API-key data lives in SQLite (SQLAlchemy + Alembic); `dejaq.db` by default
+
+### Management API
+
+`/admin/v1/*` is a separate operator surface from the OpenAI-compatible `/v1/*` gateway. It uses a single shared `DEJAQ_ADMIN_TOKEN` bearer token for the pre-BW1 dashboard phase. Missing, wrong, malformed, unset, empty, or whitespace-only token values fail closed; when the server token is unset the admin API returns 503.
+
+The org API-key middleware skips `/admin/v1/*` before parsing or logging `Authorization`, so admin tokens are never treated as customer API keys. Until Supabase/OAuth/RBAC lands in BW1, deploy admin routes only same-origin, behind a trusted reverse proxy/VPN, or behind an explicit admin CORS allowlist; do not expose them through wildcard browser CORS.
 
 ## Coding Conventions
 
@@ -114,15 +181,132 @@ cli/
 | Role | Model | Size | Loader |
 |------|-------|------|--------|
 | Context Enricher (v5) | Qwen 2.5-1.5B-Instruct | Q4_K_M | `ModelManager.load_qwen_1_5b()` |
-| Normalizer | Qwen 2.5-0.5B-Instruct | Q4_K_M | `ModelManager.load_qwen()` |
+| Normalizer (cleaning) | Qwen 2.5-0.5B-Instruct | Q4_K_M | `ModelManager.load_qwen()` |
+| Normalizer (opinion rewrite, v22) | Gemma 4 E2B-Instruct | Q4_K_M | `ModelManager.load_gemma_e2b()` |
 | Context Adjuster (adjust) | Qwen 2.5-1.5B-Instruct | Q4_K_M | `ModelManager.load_qwen_1_5b()` |
 | Generalizer (strip tone) | Phi-3.5-Mini-Instruct | Q4_K_M | `ModelManager.load_phi()` |
-| Local LLM (generation) | Llama 3.2-1B-Instruct | Q8_0 | `ModelManager.load_llama()` |
+| Local LLM (generation) | Gemma 4 E4B-Instruct | Q4_K_M | `ModelManager.load_gemma()` |
 | Difficulty Classifier | NVIDIA DeBERTa-v3-base | Full | `ClassifierService` (singleton) |
+
+## Backend Concurrency
+
+DejaQ can run local completion roles inside the FastAPI process (`in_process`) or delegate them to an Ollama HTTP server (`ollama`). In-process mode keeps development simple but serializes access to each shared GGUF model; Ollama decouples inference from FastAPI so concurrent throughput is bounded by the Ollama host. See Deployment Modes for operator guidance, and use `server/scripts/benchmark_backend_concurrency.py` to compare modes on your hardware.
+
+## Deployment Modes
+
+All three modes require Python dependencies installed with `uv sync` and ChromaDB started with the app stack. Redis is the default shared prerequisite for Celery-backed background storage and eviction; for local-only runs, `DEJAQ_USE_CELERY=false` disables Celery and runs background storage in-process.
+
+Set `DEJAQ_ADMIN_TOKEN` only for trusted admin/dashboard deployments. Until BW1 replaces the shared token with Supabase-backed auth, expose `/admin/v1/*` only same-origin, behind a trusted reverse proxy/VPN, or through an explicit admin CORS allowlist; do not expose admin routes through wildcard browser CORS.
+
+Use the combined startup script from the repo root:
+
+```bash
+./server/scripts/start.sh
+```
+
+The script prompts for a mode by default. Automation can pass `--mode=in-process`, `--mode=self-hosted`, or `--mode=cloud`; self-hosted and cloud also accept `--ollama-url=<url>` or `DEJAQ_OLLAMA_URL`.
+
+### in-process (development)
+
+Use this for laptop demos and local development when you do not want an external Ollama server. It is responsive for a single user because blocking GGUF calls run in worker threads, but concurrent requests that need the same loaded model still serialize for runtime safety.
+
+```bash
+export DEJAQ_USE_CELERY=true
+export DEJAQ_ADMIN_TOKEN=<local-admin-token>
+export DEJAQ_ENRICHER_BACKEND=in_process
+export DEJAQ_NORMALIZER_BACKEND=in_process
+export DEJAQ_LOCAL_LLM_BACKEND=in_process
+export DEJAQ_GENERALIZER_BACKEND=in_process
+export DEJAQ_CONTEXT_ADJUSTER_BACKEND=in_process
+```
+
+Bring-up:
+
+```bash
+redis-server
+cd server
+uv run uvicorn app.main:app --reload
+uv run celery -A app.celery_app:celery_app worker --queues=background --pool=solo --loglevel=info
+```
+
+Redis-free local fallback:
+
+```bash
+DEJAQ_USE_CELERY=false uv run uvicorn app.main:app --reload
+```
+
+### self-hosted (on-prem production)
+
+Use this when FastAPI runs on one host and Ollama runs on a reachable LAN host. Pull the exact Ollama tags DejaQ requests:
+
+```bash
+ollama pull qwen2.5:0.5b
+ollama pull qwen2.5:1.5b
+ollama pull gemma4:e2b
+ollama pull gemma4:e4b
+ollama pull phi3.5:latest
+```
+
+```bash
+export DEJAQ_USE_CELERY=true
+export DEJAQ_ADMIN_TOKEN=<admin-token>
+export DEJAQ_OLLAMA_URL=http://<lan-host>:11434
+export DEJAQ_ENRICHER_BACKEND=ollama
+export DEJAQ_NORMALIZER_BACKEND=ollama
+export DEJAQ_LOCAL_LLM_BACKEND=ollama
+export DEJAQ_GENERALIZER_BACKEND=ollama
+export DEJAQ_CONTEXT_ADJUSTER_BACKEND=ollama
+```
+
+Bring-up:
+
+```bash
+ollama serve
+redis-server
+cd server
+uv run uvicorn app.main:app --reload
+uv run celery -A app.celery_app:celery_app worker --queues=background --pool=solo --loglevel=info
+```
+
+This is the preferred production shape for concurrent users: FastAPI remains lightweight and independent async HTTP requests are sent to Ollama. Total throughput is bounded by the Ollama host CPU/GPU, model residency, and queueing capacity.
+
+### cloud (future scaling)
+
+Cloud mode is interface-compatible with self-hosted mode. Run Ollama on a cloud GPU instance, expose it to DejaQ over a secured path such as private networking, VPN, or an authenticated proxy, and use the same model tags:
+
+```bash
+ollama pull qwen2.5:0.5b
+ollama pull qwen2.5:1.5b
+ollama pull gemma4:e2b
+ollama pull gemma4:e4b
+ollama pull phi3.5:latest
+```
+
+```bash
+export DEJAQ_USE_CELERY=true
+export DEJAQ_ADMIN_TOKEN=<admin-token>
+export DEJAQ_OLLAMA_URL=https://<cloud-ollama-endpoint>
+export DEJAQ_ENRICHER_BACKEND=ollama
+export DEJAQ_NORMALIZER_BACKEND=ollama
+export DEJAQ_LOCAL_LLM_BACKEND=ollama
+export DEJAQ_GENERALIZER_BACKEND=ollama
+export DEJAQ_CONTEXT_ADJUSTER_BACKEND=ollama
+```
+
+Bring-up is the same as self-hosted on the DejaQ side:
+
+```bash
+redis-server
+cd server
+uv run uvicorn app.main:app --reload
+uv run celery -A app.celery_app:celery_app worker --queues=background --pool=solo --loglevel=info
+```
+
+Expect the same client behavior as self-hosted, with different operational trade-offs: higher network sensitivity, cloud GPU cold-start and utilization costs, and easier vertical scaling of the Ollama host.
 
 ## Test Harnesses
 
-Both services have dedicated offline eval harnesses. Run from their respective directories with `uv`.
+Three offline eval harnesses exist. Run from their respective directories with `uv`.
 
 ### enricher-test/ — Context Enricher eval
 
@@ -167,14 +351,23 @@ uv run python -m harness.runner
 
 Best config: `v22` (BGE-small embedder + opinion LLM gate) — 81% Hit@0.20.
 
+### adjuster-test/ — Context Adjuster eval
+
+```bash
+cd adjuster-test
+uv run python -m harness.runner
+uv run python -m harness.runner --configs baseline_qwen_1_5b
+uv run python -m harness.runner --metrics-only
+```
+
+Uses an LLM judge (requires `ANTHROPIC_API_KEY`) for scoring. Configs in `configs/`, datasets in `dataset/`.
+
 ## Current Status
 
-**Working:** FastAPI HTTP, Normalizer (Qwen 0.5B, v22), LLM Router (Llama 3.2 1B local), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher v5 (Qwen 1.5B + regex gate, 88.7% @0.15 across 5 datasets), Smart Cache Filter (skip non-cacheable prompts), Difficulty Classifier (NVIDIA DeBERTa — routes easy→local, hard→external), Celery + Redis task queue (non-blocking generalize+store), OpenAI-compatible endpoint with API-key auth + per-department cache namespacing, Org/department/API-key management (CLI + SQLite), Stats tracking (SQLite + Rich TUI — `dejaq-admin stats`)
-**In progress:** Database integration (PostgreSQL)
-**Planned:** External LLM APIs (GPT/Gemini), Feedback loop (redesign), Offload user-facing inference to Celery inference queue (multi-user parallelism), Subject-extraction preprocessing for bare comparative failures ("Which is cheaper?" — 1.5B model not sufficient)
+**Working:** FastAPI HTTP, Normalizer (Qwen 0.5B, v22), LLM Router (Gemma 4 E4B local → Gemini 2.5 Flash external), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher v5 (Qwen 1.5B + regex gate, 88.7% @0.15 across 5 datasets), Smart Cache Filter (skip non-cacheable prompts), Difficulty Classifier (NVIDIA DeBERTa — routes easy→local, hard→Gemini), Celery + Redis task queue (non-blocking generalize+store), OpenAI-compatible endpoint with API-key auth + per-department cache namespacing, Org/department/API-key management (SQLAlchemy + Alembic SQLite + `dejaq-admin` CLI), Stats tracking (SQLite + Rich TUI — `dejaq-admin stats` / `dejaq-admin-tui`), Score-based cache eviction (Celery beat), Feedback API (score adjustments + delete on first negative), End-to-end demo script (`scripts/demo.sh`), Three documented deployment modes (in-process / self-hosted / cloud) validated against the end-to-end demo.
+**In progress:** Offload user-facing inference to Celery inference queue (multi-user parallelism)
+**Planned:** PostgreSQL migration, Subject-extraction preprocessing for bare comparative failures ("Which is cheaper?" — 1.5B model not sufficient)
 
 ## Active Technologies
-- Python 3.13+ + FastAPI + Uvicorn, ChromaDB (HttpClient), redis-py (Celery dependency), Pydantic v2, Celery, aiosqlite (request log), Rich (stats TUI), SQLAlchemy + Alembic (org/dept DB)
 
-## Recent Changes
-- `services-tuning` branch: deployed v5 enricher (Qwen 1.5B + regex gate) — +5.4pp @0.15 vs baseline; built enricher-test harness (5 datasets, configs: baseline / v2_regex_gate / v3_improved_fewshots / v4_gate_fix / v5_qwen_1_5b)
+- Python 3.13+ + FastAPI + Uvicorn, ChromaDB (HttpClient), redis-py (Celery dependency), Pydantic v2, Celery, aiosqlite (request log), Rich + Textual (stats TUI), SQLAlchemy + Alembic (org/dept/key DB, SQLite), google-genai (Gemini external LLM)
