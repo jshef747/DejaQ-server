@@ -72,6 +72,15 @@ uv sync
 
 ### 3. Running the Server
 
+From the repository root, the startup script can configure and launch the stack for `in-process`, `self-hosted`, or `cloud` deployment modes:
+
+```bash
+./server/scripts/start.sh
+./server/scripts/start.sh --mode=in-process
+./server/scripts/start.sh --mode=self-hosted --ollama-url=http://<lan-host>:11434
+./server/scripts/start.sh --mode=cloud --ollama-url=https://<cloud-ollama-endpoint>
+```
+
 DejaQ requires three processes: Redis, the FastAPI server, and a Celery worker.
 
 On the first run, the system will automatically download the necessary model files (~1GB).

@@ -2,12 +2,58 @@
 # DejaQ — start all services (Mac)
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOG_DIR="$PROJECT_DIR/.logs"
 VENV="$PROJECT_DIR/.venv"
 mkdir -p "$LOG_DIR"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
+
+MODE_ARG=""
+OLLAMA_URL_ARG=""
+OLLAMA_URL_FLAG_SET=false
+DRY_RUN=false
+ENV_MODE="${DEJAQ_MODE:-}"
+ENV_OLLAMA_URL="${DEJAQ_OLLAMA_URL:-}"
+
+usage() {
+  echo "Usage: $0 [--mode=in-process|self-hosted|cloud] [--ollama-url URL] [--dry-run]"
+  echo ""
+  echo "Environment:"
+  echo "  DEJAQ_MODE         Non-interactive mode selection"
+  echo "  DEJAQ_OLLAMA_URL   Required for self-hosted and cloud modes"
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    --mode=*)
+      MODE_ARG="${arg#*=}"
+      ;;
+    --mode)
+      echo -e "${RED}Use --mode=<mode>${NC}"; exit 1
+      ;;
+    --ollama-url=*)
+      OLLAMA_URL_ARG="${arg#*=}"
+      OLLAMA_URL_FLAG_SET=true
+      ;;
+    --ollama-url)
+      echo -e "${RED}Use --ollama-url=<url>${NC}"; exit 1
+      ;;
+    --dry-run)
+      DRY_RUN=true
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo -e "${RED}Unknown argument: $arg${NC}"
+      usage
+      exit 1
+      ;;
+  esac
+done
 
 # Verify the project venv exists
 if [[ ! -f "$VENV/bin/python" ]]; then
@@ -24,6 +70,9 @@ REDIS_PID=""; CELERY_PID=""; CELERY_BEAT_PID=""; UVICORN_PID=""; CHROMA_PID=""; 
 
 cleanup() {
   trap - EXIT INT TERM
+  if [[ "$DRY_RUN" == "true" ]]; then
+    return
+  fi
   echo -e "\n${YELLOW}Shutting down services...${NC}"
   stop_service() {
     local pid=$1 name=$2
@@ -65,8 +114,109 @@ if [[ -f "$PROJECT_DIR/.env" ]]; then
   set +a
 fi
 
+if [[ -n "$ENV_MODE" ]]; then
+  DEJAQ_MODE="$ENV_MODE"
+fi
+if [[ -n "$ENV_OLLAMA_URL" ]]; then
+  DEJAQ_OLLAMA_URL="$ENV_OLLAMA_URL"
+fi
+
+normalize_mode() {
+  case "$1" in
+    in-process|in_process|inprocess|dev|development)
+      echo "in-process"
+      ;;
+    self-hosted|self_hosted|selfhosted|on-prem|onprem|prod|production)
+      echo "self-hosted"
+      ;;
+    cloud)
+      echo "cloud"
+      ;;
+    *)
+      echo ""
+      ;;
+  esac
+}
+
+select_mode() {
+  local selected="${MODE_ARG:-${DEJAQ_MODE:-}}"
+  if [[ -n "$selected" ]]; then
+    selected="$(normalize_mode "$selected")"
+    if [[ -z "$selected" ]]; then
+      echo -e "${RED}Invalid DEJAQ mode. Choose in-process, self-hosted, or cloud.${NC}" >&2
+      exit 1
+    fi
+    echo "$selected"
+    return
+  fi
+
+  echo -e "${CYAN}Select deployment mode:${NC}" >&2
+  echo "  1) in-process  (development)" >&2
+  echo "  2) self-hosted (on-prem production via Ollama)" >&2
+  echo "  3) cloud       (remote Ollama endpoint)" >&2
+  read -r -p "Mode [1-3]: " selected
+  case "$selected" in
+    1|in-process|in_process) echo "in-process" ;;
+    2|self-hosted|self_hosted) echo "self-hosted" ;;
+    3|cloud) echo "cloud" ;;
+    *) echo -e "${RED}Invalid mode selection.${NC}" >&2; exit 1 ;;
+  esac
+}
+
+apply_mode() {
+  local mode="$1"
+  export DEJAQ_MODE="$mode"
+
+  if [[ "$mode" == "in-process" ]]; then
+    export DEJAQ_ENRICHER_BACKEND=in_process
+    export DEJAQ_NORMALIZER_BACKEND=in_process
+    export DEJAQ_LOCAL_LLM_BACKEND=in_process
+    export DEJAQ_GENERALIZER_BACKEND=in_process
+    export DEJAQ_CONTEXT_ADJUSTER_BACKEND=in_process
+    return
+  fi
+
+  export DEJAQ_ENRICHER_BACKEND=ollama
+  export DEJAQ_NORMALIZER_BACKEND=ollama
+  export DEJAQ_LOCAL_LLM_BACKEND=ollama
+  export DEJAQ_GENERALIZER_BACKEND=ollama
+  export DEJAQ_CONTEXT_ADJUSTER_BACKEND=ollama
+
+  if [[ "$OLLAMA_URL_FLAG_SET" == "true" ]]; then
+    export DEJAQ_OLLAMA_URL="$OLLAMA_URL_ARG"
+  fi
+
+  if [[ -z "${DEJAQ_OLLAMA_URL:-}" ]]; then
+    read -r -p "DEJAQ_OLLAMA_URL: " DEJAQ_OLLAMA_URL
+    export DEJAQ_OLLAMA_URL
+  fi
+
+  if [[ -z "${DEJAQ_OLLAMA_URL:-}" ]]; then
+    echo -e "${RED}DEJAQ_OLLAMA_URL is required for $mode mode.${NC}" >&2
+    exit 1
+  fi
+}
+
+MODE="$(select_mode)"
+apply_mode "$MODE"
+
+echo -e "${CYAN}Deployment mode: ${MODE}${NC}"
+echo -e "  DEJAQ_ENRICHER_BACKEND=${DEJAQ_ENRICHER_BACKEND}"
+echo -e "  DEJAQ_NORMALIZER_BACKEND=${DEJAQ_NORMALIZER_BACKEND}"
+echo -e "  DEJAQ_LOCAL_LLM_BACKEND=${DEJAQ_LOCAL_LLM_BACKEND}"
+echo -e "  DEJAQ_GENERALIZER_BACKEND=${DEJAQ_GENERALIZER_BACKEND}"
+echo -e "  DEJAQ_CONTEXT_ADJUSTER_BACKEND=${DEJAQ_CONTEXT_ADJUSTER_BACKEND}"
+if [[ "$MODE" != "in-process" ]]; then
+  echo -e "  DEJAQ_OLLAMA_URL=${DEJAQ_OLLAMA_URL}"
+fi
+
+if [[ "$DRY_RUN" == "true" ]]; then
+  echo -e "${GREEN}Dry run complete. Services not started.${NC}"
+  exit 0
+fi
+
 # ── 1. ChromaDB ─────────────────────────────────────────────────────────────
-echo -e "${CYAN}[1/4] Starting ChromaDB server...${NC}"
+echo -e "${CYAN}[1/5] Starting ChromaDB server...${NC}"
 free_port 8001
 "$CHROMA" run --path "$PROJECT_DIR/chroma_data" --host 127.0.0.1 --port 8001 \
   &>"$LOG_DIR/chroma.log" &
@@ -78,7 +228,7 @@ fi
 echo -e "  ${GREEN}ChromaDB running (PID $CHROMA_PID)${NC}"
 
 # ── 2. Redis ────────────────────────────────────────────────────────────────
-echo -e "${CYAN}[2/4] Starting Redis...${NC}"
+echo -e "${CYAN}[2/5] Starting Redis...${NC}"
 if ! command -v redis-server &>/dev/null; then
   echo -e "${RED}redis-server not found. Install with: brew install redis${NC}"; exit 1
 fi
@@ -134,6 +284,7 @@ echo ""
 echo -e "${GREEN}✓ All services running${NC}"
 echo -e "  API:         http://127.0.0.1:8000"
 echo -e "  ChromaDB:    http://127.0.0.1:8001"
+echo -e "  Mode:        $MODE"
 echo -e "  Demo UI:     open openai-compat-demo.html in browser"
 echo -e "  Stats TUI:   uv run python -m cli.stats"
 echo -e "  Logs:        $LOG_DIR/"

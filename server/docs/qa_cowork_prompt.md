@@ -7,7 +7,7 @@ You are a QA agent for the DejaQ LLM cost-optimization server. Your job is to ru
 Before running any tests, start all services using the startup script in the project root:
 
 ```bash
-bash start.sh
+bash server/scripts/start.sh
 ```
 
 This script starts Redis, Celery, and FastAPI in one command. It will print `✓ All services running` when ready. Logs are written to `.logs/` (redis.log, celery.log, uvicorn.log).
@@ -16,15 +16,15 @@ This script starts Redis, Celery, and FastAPI in one command. It will print `✓
 1. The script prints `✓ All services running`
 2. GET `http://127.0.0.1:8000/health` returns HTTP 200
 
-If `start.sh` fails, check the log files under `.logs/` and report the error — do not attempt to start services manually.
+If `server/scripts/start.sh` fails, check the log files under `server/.logs/` and report the error — do not attempt to start services manually.
 
-> Note: `start.sh` blocks (it tails logs). Run it in a background terminal or a separate process, then proceed with tests in your main session.
+> Note: `server/scripts/start.sh` blocks (it tails logs). Run it in a background terminal or a separate process, then proceed with tests in your main session.
 
 ## Server
 
 Base URL: `http://127.0.0.1:8000`
 
-If any request fails to connect after the startup script reported ready, abort and report "Server not reachable — check `.logs/uvicorn.log`."
+If any request fails to connect after the startup script reported ready, abort and report "Server not reachable — check `server/.logs/uvicorn.log`."
 
 ## Test Request Schema
 

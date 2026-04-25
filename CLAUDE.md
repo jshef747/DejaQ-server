@@ -47,6 +47,8 @@ uv run python scripts/benchmark_backend_concurrency.py --backend ollama --model 
 ```
 
 ### Environment Variables
+When adding a new `DEJAQ_*_BACKEND` variable, update the env examples in all three Deployment Modes blocks.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DEJAQ_REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL (broker + result backend) |
@@ -162,9 +164,114 @@ cli/
 
 ## Backend Concurrency
 
-- `in_process`: best for development and demos. DejaQ offloads blocking local completion calls to worker threads so concurrent requests are not forced to wait on the main async event loop. Shared access to the same in-process GGUF model is serialized per logical model for safety because concurrent `llama-cpp-python` calls against one loaded model can crash. Result: the server stays responsive, but throughput may still look close to serialized for a single shared local model.
-- `ollama`: DejaQ sends independent async HTTP requests to the Ollama server. This is usually the better operator choice for concurrent serving because inference is decoupled from the FastAPI process, though total throughput still depends on Ollama deployment capacity.
-- Benchmark before choosing: use `server/scripts/benchmark_backend_concurrency.py` to compare one request vs ten concurrent requests on your actual hardware. A good Ollama run should be well below naive 10x serial time; an `in_process` run may stay responsive but still serialize per model instance.
+DejaQ can run local completion roles inside the FastAPI process (`in_process`) or delegate them to an Ollama HTTP server (`ollama`). In-process mode keeps development simple but serializes access to each shared GGUF model; Ollama decouples inference from FastAPI so concurrent throughput is bounded by the Ollama host. See Deployment Modes for operator guidance, and use `server/scripts/benchmark_backend_concurrency.py` to compare modes on your hardware.
+
+## Deployment Modes
+
+All three modes require Python dependencies installed with `uv sync` and ChromaDB started with the app stack. Redis is the default shared prerequisite for Celery-backed background storage and eviction; for local-only runs, `DEJAQ_USE_CELERY=false` disables Celery and runs background storage in-process.
+
+Use the combined startup script from the repo root:
+
+```bash
+./server/scripts/start.sh
+```
+
+The script prompts for a mode by default. Automation can pass `--mode=in-process`, `--mode=self-hosted`, or `--mode=cloud`; self-hosted and cloud also accept `--ollama-url=<url>` or `DEJAQ_OLLAMA_URL`.
+
+### in-process (development)
+
+Use this for laptop demos and local development when you do not want an external Ollama server. It is responsive for a single user because blocking GGUF calls run in worker threads, but concurrent requests that need the same loaded model still serialize for runtime safety.
+
+```bash
+export DEJAQ_USE_CELERY=true
+export DEJAQ_ENRICHER_BACKEND=in_process
+export DEJAQ_NORMALIZER_BACKEND=in_process
+export DEJAQ_LOCAL_LLM_BACKEND=in_process
+export DEJAQ_GENERALIZER_BACKEND=in_process
+export DEJAQ_CONTEXT_ADJUSTER_BACKEND=in_process
+```
+
+Bring-up:
+
+```bash
+redis-server
+cd server
+uv run uvicorn app.main:app --reload
+uv run celery -A app.celery_app:celery_app worker --queues=background --pool=solo --loglevel=info
+```
+
+Redis-free local fallback:
+
+```bash
+DEJAQ_USE_CELERY=false uv run uvicorn app.main:app --reload
+```
+
+### self-hosted (on-prem production)
+
+Use this when FastAPI runs on one host and Ollama runs on a reachable LAN host. Pull the exact Ollama tags DejaQ requests:
+
+```bash
+ollama pull qwen2.5:0.5b
+ollama pull qwen2.5:1.5b
+ollama pull gemma4:e2b
+ollama pull gemma4:e4b
+ollama pull phi3.5:latest
+```
+
+```bash
+export DEJAQ_USE_CELERY=true
+export DEJAQ_OLLAMA_URL=http://<lan-host>:11434
+export DEJAQ_ENRICHER_BACKEND=ollama
+export DEJAQ_NORMALIZER_BACKEND=ollama
+export DEJAQ_LOCAL_LLM_BACKEND=ollama
+export DEJAQ_GENERALIZER_BACKEND=ollama
+export DEJAQ_CONTEXT_ADJUSTER_BACKEND=ollama
+```
+
+Bring-up:
+
+```bash
+ollama serve
+redis-server
+cd server
+uv run uvicorn app.main:app --reload
+uv run celery -A app.celery_app:celery_app worker --queues=background --pool=solo --loglevel=info
+```
+
+This is the preferred production shape for concurrent users: FastAPI remains lightweight and independent async HTTP requests are sent to Ollama. Total throughput is bounded by the Ollama host CPU/GPU, model residency, and queueing capacity.
+
+### cloud (future scaling)
+
+Cloud mode is interface-compatible with self-hosted mode. Run Ollama on a cloud GPU instance, expose it to DejaQ over a secured path such as private networking, VPN, or an authenticated proxy, and use the same model tags:
+
+```bash
+ollama pull qwen2.5:0.5b
+ollama pull qwen2.5:1.5b
+ollama pull gemma4:e2b
+ollama pull gemma4:e4b
+ollama pull phi3.5:latest
+```
+
+```bash
+export DEJAQ_USE_CELERY=true
+export DEJAQ_OLLAMA_URL=https://<cloud-ollama-endpoint>
+export DEJAQ_ENRICHER_BACKEND=ollama
+export DEJAQ_NORMALIZER_BACKEND=ollama
+export DEJAQ_LOCAL_LLM_BACKEND=ollama
+export DEJAQ_GENERALIZER_BACKEND=ollama
+export DEJAQ_CONTEXT_ADJUSTER_BACKEND=ollama
+```
+
+Bring-up is the same as self-hosted on the DejaQ side:
+
+```bash
+redis-server
+cd server
+uv run uvicorn app.main:app --reload
+uv run celery -A app.celery_app:celery_app worker --queues=background --pool=solo --loglevel=info
+```
+
+Expect the same client behavior as self-hosted, with different operational trade-offs: higher network sensitivity, cloud GPU cold-start and utilization costs, and easier vertical scaling of the Ollama host.
 
 ## Test Harnesses
 
@@ -226,7 +333,7 @@ Uses an LLM judge (requires `ANTHROPIC_API_KEY`) for scoring. Configs in `config
 
 ## Current Status
 
-**Working:** FastAPI HTTP, Normalizer (Qwen 0.5B, v22), LLM Router (Gemma 4 E4B local → Gemini 2.5 Flash external), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher v5 (Qwen 1.5B + regex gate, 88.7% @0.15 across 5 datasets), Smart Cache Filter (skip non-cacheable prompts), Difficulty Classifier (NVIDIA DeBERTa — routes easy→local, hard→Gemini), Celery + Redis task queue (non-blocking generalize+store), OpenAI-compatible endpoint with API-key auth + per-department cache namespacing, Org/department/API-key management (SQLAlchemy + Alembic SQLite + `dejaq-admin` CLI), Stats tracking (SQLite + Rich TUI — `dejaq-admin stats` / `dejaq-admin-tui`), Score-based cache eviction (Celery beat), Feedback API (score adjustments + delete on first negative), End-to-end demo script (`server/demo.sh`)
+**Working:** FastAPI HTTP, Normalizer (Qwen 0.5B, v22), LLM Router (Gemma 4 E4B local → Gemini 2.5 Flash external), Context Adjuster (generalize via Phi-3.5 + adjust via Qwen 1.5B), Semantic cache (ChromaDB, cosine ≤ 0.15), Background generalize+store on cache miss, Hardware acceleration (Metal/CUDA), Context Enricher v5 (Qwen 1.5B + regex gate, 88.7% @0.15 across 5 datasets), Smart Cache Filter (skip non-cacheable prompts), Difficulty Classifier (NVIDIA DeBERTa — routes easy→local, hard→Gemini), Celery + Redis task queue (non-blocking generalize+store), OpenAI-compatible endpoint with API-key auth + per-department cache namespacing, Org/department/API-key management (SQLAlchemy + Alembic SQLite + `dejaq-admin` CLI), Stats tracking (SQLite + Rich TUI — `dejaq-admin stats` / `dejaq-admin-tui`), Score-based cache eviction (Celery beat), Feedback API (score adjustments + delete on first negative), End-to-end demo script (`scripts/demo.sh`), Three documented deployment modes (in-process / self-hosted / cloud) validated against the end-to-end demo.
 **In progress:** Offload user-facing inference to Celery inference queue (multi-user parallelism)
 **Planned:** PostgreSQL migration, Subject-extraction preprocessing for bare comparative failures ("Which is cheaper?" — 1.5B model not sufficient)
 
