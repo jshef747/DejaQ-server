@@ -65,6 +65,7 @@ PYTHON="$VENV/bin/python"
 UVICORN="$VENV/bin/uvicorn"
 CELERY="$VENV/bin/celery"
 CHROMA="$VENV/bin/chroma"
+ALEMBIC="$VENV/bin/alembic"
 
 REDIS_PID=""; CELERY_PID=""; CELERY_BEAT_PID=""; UVICORN_PID=""; CHROMA_PID=""; TAIL_PID=""
 
@@ -214,6 +215,11 @@ if [[ "$DRY_RUN" == "true" ]]; then
   echo -e "${GREEN}Dry run complete. Services not started.${NC}"
   exit 0
 fi
+
+# ── 0. Database migrations ──────────────────────────────────────────────────
+echo -e "${CYAN}[0/5] Applying database migrations...${NC}"
+"$ALEMBIC" upgrade head &>"$LOG_DIR/alembic.log"
+echo -e "  ${GREEN}Database schema is up to date${NC}"
 
 # ── 1. ChromaDB ─────────────────────────────────────────────────────────────
 echo -e "${CYAN}[1/5] Starting ChromaDB server...${NC}"
