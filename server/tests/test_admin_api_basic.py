@@ -1,26 +1,25 @@
 from fastapi.testclient import TestClient
 
 
-def test_admin_whoami_requires_admin_token(admin_token_env):
+def test_admin_whoami_requires_auth():
     from app.main import app
 
-    admin_token_env("admin-secret")
     client = TestClient(app)
-
     missing = client.get("/admin/v1/whoami")
-    ok = client.get("/admin/v1/whoami", headers={"Authorization": "Bearer admin-secret"})
-
     assert missing.status_code == 401
-    assert ok.status_code == 200
-    assert ok.json() == {"authorized": True}
 
 
-def test_admin_org_create_list_delete_round_trip(isolated_org_db, admin_token_env):
-    from app.main import app
+def test_admin_whoami_returns_user_info(authed_admin_client):
+    client, headers = authed_admin_client
+    resp = client.get("/admin/v1/whoami", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["authorized"] is True
+    assert data["actor_type"] == "system"
 
-    admin_token_env("admin-secret")
-    client = TestClient(app)
-    headers = {"Authorization": "Bearer admin-secret"}
+
+def test_admin_org_create_list_delete_round_trip(isolated_org_db, authed_admin_client):
+    client, headers = authed_admin_client
 
     created = client.post("/admin/v1/orgs", json={"name": "Acme"}, headers=headers)
     listed = client.get("/admin/v1/orgs", headers=headers)

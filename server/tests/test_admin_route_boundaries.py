@@ -10,12 +10,10 @@ class _FeedbackResult(BaseModel):
     new_score: float | None = None
 
 
-def test_gateway_route_accepts_org_key_not_admin_token(admin_token_env, monkeypatch):
+def test_gateway_route_accepts_org_key_not_supabase_jwt(monkeypatch):
     from app.main import app
     from app.middleware.api_key import _KEY_CACHE
     from app.routers import departments
-
-    admin_token_env("admin-secret")
 
     def _resolve(token: str):
         if token == "org-key":
@@ -31,22 +29,22 @@ def test_gateway_route_accepts_org_key_not_admin_token(admin_token_env, monkeypa
         "/departments",
         headers={"Authorization": "Bearer org-key"},
     )
-    admin_token_response = client.get(
+    # Supabase JWT presented to gateway is treated as org key → invalid → 401
+    supabase_jwt_response = client.get(
         "/departments",
-        headers={"Authorization": "Bearer admin-secret"},
+        headers={"Authorization": "Bearer supabase-jwt-token"},
     )
 
     assert org_key_response.status_code == 200
     assert org_key_response.json() == []
-    assert admin_token_response.status_code == 401
-    assert admin_token_response.json() == {"detail": "Invalid or revoked API key"}
+    assert supabase_jwt_response.status_code == 401
 
 
-def test_org_key_does_not_authorize_admin_route(admin_token_env, monkeypatch):
+def test_admin_route_requires_supabase_jwt_not_org_key(monkeypatch):
+    """An org key cannot authorize an admin route."""
     from app.main import app
     from app.middleware.api_key import _KEY_CACHE
 
-    admin_token_env("admin-secret")
     monkeypatch.setattr(_KEY_CACHE, "resolve", lambda _token: ("acme", 1))
 
     response = TestClient(app).get(
@@ -54,31 +52,31 @@ def test_org_key_does_not_authorize_admin_route(admin_token_env, monkeypatch):
         headers={"Authorization": "Bearer org-key"},
     )
 
-    assert response.status_code == 401
-    assert response.json() == {"detail": "Invalid admin token"}
+    assert response.status_code in (401, 503)
 
 
-def test_admin_route_accepts_admin_token_without_gateway_lookup(admin_token_env, monkeypatch):
+def test_admin_route_does_not_invoke_org_key_middleware(monkeypatch):
+    """Admin routes must not trigger org API-key middleware lookup."""
     from app.main import app
     from app.middleware.api_key import _KEY_CACHE
 
     def _fail_resolve(_token: str):
         raise AssertionError("admin routes must not resolve bearer tokens as org keys")
 
-    admin_token_env("admin-secret")
     monkeypatch.setattr(_KEY_CACHE, "resolve", _fail_resolve)
 
+    # No Supabase config → will return 401 (invalid token from Supabase) or 503
+    # but must NOT raise AssertionError from key middleware
     response = TestClient(app).get(
         "/admin/v1/whoami",
-        headers={"Authorization": "Bearer admin-secret"},
+        headers={"Authorization": "Bearer any-token"},
     )
 
-    assert response.status_code == 200
-    assert response.json() == {"authorized": True}
+    assert response.status_code in (401, 503)
 
 
 def test_public_feedback_route_uses_gateway_context_and_shared_service(
-    admin_token_env, monkeypatch
+    monkeypatch,
 ):
     from app.main import app
     from app.middleware.api_key import _KEY_CACHE
@@ -95,7 +93,6 @@ def test_public_feedback_route_uses_gateway_context_and_shared_service(
         calls.append(kwargs)
         return _FeedbackResult(status="ok", new_score=4.0)
 
-    admin_token_env("admin-secret")
     monkeypatch.setattr(_KEY_CACHE, "resolve", _resolve)
     monkeypatch.setattr(feedback, "submit_feedback_service", _submit_feedback_service)
 

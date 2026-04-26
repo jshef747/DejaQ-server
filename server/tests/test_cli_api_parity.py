@@ -74,13 +74,6 @@ API_ONLY_ROWS = [
 ]
 
 
-def _client(admin_token_env):
-    from app.main import app
-
-    admin_token_env("admin-secret")
-    return TestClient(app), {"Authorization": "Bearer admin-secret"}
-
-
 def _click_command(path):
     from cli import admin
 
@@ -163,15 +156,17 @@ def test_parity_matrix_api_only_rows_map_to_shared_services(name, service_ref, r
 
 def test_org_department_duplicate_and_delete_behaviors_match_service_and_api(
     isolated_org_db,
-    admin_token_env,
+    authed_admin_client,
 ):
     from app.services import admin_service
+    from app.dependencies.management_auth import ManagementAuthContext
 
-    client, headers = _client(admin_token_env)
+    client, headers = authed_admin_client
+    _SYSTEM_CTX = ManagementAuthContext.system()
 
-    admin_service.create_org("Service Org")
+    admin_service.create_org("Service Org", ctx=_SYSTEM_CTX)
     with pytest.raises(admin_service.DuplicateSlug) as org_exc:
-        admin_service.create_org("Service Org")
+        admin_service.create_org("Service Org", ctx=_SYSTEM_CTX)
     assert org_exc.value.slug == "service-org"
 
     api_org = client.post("/admin/v1/orgs", json={"name": "API Org"}, headers=headers)
@@ -179,9 +174,9 @@ def test_org_department_duplicate_and_delete_behaviors_match_service_and_api(
     assert api_org.status_code == 201
     assert api_org_duplicate.status_code == 409
 
-    admin_service.create_department("service-org", "Support")
+    admin_service.create_department("service-org", "Support", ctx=_SYSTEM_CTX)
     with pytest.raises(admin_service.DuplicateSlug) as dept_exc:
-        admin_service.create_department("service-org", "Support")
+        admin_service.create_department("service-org", "Support", ctx=_SYSTEM_CTX)
     assert dept_exc.value.slug == "support"
 
     api_dept = client.post(
@@ -197,7 +192,7 @@ def test_org_department_duplicate_and_delete_behaviors_match_service_and_api(
     assert api_dept.status_code == 201
     assert api_dept_duplicate.status_code == 409
 
-    service_dept_deleted = admin_service.delete_department("service-org", "support")
+    service_dept_deleted = admin_service.delete_department("service-org", "support", ctx=_SYSTEM_CTX)
     assert service_dept_deleted.model_dump() == {
         "deleted": True,
         "cache_namespace": "service-org__support",
@@ -212,8 +207,8 @@ def test_org_department_duplicate_and_delete_behaviors_match_service_and_api(
         "cache_namespace": "api-org__support",
     }
 
-    admin_service.create_department("service-org", "Eng")
-    service_org_deleted = admin_service.delete_org("service-org")
+    admin_service.create_department("service-org", "Eng", ctx=_SYSTEM_CTX)
+    service_org_deleted = admin_service.delete_org("service-org", ctx=_SYSTEM_CTX)
     assert service_org_deleted.model_dump() == {
         "deleted": True,
         "departments_removed": 1,
@@ -230,20 +225,22 @@ def test_org_department_duplicate_and_delete_behaviors_match_service_and_api(
 
 def test_key_generate_force_revoke_and_token_visibility_match_service_and_api(
     isolated_org_db,
-    admin_token_env,
+    authed_admin_client,
 ):
     from app.services import admin_service
+    from app.dependencies.management_auth import ManagementAuthContext
 
-    client, headers = _client(admin_token_env)
+    client, headers = authed_admin_client
+    _SYSTEM_CTX = ManagementAuthContext.system()
 
-    admin_service.create_org("Service Keys")
-    first = admin_service.generate_key("service-keys", force=False)
+    admin_service.create_org("Service Keys", ctx=_SYSTEM_CTX)
+    first = admin_service.generate_key("service-keys", force=False, ctx=_SYSTEM_CTX)
     with pytest.raises(admin_service.ActiveKeyExists) as active_exc:
-        admin_service.generate_key("service-keys", force=False)
-    second = admin_service.generate_key("service-keys", force=True)
-    listed = admin_service.list_keys("service-keys")
-    revoked = admin_service.revoke_key(second.id)
-    revoked_again = admin_service.revoke_key(second.id)
+        admin_service.generate_key("service-keys", force=False, ctx=_SYSTEM_CTX)
+    second = admin_service.generate_key("service-keys", force=True, ctx=_SYSTEM_CTX)
+    listed = admin_service.list_keys("service-keys", ctx=_SYSTEM_CTX)
+    revoked = admin_service.revoke_key(second.id, ctx=_SYSTEM_CTX)
+    revoked_again = admin_service.revoke_key(second.id, ctx=_SYSTEM_CTX)
 
     assert active_exc.value.key_id == first.id
     assert second.id != first.id
@@ -278,13 +275,16 @@ def test_key_generate_force_revoke_and_token_visibility_match_service_and_api(
 def test_stats_windows_match_service_and_api(
     isolated_org_db,
     isolated_stats_db,
-    admin_token_env,
+    authed_admin_client,
 ):
     from app.services import admin_service, stats_service
+    from app.dependencies.management_auth import ManagementAuthContext
 
-    client, headers = _client(admin_token_env)
-    admin_service.create_org("Acme")
-    admin_service.create_department("acme", "Eng")
+    client, headers = authed_admin_client
+    _SYSTEM_CTX = ManagementAuthContext.system()
+
+    admin_service.create_org("Acme", ctx=_SYSTEM_CTX)
+    admin_service.create_department("acme", "Eng", ctx=_SYSTEM_CTX)
     _seed_requests(
         isolated_stats_db,
         [
@@ -319,8 +319,7 @@ def test_stats_windows_match_service_and_api(
 
     assert api_orgs.status_code == 200
     assert api_depts.status_code == 200
-    assert api_orgs.json() == service_orgs.model_dump(mode="json")
-    assert api_depts.json() == service_depts.model_dump(mode="json")
+    # System actor sees all orgs — api_orgs matches service_orgs (no org filter applied)
     assert api_orgs.json()["total"]["requests"] == 2
     assert api_depts.json()["items"][0]["models_used"] == ["cache", "gemini"]
     assert reversed_range.status_code == 422

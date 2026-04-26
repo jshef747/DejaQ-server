@@ -87,15 +87,16 @@ def test_admin_feedback_submit_is_async_only_for_async_feedback_service():
 
 
 def test_admin_feedback_submit_does_not_run_sync_department_lookup_on_event_loop(
-    admin_token_env,
+    authed_admin_client,
     monkeypatch,
 ):
-    from app.main import app
     from app.services import admin_service, feedback_service
+
+    client, headers = authed_admin_client
 
     called_on_event_loop = False
 
-    def list_departments_spy(org_slug=None):
+    def list_departments_spy(org_slug=None, ctx=None):
         nonlocal called_on_event_loop
         try:
             asyncio.get_running_loop()
@@ -108,13 +109,12 @@ def test_admin_feedback_submit_does_not_run_sync_department_lookup_on_event_loop
     async def submit_feedback_spy(**kwargs):
         return feedback_service.FeedbackResult(status="ok", new_score=1.0)
 
-    admin_token_env("admin-secret")
     monkeypatch.setattr(admin_service, "list_departments", list_departments_spy)
     monkeypatch.setattr(feedback_service, "submit_feedback", submit_feedback_spy)
 
-    response = TestClient(app).post(
+    response = client.post(
         "/admin/v1/feedback",
-        headers={"Authorization": "Bearer admin-secret"},
+        headers=headers,
         json={"org": "acme", "response_id": "acme--default:doc-1", "rating": "positive"},
     )
 

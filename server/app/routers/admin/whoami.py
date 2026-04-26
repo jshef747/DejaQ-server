@@ -1,8 +1,25 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from app.dependencies.admin_auth import require_management_auth
+from app.dependencies.management_auth import ManagementAuthContext
 
 router = APIRouter()
 
 
 @router.get("/whoami")
-def whoami():
-    return {"authorized": True}
+def whoami(ctx: ManagementAuthContext = Depends(require_management_auth)):
+    return {
+        "authorized": True,
+        "actor_type": ctx.actor_type,
+        "supabase_user_id": ctx.supabase_user_id,
+        "email": ctx.email,
+        "orgs": [
+            {
+                "id": org.id,
+                "name": org.name,
+                "slug": org.slug,
+                "created_at": org.created_at,
+            }
+            for org in ctx.accessible_orgs
+        ],
+    }

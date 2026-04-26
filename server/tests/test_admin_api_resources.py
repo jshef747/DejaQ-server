@@ -1,17 +1,8 @@
 import sqlite3
 
-from fastapi.testclient import TestClient
 
-
-def _client(admin_token_env):
-    from app.main import app
-
-    admin_token_env("admin-secret")
-    return TestClient(app), {"Authorization": "Bearer admin-secret"}
-
-
-def test_admin_departments_round_trip(isolated_org_db, admin_token_env):
-    client, headers = _client(admin_token_env)
+def test_admin_departments_round_trip(isolated_org_db, authed_admin_client):
+    client, headers = authed_admin_client
     client.post("/admin/v1/orgs", json={"name": "Acme"}, headers=headers)
 
     created = client.post(
@@ -31,8 +22,8 @@ def test_admin_departments_round_trip(isolated_org_db, admin_token_env):
     assert deleted.json() == {"deleted": True, "cache_namespace": "acme__engineering"}
 
 
-def test_admin_keys_mask_rotate_and_revoke(isolated_org_db, admin_token_env):
-    client, headers = _client(admin_token_env)
+def test_admin_keys_mask_rotate_and_revoke(isolated_org_db, authed_admin_client):
+    client, headers = authed_admin_client
     client.post("/admin/v1/orgs", json={"name": "Acme"}, headers=headers)
 
     first = client.post("/admin/v1/orgs/acme/keys", headers=headers)
@@ -53,8 +44,8 @@ def test_admin_keys_mask_rotate_and_revoke(isolated_org_db, admin_token_env):
     assert revoked_again.json()["already_revoked"] is True
 
 
-def test_admin_stats_date_filters_and_unknown_org(isolated_org_db, isolated_stats_db, admin_token_env):
-    client, headers = _client(admin_token_env)
+def test_admin_stats_date_filters_and_unknown_org(isolated_org_db, isolated_stats_db, authed_admin_client):
+    client, headers = authed_admin_client
     client.post("/admin/v1/orgs", json={"name": "Acme"}, headers=headers)
     con = sqlite3.connect(isolated_stats_db)
     con.execute(
@@ -85,8 +76,8 @@ def test_admin_stats_date_filters_and_unknown_org(isolated_org_db, isolated_stat
     assert unknown.status_code == 404
 
 
-def test_admin_llm_config_defaults_update_and_clear(isolated_org_db, admin_token_env):
-    client, headers = _client(admin_token_env)
+def test_admin_llm_config_defaults_update_and_clear(isolated_org_db, authed_admin_client):
+    client, headers = authed_admin_client
     client.post("/admin/v1/orgs", json={"name": "Acme"}, headers=headers)
 
     defaulted = client.get("/admin/v1/orgs/acme/llm-config", headers=headers)
@@ -109,11 +100,11 @@ def test_admin_llm_config_defaults_update_and_clear(isolated_org_db, admin_token
     assert empty.status_code == 422
 
 
-def test_admin_feedback_submit_and_list(isolated_org_db, isolated_stats_db, admin_token_env, monkeypatch):
+def test_admin_feedback_submit_and_list(isolated_org_db, isolated_stats_db, authed_admin_client, monkeypatch):
     from app.services import feedback_service
     from tests.test_feedback_service import FakeMemory
 
-    client, headers = _client(admin_token_env)
+    client, headers = authed_admin_client
     client.post("/admin/v1/orgs", json={"name": "Acme"}, headers=headers)
     client.post("/admin/v1/orgs/acme/departments", json={"name": "Eng"}, headers=headers)
 
@@ -164,14 +155,12 @@ def test_admin_feedback_submit_and_list(isolated_org_db, isolated_stats_db, admi
 
 
 def test_admin_feedback_list_id_field_and_pagination_total(
-    isolated_org_db, isolated_stats_db, admin_token_env
+    isolated_org_db, isolated_stats_db, authed_admin_client
 ):
-    """id field is present in items; total reflects pre-pagination count."""
     import sqlite3 as _sqlite3
 
-    client, headers = _client(admin_token_env)
+    client, headers = authed_admin_client
 
-    # Seed feedback_log directly with 3 rows.
     con = _sqlite3.connect(isolated_stats_db)
     con.execute(
         """CREATE TABLE IF NOT EXISTS feedback_log (
@@ -195,24 +184,21 @@ def test_admin_feedback_list_id_field_and_pagination_total(
     con.commit()
     con.close()
 
-    # limit=1 — total must still be 3 (pre-pagination count).
     page1 = client.get("/admin/v1/feedback?org=acme&limit=1&offset=0", headers=headers)
 
     assert page1.status_code == 200
     body = page1.json()
     assert body["total"] == 3
     assert len(body["items"]) == 1
-    # Every item must carry an 'id' field.
     assert "id" in body["items"][0]
 
 
 def test_admin_feedback_list_ordering_ts_desc_id_desc(
-    isolated_org_db, isolated_stats_db, admin_token_env
+    isolated_org_db, isolated_stats_db, authed_admin_client
 ):
-    """Results are ordered by ts DESC then id DESC."""
     import sqlite3 as _sqlite3
 
-    client, headers = _client(admin_token_env)
+    client, headers = authed_admin_client
 
     con = _sqlite3.connect(isolated_stats_db)
     con.execute(
@@ -226,7 +212,6 @@ def test_admin_feedback_list_ordering_ts_desc_id_desc(
             comment TEXT
         )"""
     )
-    # Two rows share the same ts — ordering must fall back to id DESC.
     con.executemany(
         "INSERT INTO feedback_log (ts, response_id, org, department, rating, comment) VALUES (?, ?, ?, ?, ?, ?)",
         [
@@ -243,17 +228,15 @@ def test_admin_feedback_list_ordering_ts_desc_id_desc(
     assert resp.status_code == 200
     items = resp.json()["items"]
     assert len(items) == 3
-    # The two ts=2026-04-03 rows must come first; the one inserted last (higher id) appears first.
     assert items[0]["response_id"] == "ns:tie-lower-id"
     assert items[1]["response_id"] == "ns:newest"
     assert items[2]["response_id"] == "ns:older"
 
 
 def test_stats_org_name_and_department_name_return_display_name(
-    isolated_org_db, isolated_stats_db, admin_token_env
+    isolated_org_db, isolated_stats_db, authed_admin_client
 ):
-    """org_name / department_name must return the human display name, not the slug."""
-    client, headers = _client(admin_token_env)
+    client, headers = authed_admin_client
     client.post("/admin/v1/orgs", json={"name": "Acme Corporation"}, headers=headers)
     client.post("/admin/v1/orgs/acme-corporation/departments", json={"name": "Engineering"}, headers=headers)
 
@@ -283,9 +266,8 @@ def test_stats_org_name_and_department_name_return_display_name(
     assert depts.json()["items"][0]["department_name"] == "Engineering"
 
 
-def test_departments_list_unknown_org_filter_returns_empty_list(isolated_org_db, admin_token_env):
-    """GET /departments?org=missing returns 200 empty list, consistent with other list filters."""
-    client, headers = _client(admin_token_env)
+def test_departments_list_unknown_org_filter_returns_empty_list(isolated_org_db, authed_admin_client):
+    client, headers = authed_admin_client
 
     resp = client.get("/admin/v1/departments?org=does-not-exist", headers=headers)
 
@@ -293,18 +275,16 @@ def test_departments_list_unknown_org_filter_returns_empty_list(isolated_org_db,
     assert resp.json() == []
 
 
-def test_stats_invalid_date_format_returns_422(isolated_org_db, isolated_stats_db, admin_token_env):
-    """Invalid date format in ?from or ?to must return 422."""
-    client, headers = _client(admin_token_env)
+def test_stats_invalid_date_format_returns_422(isolated_org_db, isolated_stats_db, authed_admin_client):
+    client, headers = authed_admin_client
 
     resp = client.get("/admin/v1/stats/orgs?from=04/01/2026", headers=headers)
 
     assert resp.status_code == 422
 
 
-def test_llm_config_unknown_org_returns_404(isolated_org_db, admin_token_env):
-    """GET /admin/v1/orgs/{slug}/llm-config for unknown org must return 404."""
-    client, headers = _client(admin_token_env)
+def test_llm_config_unknown_org_returns_404(isolated_org_db, authed_admin_client):
+    client, headers = authed_admin_client
 
     resp = client.get("/admin/v1/orgs/does-not-exist/llm-config", headers=headers)
 

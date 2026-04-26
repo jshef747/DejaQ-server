@@ -41,10 +41,6 @@ def _get_bool(name: str, default: bool) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def get_admin_token() -> str:
-    """Return the configured admin token, treating blank values as disabled."""
-    return os.getenv("DEJAQ_ADMIN_TOKEN", "").strip()
-
 # Redis
 REDIS_URL = os.getenv("DEJAQ_REDIS_URL", "redis://localhost:6379/0")
 
@@ -82,6 +78,12 @@ NORMALIZER_BACKEND = _get_backend("DEJAQ_NORMALIZER_BACKEND")
 LOCAL_LLM_BACKEND = _get_backend("DEJAQ_LOCAL_LLM_BACKEND")
 GENERALIZER_BACKEND = _get_backend("DEJAQ_GENERALIZER_BACKEND")
 CONTEXT_ADJUSTER_BACKEND = _get_backend("DEJAQ_CONTEXT_ADJUSTER_BACKEND")
+
+# Supabase management auth
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+# Service-role key: only for explicit setup/seed paths, never for HTTP request auth
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
 ENRICHER_MODEL_NAME = _get_text("DEJAQ_ENRICHER_MODEL_NAME", "qwen_1_5b")
 NORMALIZER_MODEL_NAME = _get_text("DEJAQ_NORMALIZER_MODEL_NAME", "gemma_e2b")

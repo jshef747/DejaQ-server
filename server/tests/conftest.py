@@ -3,9 +3,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 
 from app.db.base import Base, SessionLocal
+from app.dependencies.management_auth import ManagementAuthContext
 from app.services.cache_filter import should_cache
 from app.services.memory_chromaDB import MemoryService
 from app.services.service_factory import (
@@ -101,15 +103,50 @@ def isolated_stats_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return db_path
 
 
-@pytest.fixture
-def admin_token_env(monkeypatch: pytest.MonkeyPatch):
-    def _set(token: str | None) -> None:
-        if token is None:
-            monkeypatch.delenv("DEJAQ_ADMIN_TOKEN", raising=False)
-        else:
-            monkeypatch.setenv("DEJAQ_ADMIN_TOKEN", token)
 
-    return _set
+@pytest.fixture
+def authed_admin_client():
+    """TestClient for the main app with management auth pre-satisfied as system actor."""
+    from app.main import app
+    from app.dependencies.admin_auth import require_management_auth
+
+    ctx = ManagementAuthContext.system()
+    app.dependency_overrides[require_management_auth] = lambda: ctx
+    try:
+        yield TestClient(app), {"Authorization": "Bearer test-system-token"}
+    finally:
+        app.dependency_overrides.pop(require_management_auth, None)
+
+
+@pytest.fixture
+def scoped_admin_client():
+    """
+    Factory fixture that yields a callable: build_client(accessible_orgs) -> (TestClient, headers).
+
+    Pass a list of OrgRef objects to build a user actor scoped to exactly those orgs.
+    Used to test that user actors are denied access to orgs they are not members of.
+    """
+    from app.main import app
+    from app.dependencies.admin_auth import require_management_auth
+    from app.dependencies.management_auth import OrgRef
+
+    _override_key = require_management_auth
+
+    def build_client(accessible_orgs: list[OrgRef]):
+        ctx = ManagementAuthContext(
+            actor_type="user",
+            local_user_id=1,
+            supabase_user_id="test-supabase-uid",
+            email="test@example.com",
+            accessible_orgs=accessible_orgs,
+        )
+        app.dependency_overrides[_override_key] = lambda: ctx
+        return TestClient(app), {"Authorization": "Bearer test-user-token"}
+
+    try:
+        yield build_client
+    finally:
+        app.dependency_overrides.pop(_override_key, None)
 
 
 @pytest.fixture

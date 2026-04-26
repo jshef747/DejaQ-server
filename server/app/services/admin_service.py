@@ -2,11 +2,12 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.db import api_key_repo, dept_repo, org_repo
+from app.db import api_key_repo, dept_repo, org_repo, user_repo
 from app.db.models.api_key import ApiKey
 from app.db.models.department import Department
 from app.db.models.org import Organization
 from app.db.session import get_session
+from app.dependencies.management_auth import ManagementAuthContext
 from app.schemas.department import DeptRead
 from app.schemas.org import OrgRead
 
@@ -15,6 +16,12 @@ class OrgNotFound(Exception):
     def __init__(self, org_slug: str) -> None:
         self.org_slug = org_slug
         super().__init__(f"Organization '{org_slug}' not found.")
+
+
+class OrgForbidden(Exception):
+    def __init__(self, org_slug: str) -> None:
+        self.org_slug = org_slug
+        super().__init__(f"Access denied to organization '{org_slug}'.")
 
 
 class DeptNotFound(Exception):
@@ -28,6 +35,12 @@ class KeyNotFound(Exception):
     def __init__(self, key_id: int) -> None:
         self.key_id = key_id
         super().__init__(f"Key id={key_id} not found.")
+
+
+class KeyForbidden(Exception):
+    def __init__(self, key_id: int) -> None:
+        self.key_id = key_id
+        super().__init__(f"Access denied to key id={key_id}.")
 
 
 class DuplicateSlug(Exception):
@@ -85,6 +98,9 @@ class KeyRevokeResult(BaseModel):
     revoked_at: datetime | None
 
 
+_SYSTEM_CTX = ManagementAuthContext.system()
+
+
 def _dept_item(dept: DeptRead, org_slug: str) -> DepartmentItem:
     return DepartmentItem(
         id=dept.id,
@@ -96,57 +112,85 @@ def _dept_item(dept: DeptRead, org_slug: str) -> DepartmentItem:
     )
 
 
-def list_orgs() -> list[OrgRead]:
+def _check_org_access(ctx: ManagementAuthContext, org: Organization) -> None:
+    """Raise OrgForbidden if user actor cannot access org."""
+    if not ctx.has_org_access(org.id):
+        raise OrgForbidden(org.slug)
+
+
+def list_orgs(ctx: ManagementAuthContext = _SYSTEM_CTX) -> list[OrgRead]:
     with get_session() as session:
-        return org_repo.list_orgs(session)
+        all_orgs = org_repo.list_orgs(session)
+        if ctx.is_system:
+            return all_orgs
+        accessible_ids = {o.id for o in ctx.accessible_orgs}
+        return [o for o in all_orgs if o.id in accessible_ids]
 
 
-def create_org(name: str) -> OrgRead:
+def create_org(name: str, ctx: ManagementAuthContext = _SYSTEM_CTX) -> OrgRead:
     with get_session() as session:
         try:
-            return org_repo.create_org(session, name)
+            new_org = org_repo.create_org(session, name)
         except ValueError as exc:
             message = str(exc)
             slug = message.split("'")[1] if "'" in message else name
             raise DuplicateSlug(slug) from exc
 
+        if not ctx.is_system and ctx.local_user_id is not None:
+            user_repo.create_membership_idempotent(session, ctx.local_user_id, new_org.id)
 
-def delete_org(slug: str) -> OrgDeleteResult:
+        return new_org
+
+
+def delete_org(slug: str, ctx: ManagementAuthContext = _SYSTEM_CTX) -> OrgDeleteResult:
     with get_session() as session:
         org = session.query(Organization).filter_by(slug=slug).first()
         if org is None:
             raise OrgNotFound(slug)
+        _check_org_access(ctx, org)
         departments_removed = len(org.departments)
         session.delete(org)
         session.flush()
         return OrgDeleteResult(deleted=True, departments_removed=departments_removed)
 
 
-def list_departments(org_slug: str | None = None) -> list[DepartmentItem]:
+def list_departments(
+    org_slug: str | None = None,
+    ctx: ManagementAuthContext = _SYSTEM_CTX,
+) -> list[DepartmentItem]:
     with get_session() as session:
         if org_slug:
             org = session.query(Organization).filter_by(slug=org_slug).first()
             if org is None:
                 raise OrgNotFound(org_slug)
+            _check_org_access(ctx, org)
             depts = dept_repo.list_depts(session, org_slug=org_slug)
             return [_dept_item(dept, org_slug) for dept in depts]
 
         rows = (
-            session.query(Department, Organization.slug)
+            session.query(Department, Organization.slug, Organization.id)
             .join(Organization, Department.org_id == Organization.id)
             .order_by(Department.created_at.desc())
             .all()
         )
-        return [
-            _dept_item(DeptRead.model_validate(dept), row_org_slug)
-            for dept, row_org_slug in rows
-        ]
+        result = []
+        for dept, row_org_slug, org_id in rows:
+            if not ctx.is_system and not ctx.has_org_access(org_id):
+                continue
+            result.append(_dept_item(DeptRead.model_validate(dept), row_org_slug))
+        return result
 
 
-def create_department(org_slug: str, name: str) -> DepartmentItem:
+def create_department(
+    org_slug: str,
+    name: str,
+    ctx: ManagementAuthContext = _SYSTEM_CTX,
+) -> DepartmentItem:
     with get_session() as session:
-        if session.query(Organization).filter_by(slug=org_slug).first() is None:
+        org = session.query(Organization).filter_by(slug=org_slug).first()
+        if org is None:
             raise OrgNotFound(org_slug)
+        _check_org_access(ctx, org)
         try:
             dept = dept_repo.create_dept(session, org_slug, name)
         except ValueError as exc:
@@ -156,10 +200,16 @@ def create_department(org_slug: str, name: str) -> DepartmentItem:
         return _dept_item(dept, org_slug)
 
 
-def delete_department(org_slug: str, dept_slug: str) -> DeptDeleteResult:
+def delete_department(
+    org_slug: str,
+    dept_slug: str,
+    ctx: ManagementAuthContext = _SYSTEM_CTX,
+) -> DeptDeleteResult:
     with get_session() as session:
-        if session.query(Organization).filter_by(slug=org_slug).first() is None:
+        org = session.query(Organization).filter_by(slug=org_slug).first()
+        if org is None:
             raise OrgNotFound(org_slug)
+        _check_org_access(ctx, org)
         try:
             deleted = dept_repo.delete_dept(session, org_slug, dept_slug)
         except ValueError as exc:
@@ -167,11 +217,15 @@ def delete_department(org_slug: str, dept_slug: str) -> DeptDeleteResult:
         return DeptDeleteResult(deleted=True, cache_namespace=deleted.cache_namespace)
 
 
-def list_keys(org_slug: str) -> list[KeyListItem]:
+def list_keys(
+    org_slug: str,
+    ctx: ManagementAuthContext = _SYSTEM_CTX,
+) -> list[KeyListItem]:
     with get_session() as session:
         org = session.query(Organization).filter_by(slug=org_slug).first()
         if org is None:
             raise OrgNotFound(org_slug)
+        _check_org_access(ctx, org)
         keys = api_key_repo.list_keys_for_org(session, org.id)
         return [
             KeyListItem(
@@ -184,11 +238,16 @@ def list_keys(org_slug: str) -> list[KeyListItem]:
         ]
 
 
-def generate_key(org_slug: str, force: bool) -> KeyCreated:
+def generate_key(
+    org_slug: str,
+    force: bool,
+    ctx: ManagementAuthContext = _SYSTEM_CTX,
+) -> KeyCreated:
     with get_session() as session:
         org = session.query(Organization).filter_by(slug=org_slug).first()
         if org is None:
             raise OrgNotFound(org_slug)
+        _check_org_access(ctx, org)
 
         existing = api_key_repo.get_active_key_for_org(session, org.id)
         if existing and not force:
@@ -205,11 +264,17 @@ def generate_key(org_slug: str, force: bool) -> KeyCreated:
         )
 
 
-def revoke_key(key_id: int) -> KeyRevokeResult:
+def revoke_key(
+    key_id: int,
+    ctx: ManagementAuthContext = _SYSTEM_CTX,
+) -> KeyRevokeResult:
     with get_session() as session:
         key = session.query(ApiKey).filter_by(id=key_id).first()
         if key is None:
             raise KeyNotFound(key_id)
+        org = session.query(Organization).filter_by(id=key.org_id).first()
+        if org and not ctx.has_org_access(org.id):
+            raise KeyForbidden(key_id)
         already_revoked = key.revoked_at is not None
         revoked = api_key_repo.revoke_key(session, key_id)
         if revoked is None:

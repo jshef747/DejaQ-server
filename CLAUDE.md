@@ -49,13 +49,42 @@ uv run python scripts/benchmark_backend_concurrency.py --backend in_process --mo
 uv run python scripts/benchmark_backend_concurrency.py --backend ollama --model qwen_0_5b --concurrency 10
 ```
 
+### Supabase Setup (Management API)
+
+The `/admin/v1/*` management API requires a Supabase project for JWT authentication.
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. Go to **Project Settings → API** and copy the **Project URL** and **anon/public key**.
+3. Add to `server/.env`:
+   ```
+   SUPABASE_URL=https://<project-id>.supabase.co
+   SUPABASE_ANON_KEY=eyJ...
+   ```
+4. Optionally add the **service_role** key for demo seeding (creates the demo Supabase Auth user):
+   ```
+   SUPABASE_SERVICE_ROLE_KEY=eyJ...
+   ```
+5. Run the Alembic migration to add users and membership tables:
+   ```bash
+   cd server && uv run alembic upgrade head
+   ```
+6. Seed the demo workspace (demo org, departments, user, sample stats):
+   ```bash
+   cd server && uv run dejaq-admin seed demo
+   ```
+   Demo credentials: `demo@dejaq.local` / `demo1234`
+
+> **Note:** `/v1/chat/completions` and `/v1/feedback` continue to use DejaQ org API keys, not Supabase JWTs. Only `/admin/v1/*` uses Supabase authentication.
+
 ### Environment Variables
 When adding a new `DEJAQ_*_BACKEND` variable, update the env examples in all three Deployment Modes blocks.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `SUPABASE_URL` | `` | Supabase project URL — required for `/admin/v1/*` JWT auth |
+| `SUPABASE_ANON_KEY` | `` | Supabase anon/public key — used by management auth dependency |
+| `SUPABASE_SERVICE_ROLE_KEY` | `` | Supabase service-role key — only used by `dejaq-admin seed demo` |
 | `DEJAQ_REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL (broker + result backend) |
-| `DEJAQ_ADMIN_TOKEN` | `` | Shared bearer token for `/admin/v1/*`; unset/empty/whitespace-only disables admin endpoints with 503 |
 | `DEJAQ_USE_CELERY` | `true` | Set to `false` to disable Celery and run tasks in-process |
 | `DEJAQ_STATS_DB` | `dejaq_stats.db` | Path to SQLite request log (used by `dejaq-admin stats`) |
 | `DEJAQ_EVICTION_FLOOR` | `-5.0` | Score floor for cache eviction; entries below this are deleted by the beat task |
@@ -76,7 +105,7 @@ When adding a new `DEJAQ_*_BACKEND` variable, update the env examples in all thr
 - `GET /health` — health check; also reports Celery worker status
 - `POST /v1/chat/completions` — OpenAI-compatible chat (streaming + non-streaming); requires `Authorization: Bearer <api-key>` and optional `X-DejaQ-Department` header; response includes `X-DejaQ-Response-Id` header when the response is cached or stored to cache
 - `POST /v1/feedback` — thumbs-up/down feedback on a cached response; requires `Authorization: Bearer <api-key>`; body: `{"response_id": "<X-DejaQ-Response-Id value>", "rating": "positive"|"negative", "comment": "<optional>"}`; first negative deletes entry, subsequent negatives decrement score by 2.0; positive increments score by 1.0
-- `/admin/v1/*` management endpoints — require `Authorization: Bearer <DEJAQ_ADMIN_TOKEN>`; unset/blank token returns 503:
+- `/admin/v1/*` management endpoints — auth via Supabase JWT (Bearer token validated through Supabase Auth SDK); send a Supabase access token as `Authorization: Bearer <supabase-access-token>`:
   - `GET /admin/v1/whoami`
   - `GET|POST|DELETE /admin/v1/orgs[/{slug}]`
   - `GET /admin/v1/departments`, `POST|DELETE /admin/v1/orgs/{org_slug}/departments[/{dept_slug}]`
@@ -105,8 +134,7 @@ app/
 │       ├── api_key.py   # ApiKey ORM model
 │       └── org_llm_config.py # Org-level LLM routing config
 ├── dependencies/
-│   ├── auth.py          # FastAPI dependency: resolve org/dept from Bearer token
-│   └── admin_auth.py    # Shared admin-token guard for /admin/v1/*
+│   └── auth.py          # FastAPI dependency: resolve org/dept from Bearer token
 ├── middleware/
 │   └── api_key.py       # Bearer token → org/department resolution; sets request.state
 ├── routers/
@@ -164,9 +192,9 @@ cli/
 
 ### Management API
 
-`/admin/v1/*` is a separate operator surface from the OpenAI-compatible `/v1/*` gateway. It uses a single shared `DEJAQ_ADMIN_TOKEN` bearer token for the pre-BW1 dashboard phase. Missing, wrong, malformed, unset, empty, or whitespace-only token values fail closed; when the server token is unset the admin API returns 503.
+`/admin/v1/*` is a separate operator surface from the OpenAI-compatible `/v1/*` gateway. Auth is being migrated to Supabase JWT (per-user ownership); endpoints are currently unprotected while the JWT layer is implemented.
 
-The org API-key middleware skips `/admin/v1/*` before parsing or logging `Authorization`, so admin tokens are never treated as customer API keys. Until Supabase/OAuth/RBAC lands in BW1, deploy admin routes only same-origin, behind a trusted reverse proxy/VPN, or behind an explicit admin CORS allowlist; do not expose them through wildcard browser CORS.
+The org API-key middleware skips `/admin/v1/*` before parsing or logging `Authorization`, so admin tokens are never treated as customer API keys.
 
 ## Coding Conventions
 
@@ -196,8 +224,6 @@ DejaQ can run local completion roles inside the FastAPI process (`in_process`) o
 
 All three modes require Python dependencies installed with `uv sync` and ChromaDB started with the app stack. Redis is the default shared prerequisite for Celery-backed background storage and eviction; for local-only runs, `DEJAQ_USE_CELERY=false` disables Celery and runs background storage in-process.
 
-Set `DEJAQ_ADMIN_TOKEN` only for trusted admin/dashboard deployments. Until BW1 replaces the shared token with Supabase-backed auth, expose `/admin/v1/*` only same-origin, behind a trusted reverse proxy/VPN, or through an explicit admin CORS allowlist; do not expose admin routes through wildcard browser CORS.
-
 Use the combined startup script from the repo root:
 
 ```bash
@@ -212,7 +238,6 @@ Use this for laptop demos and local development when you do not want an external
 
 ```bash
 export DEJAQ_USE_CELERY=true
-export DEJAQ_ADMIN_TOKEN=<local-admin-token>
 export DEJAQ_ENRICHER_BACKEND=in_process
 export DEJAQ_NORMALIZER_BACKEND=in_process
 export DEJAQ_LOCAL_LLM_BACKEND=in_process
@@ -249,7 +274,6 @@ ollama pull phi3.5:latest
 
 ```bash
 export DEJAQ_USE_CELERY=true
-export DEJAQ_ADMIN_TOKEN=<admin-token>
 export DEJAQ_OLLAMA_URL=http://<lan-host>:11434
 export DEJAQ_ENRICHER_BACKEND=ollama
 export DEJAQ_NORMALIZER_BACKEND=ollama
@@ -284,7 +308,6 @@ ollama pull phi3.5:latest
 
 ```bash
 export DEJAQ_USE_CELERY=true
-export DEJAQ_ADMIN_TOKEN=<admin-token>
 export DEJAQ_OLLAMA_URL=https://<cloud-ollama-endpoint>
 export DEJAQ_ENRICHER_BACKEND=ollama
 export DEJAQ_NORMALIZER_BACKEND=ollama

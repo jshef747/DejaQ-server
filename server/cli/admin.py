@@ -5,9 +5,12 @@ from rich.panel import Panel
 from rich.prompt import Confirm
 from rich.text import Text
 
+from app.dependencies.management_auth import ManagementAuthContext
 from app.services import admin_service
 from cli.ui import console, print_error, print_header, print_success, print_table, print_warning
 from cli.stats import run as _run_stats
+
+_SYSTEM_CTX = ManagementAuthContext.system()
 
 
 # ---------------------------------------------------------------------------
@@ -36,7 +39,7 @@ def org_create(name: str) -> None:
     """Create a new organization."""
     with console.status("[cyan]Creating organization…[/cyan]", spinner="dots"):
         try:
-            result = admin_service.create_org(name)
+            result = admin_service.create_org(name, ctx=_SYSTEM_CTX)
         except admin_service.DuplicateSlug as e:
             print_error(str(e))
             sys.exit(1)
@@ -55,7 +58,7 @@ def org_create(name: str) -> None:
 @org.command("list")
 def org_list() -> None:
     """List all organizations."""
-    orgs = admin_service.list_orgs()
+    orgs = admin_service.list_orgs(ctx=_SYSTEM_CTX)
 
     print_table(
         "Organizations",
@@ -73,7 +76,7 @@ def org_delete(slug: str) -> None:
     """Delete an organization and all its departments."""
     # Preview cascade
     try:
-        depts = admin_service.list_departments(org_slug=slug)
+        depts = admin_service.list_departments(org_slug=slug, ctx=_SYSTEM_CTX)
     except admin_service.OrgNotFound:
         print_error(f"Organization '{slug}' not found.")
         sys.exit(1)
@@ -93,7 +96,7 @@ def org_delete(slug: str) -> None:
             sys.exit(0)
 
     with console.status("[cyan]Deleting…[/cyan]", spinner="dots"):
-        result = admin_service.delete_org(slug)
+        result = admin_service.delete_org(slug, ctx=_SYSTEM_CTX)
 
     print_success(
         f"Organization [bold]{slug}[/bold] deleted"
@@ -117,7 +120,7 @@ def dept_create(org_slug: str, name: str) -> None:
     """Create a new department under an org."""
     with console.status("[cyan]Creating department…[/cyan]", spinner="dots"):
         try:
-            result = admin_service.create_department(org_slug, name)
+            result = admin_service.create_department(org_slug, name, ctx=_SYSTEM_CTX)
         except (admin_service.OrgNotFound, admin_service.DuplicateSlug) as e:
             print_error(str(e))
             sys.exit(1)
@@ -140,7 +143,7 @@ def dept_create(org_slug: str, name: str) -> None:
 def dept_list(org_slug: str | None) -> None:
     """List departments, optionally filtered by org."""
     try:
-        depts = admin_service.list_departments(org_slug=org_slug)
+        depts = admin_service.list_departments(org_slug=org_slug, ctx=_SYSTEM_CTX)
     except admin_service.OrgNotFound as e:
         print_error(str(e))
         sys.exit(1)
@@ -185,7 +188,7 @@ def dept_delete(org_slug: str, slug: str) -> None:
     """Delete a department."""
     try:
         dept_data = next(
-            (dept for dept in admin_service.list_departments(org_slug=org_slug) if dept.slug == slug),
+            (dept for dept in admin_service.list_departments(org_slug=org_slug, ctx=_SYSTEM_CTX) if dept.slug == slug),
             None,
         )
     except admin_service.OrgNotFound:
@@ -199,7 +202,7 @@ def dept_delete(org_slug: str, slug: str) -> None:
         sys.exit(0)
 
     with console.status("[cyan]Deleting…[/cyan]", spinner="dots"):
-        deleted = admin_service.delete_department(org_slug, slug)
+        deleted = admin_service.delete_department(org_slug, slug, ctx=_SYSTEM_CTX)
 
     print_success(
         f"Department [bold]{slug}[/bold] deleted. "
@@ -222,7 +225,7 @@ def key() -> None:
 def key_generate(org_slug: str, force: bool) -> None:
     """Generate an API key for an org."""
     try:
-        new_key = admin_service.generate_key(org_slug, force=force)
+        new_key = admin_service.generate_key(org_slug, force=force, ctx=_SYSTEM_CTX)
     except admin_service.OrgNotFound:
         print_error(f"Organization '{org_slug}' not found.")
         sys.exit(1)
@@ -251,7 +254,7 @@ def key_generate(org_slug: str, force: bool) -> None:
 def key_list(org_slug: str) -> None:
     """List all API keys for an org."""
     try:
-        keys = admin_service.list_keys(org_slug)
+        keys = admin_service.list_keys(org_slug, ctx=_SYSTEM_CTX)
     except admin_service.OrgNotFound:
         print_error(f"Organization '{org_slug}' not found.")
         sys.exit(1)
@@ -280,7 +283,7 @@ def key_list(org_slug: str) -> None:
 def key_revoke(key_id: int) -> None:
     """Revoke an API key by its ID."""
     try:
-        result = admin_service.revoke_key(key_id)
+        result = admin_service.revoke_key(key_id, ctx=_SYSTEM_CTX)
     except admin_service.KeyNotFound:
         print_error(f"Key id={key_id} not found.")
         sys.exit(1)
@@ -302,3 +305,30 @@ def key_revoke(key_id: int) -> None:
 def stats_cmd() -> None:
     """Show usage stats: cache hit rates, latency, and model routing per department."""
     _run_stats()
+
+
+# ---------------------------------------------------------------------------
+# seed commands
+# ---------------------------------------------------------------------------
+
+@cli.group()
+def seed() -> None:
+    """Seed commands for demo and setup data."""
+
+
+@seed.command("demo")
+def seed_demo_cmd() -> None:
+    """Idempotently seed demo org, departments, user, membership, and sample stats."""
+    from cli.seed import seed_demo
+
+    with console.status("[cyan]Seeding demo workspace…[/cyan]", spinner="dots"):
+        summary = seed_demo()
+
+    console.print(f"[green]Demo seed complete.[/green]")
+    console.print(f"  org:         {summary['org']}")
+    console.print(f"  departments: {', '.join(summary['departments'])}")
+    console.print(f"  user:        {summary['user']}")
+    console.print(f"  membership:  {summary['membership']}")
+    console.print(f"  stats rows inserted: {summary['stats_rows']}")
+    console.print("")
+    console.print(f"  [dim]Demo credentials:[/dim] demo@dejaq.local / demo1234")

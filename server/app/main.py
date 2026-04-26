@@ -20,7 +20,6 @@ from app.config import (
     NORMALIZER_MODEL_NAME,
     OLLAMA_URL,
     USE_CELERY,
-    get_admin_token,
 )
 from app.services.request_logger import request_logger
 from app.services.service_factory import (
@@ -35,17 +34,9 @@ from contextlib import asynccontextmanager
 # 1. Setup Global Logging
 setup_logging()
 logger = logging.getLogger("dejaq.main")
-admin_logger = logging.getLogger("dejaq.admin")
-
-
-def _log_admin_api_status() -> None:
-    if not get_admin_token():
-        admin_logger.warning("DEJAQ_ADMIN_TOKEN not set; /admin/v1/* disabled")
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("DejaQ Middleware starting up...")
-    _log_admin_api_status()
     logger.info(
         "Model config: enricher=%s/%s normalizer=%s/%s local_llm=%s/%s generalizer=%s/%s context_adjuster=%s/%s",
         ENRICHER_BACKEND,

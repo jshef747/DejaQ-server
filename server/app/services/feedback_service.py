@@ -37,6 +37,7 @@ def list_feedback(
     response_id: str | None = None,
     limit: int = 100,
     offset: int = 0,
+    accessible_org_slugs: set[str] | None = None,
 ) -> FeedbackListResponse:
     clauses: list[str] = []
     params: list[object] = []
@@ -49,6 +50,13 @@ def list_feedback(
     if response_id:
         clauses.append("response_id = ?")
         params.append(response_id)
+    if accessible_org_slugs is not None and not org:
+        if accessible_org_slugs:
+            placeholders = ",".join("?" * len(accessible_org_slugs))
+            clauses.append(f"org IN ({placeholders})")
+            params.extend(sorted(accessible_org_slugs))
+        else:
+            clauses.append("1=0")
     where = "WHERE " + " AND ".join(clauses) if clauses else ""
 
     with sqlite3.connect(config.STATS_DB_PATH) as con:
