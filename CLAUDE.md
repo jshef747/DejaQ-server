@@ -394,3 +394,50 @@ Uses an LLM judge (requires `ANTHROPIC_API_KEY`) for scoring. Configs in `config
 ## Active Technologies
 
 - Python 3.13+ + FastAPI + Uvicorn, ChromaDB (HttpClient), redis-py (Celery dependency), Pydantic v2, Celery, aiosqlite (request log), Rich + Textual (stats TUI), SQLAlchemy + Alembic (org/dept/key DB, SQLite), google-genai (Gemini external LLM)
+
+## Frontend (dashboard)
+
+The web dashboard lives in `frontend/` at the repo root. It is a Next.js 16 app with TypeScript, Tailwind v4, and the App Router. Auth is Supabase email/password (`@supabase/ssr`). The dashboard talks to the FastAPI management API at `/admin/v1/*`, sending the Supabase JWT as a Bearer token on every request.
+
+### Frontend setup
+
+```bash
+cd frontend
+npm install
+cp .env.local.example .env.local
+# Fill in your Supabase project URL and anon key in .env.local
+```
+
+### Frontend dev server
+
+```bash
+cd frontend
+npm run dev
+# Dashboard at http://localhost:3000
+```
+
+### Frontend environment variables
+
+| Variable | Description |
+| -------- | ----------- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (`https://<id>.supabase.co`) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `NEXT_PUBLIC_API_BASE_URL` | FastAPI backend base URL (default: `http://127.0.0.1:8000`) |
+
+### Demo account
+
+Use the account seeded by `dejaq-admin seed demo`:
+
+- Email: `demo@dejaq.local`
+- Password: `demo1234`
+
+### How auth works
+
+1. User signs in via Supabase email/password → session cookie set by `@supabase/ssr`
+2. Every management API call in `lib/api.ts` reads the session JWT and sends it as `Authorization: Bearer <token>` to the FastAPI backend
+3. FastAPI validates the JWT via the Supabase Auth SDK on all `/admin/v1/*` routes
+4. The `/v1/chat/completions` and `/v1/feedback` endpoints continue to use DejaQ org API keys — not Supabase JWTs
+
+### CORS note
+
+FastAPI CORS must allow `http://localhost:3000` for local development. If you see CORS errors, add `http://localhost:3000` to `allow_origins` in `server/app/main.py`.
