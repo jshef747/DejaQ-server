@@ -4,8 +4,11 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Skip auth checks when Supabase is not configured (e.g. local dev without .env.local).
+  if (!url || !key) return supabaseResponse;
 
   const supabase = createServerClient(url, key, {
     cookies: {
