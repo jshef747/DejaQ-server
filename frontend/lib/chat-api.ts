@@ -163,6 +163,36 @@ export async function sendFeedback(
   return { kind: "success", status: data.status, newScore: data.new_score };
 }
 
+export interface Department {
+  id: number;
+  label: string;
+  slug: string;
+}
+
+export type DepartmentsResult = Department[] | ApiError;
+
+export async function fetchDepartments(
+  apiKey: string,
+  apiBaseUrl?: string,
+): Promise<DepartmentsResult> {
+  const base = apiBaseUrl?.trim().replace(/\/$/, "") || getApiBase();
+  try {
+    const response = await fetch(`${base}/departments`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response);
+      return { kind: "error", status: response.status, message: userFacingError(response.status, detail) };
+    }
+    return await response.json() as Department[];
+  } catch {
+    return { kind: "error", status: 0, message: "Network error — could not reach the DejaQ server." };
+  }
+}
+
 export async function checkServerHealth(): Promise<{ reachable: boolean; celery: string }> {
   try {
     const response = await fetch(`${getApiBase()}/health`, { signal: AbortSignal.timeout(5000) });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { checkServerHealth } from "@/lib/chat-api";
+import { checkServerHealth, fetchDepartments, isApiError, type Department } from "@/lib/chat-api";
 import type { ChatSettings } from "@/lib/chat-store";
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
 }
 
 type HealthStatus = "idle" | "checking" | "ok" | "error";
+type DeptLoadStatus = "idle" | "loading" | "loaded" | "error";
 
 export default function SettingsModal({ open, initialSettings, onSave, onClose }: Props) {
   const [apiKey, setApiKey] = useState(initialSettings.apiKey);
@@ -19,7 +20,10 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
   const [apiBaseUrl, setApiBaseUrl] = useState(initialSettings.apiBaseUrl);
   const [health, setHealth] = useState<HealthStatus>("idle");
   const [healthText, setHealthText] = useState("");
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [deptStatus, setDeptStatus] = useState<DeptLoadStatus>("idle");
   const firstInputRef = useRef<HTMLInputElement>(null);
+  const deptFetchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset local state whenever the modal opens with fresh initial values.
   useEffect(() => {
@@ -29,9 +33,40 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
     setApiBaseUrl(initialSettings.apiBaseUrl);
     setHealth("idle");
     setHealthText("");
-    // Focus the first field after the modal finishes mounting.
+    setDepartments([]);
+    setDeptStatus("idle");
     setTimeout(() => firstInputRef.current?.focus(), 50);
   }, [open, initialSettings.apiKey, initialSettings.deptSlug, initialSettings.apiBaseUrl]);
+
+  // Load departments whenever the API key (or base URL) changes — debounced 600ms.
+  useEffect(() => {
+    if (deptFetchRef.current) clearTimeout(deptFetchRef.current);
+    if (!apiKey.trim()) {
+      setDepartments([]);
+      setDeptStatus("idle");
+      setDeptSlug("");
+      return;
+    }
+    setDeptStatus("loading");
+    deptFetchRef.current = setTimeout(async () => {
+      const result = await fetchDepartments(apiKey.trim(), apiBaseUrl.trim());
+      if (isApiError(result)) {
+        setDepartments([]);
+        setDeptStatus("error");
+        setDeptSlug("");
+      } else {
+        setDepartments(result);
+        setDeptStatus("loaded");
+        // Keep the previous selection only if it still exists in the new list.
+        setDeptSlug((prev) =>
+          result.some((d) => d.slug === prev) ? prev : result[0]?.slug ?? ""
+        );
+      }
+    }, 600);
+    return () => {
+      if (deptFetchRef.current) clearTimeout(deptFetchRef.current);
+    };
+  }, [apiKey, apiBaseUrl]);
 
   // Close on Escape key.
   useEffect(() => {
@@ -60,6 +95,8 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
     onSave({ apiKey: apiKey.trim(), deptSlug: deptSlug.trim(), apiBaseUrl: apiBaseUrl.trim() });
     onClose();
   }
+
+  const canSave = apiKey.trim().length > 0 && deptSlug.trim().length > 0;
 
   if (!open) return null;
 
@@ -147,18 +184,42 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
             />
           </Field>
 
+          {/* Department selector */}
           <Field
-            label="Department Slug"
-            hint="Optional — scopes requests to a specific department's cache namespace"
+            label={
+              <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                Department
+                <span style={{ color: "var(--red)", fontSize: "11px" }}>required</span>
+                {deptStatus === "loading" && (
+                  <span style={{ color: "var(--fg-dimmer)", fontSize: "11px" }}>Loading…</span>
+                )}
+                {deptStatus === "error" && (
+                  <span style={{ color: "var(--red)", fontSize: "11px" }}>Could not load</span>
+                )}
+              </span>
+            }
+            hint="Select the department whose cache namespace you want to use"
           >
-            <input
-              type="text"
+            <select
               value={deptSlug}
               onChange={(e) => setDeptSlug(e.target.value)}
-              placeholder="engineering"
-              style={inputStyle}
-              autoComplete="off"
-            />
+              disabled={deptStatus === "loading" || !apiKey.trim()}
+              style={{
+                ...inputStyle,
+                cursor: deptStatus === "loading" || !apiKey.trim() ? "not-allowed" : "pointer",
+                opacity: deptStatus === "loading" || !apiKey.trim() ? 0.55 : 1,
+              }}
+            >
+              {departments.length === 0 ? (
+                <option value="">--</option>
+              ) : (
+                departments.map((d) => (
+                  <option key={d.id} value={d.slug}>
+                    {d.label} ({d.slug})
+                  </option>
+                ))
+              )}
+            </select>
           </Field>
 
           <Field
@@ -226,7 +287,12 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
           <button onClick={onClose} style={btn("secondary")}>
             Cancel
           </button>
-          <button onClick={handleSave} style={btn("primary")}>
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            title={!canSave ? "API key and department are required" : undefined}
+            style={btn("primary", !canSave)}
+          >
             Save settings
           </button>
         </div>
@@ -235,7 +301,15 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: React.ReactNode;
+  hint: string;
+  children: React.ReactNode;
+}) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
       <span style={{ color: "var(--fg)", fontSize: "12px", fontWeight: 500 }}>{label}</span>
