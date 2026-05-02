@@ -8,23 +8,44 @@ export interface ChatSettings {
   apiKey: string;
   deptSlug: string;
   apiBaseUrl: string; // overrides NEXT_PUBLIC_API_BASE_URL when non-empty
+  modelProfile: ModelProfile;
+  routingMode: RoutingMode;
 }
 
-const DEFAULTS: ChatSettings = { apiKey: "", deptSlug: "", apiBaseUrl: "" };
+export type ModelProfile = "default" | "weak_cpu";
+export type RoutingMode = "auto" | "easy_local" | "hard_external";
+
+export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
+  apiKey: "",
+  deptSlug: "",
+  apiBaseUrl: "",
+  modelProfile: "default",
+  routingMode: "auto",
+};
+
+function parseModelProfile(value: unknown): ModelProfile {
+  return value === "weak_cpu" ? "weak_cpu" : "default";
+}
+
+function parseRoutingMode(value: unknown): RoutingMode {
+  return value === "easy_local" || value === "hard_external" ? value : "auto";
+}
 
 export function loadSettings(): ChatSettings {
-  if (typeof window === "undefined") return DEFAULTS;
+  if (typeof window === "undefined") return DEFAULT_CHAT_SETTINGS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULTS;
+    if (!raw) return DEFAULT_CHAT_SETTINGS;
     const parsed = JSON.parse(raw);
     return {
       apiKey: typeof parsed.apiKey === "string" ? parsed.apiKey : "",
       deptSlug: typeof parsed.deptSlug === "string" ? parsed.deptSlug : "",
       apiBaseUrl: typeof parsed.apiBaseUrl === "string" ? parsed.apiBaseUrl : "",
+      modelProfile: parseModelProfile(parsed.modelProfile),
+      routingMode: parseRoutingMode(parsed.routingMode),
     };
   } catch {
-    return DEFAULTS;
+    return DEFAULT_CHAT_SETTINGS;
   }
 }
 

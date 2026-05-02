@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { checkServerHealth, fetchDepartments, isApiError, type Department } from "@/lib/chat-api";
-import type { ChatSettings } from "@/lib/chat-store";
+import type { ChatSettings, ModelProfile, RoutingMode } from "@/lib/chat-store";
 
 interface Props {
   open: boolean;
@@ -18,6 +18,8 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
   const [apiKey, setApiKey] = useState(initialSettings.apiKey);
   const [deptSlug, setDeptSlug] = useState(initialSettings.deptSlug);
   const [apiBaseUrl, setApiBaseUrl] = useState(initialSettings.apiBaseUrl);
+  const [modelProfile, setModelProfile] = useState<ModelProfile>(initialSettings.modelProfile);
+  const [routingMode, setRoutingMode] = useState<RoutingMode>(initialSettings.routingMode);
   const [health, setHealth] = useState<HealthStatus>("idle");
   const [healthText, setHealthText] = useState("");
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -31,12 +33,21 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
     setApiKey(initialSettings.apiKey);
     setDeptSlug(initialSettings.deptSlug);
     setApiBaseUrl(initialSettings.apiBaseUrl);
+    setModelProfile(initialSettings.modelProfile);
+    setRoutingMode(initialSettings.routingMode);
     setHealth("idle");
     setHealthText("");
     setDepartments([]);
     setDeptStatus("idle");
     setTimeout(() => firstInputRef.current?.focus(), 50);
-  }, [open, initialSettings.apiKey, initialSettings.deptSlug, initialSettings.apiBaseUrl]);
+  }, [
+    open,
+    initialSettings.apiKey,
+    initialSettings.deptSlug,
+    initialSettings.apiBaseUrl,
+    initialSettings.modelProfile,
+    initialSettings.routingMode,
+  ]);
 
   // Load departments whenever the API key (or base URL) changes — debounced 600ms.
   useEffect(() => {
@@ -92,7 +103,13 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
   }
 
   function handleSave() {
-    onSave({ apiKey: apiKey.trim(), deptSlug: deptSlug.trim(), apiBaseUrl: apiBaseUrl.trim() });
+    onSave({
+      apiKey: apiKey.trim(),
+      deptSlug: deptSlug.trim(),
+      apiBaseUrl: apiBaseUrl.trim(),
+      modelProfile,
+      routingMode,
+    });
     onClose();
   }
 
@@ -235,6 +252,53 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
               autoComplete="off"
             />
           </Field>
+
+          <div
+            style={{
+              background: "var(--bg)",
+              border: "1px solid var(--border)",
+              borderRadius: "6px",
+              padding: "12px",
+            }}
+          >
+            <div style={{ marginBottom: "12px" }}>
+              <div style={{ color: "var(--fg)", fontSize: "12px", fontWeight: 600 }}>
+                Temporary developer overrides
+              </div>
+              <div style={{ color: "var(--fg-dimmer)", fontSize: "11px", lineHeight: 1.45, marginTop: "3px" }}>
+                Browser-only controls for CPU-only testing.
+              </div>
+            </div>
+            <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "1fr" }}>
+              <Field
+                label="Local model profile"
+                hint="Weak CPU uses Qwen 0.5B for local roles"
+              >
+                <select
+                  value={modelProfile}
+                  onChange={(e) => setModelProfile(e.target.value as ModelProfile)}
+                  style={{ ...inputStyle, cursor: "pointer" }}
+                >
+                  <option value="default">Default</option>
+                  <option value="weak_cpu">Weak CPU Test</option>
+                </select>
+              </Field>
+              <Field
+                label="Routing mode"
+                hint="Forced modes skip the classifier"
+              >
+                <select
+                  value={routingMode}
+                  onChange={(e) => setRoutingMode(e.target.value as RoutingMode)}
+                  style={{ ...inputStyle, cursor: "pointer" }}
+                >
+                  <option value="auto">Auto</option>
+                  <option value="easy_local">Force Easy/Local</option>
+                  <option value="hard_external">Force Hard/External</option>
+                </select>
+              </Field>
+            </div>
+          </div>
 
           {/* Connection test */}
           <div

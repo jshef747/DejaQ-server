@@ -40,72 +40,94 @@ def _get_backend(backend_name: str) -> ModelBackend:
     return backend
 
 
-def get_normalizer_service() -> NormalizerService:
-    service = _service_pool.get("normalizer")
+def _service_key(role: str, *parts: str) -> str:
+    return ":".join((role, *parts))
+
+
+def get_normalizer_service(model_name: str | None = None) -> NormalizerService:
+    resolved_model_name = model_name or config.NORMALIZER_MODEL_NAME
+    service_key = _service_key("normalizer", config.NORMALIZER_BACKEND, resolved_model_name)
+    service = _service_pool.get(service_key)
     if service is None:
         service = NormalizerService(
             backend=_get_backend(config.NORMALIZER_BACKEND),
-            model_name=config.NORMALIZER_MODEL_NAME,
+            model_name=resolved_model_name,
         )
-        _service_pool["normalizer"] = service
+        _service_pool[service_key] = service
         logger.info(
             "Configured service role=normalizer backend=%s model=%s",
             config.NORMALIZER_BACKEND,
-            config.NORMALIZER_MODEL_NAME,
+            resolved_model_name,
         )
     return service  # type: ignore[return-value]
 
 
-def get_context_enricher_service() -> ContextEnricherService:
-    service = _service_pool.get("enricher")
+def get_context_enricher_service(model_name: str | None = None) -> ContextEnricherService:
+    resolved_model_name = model_name or config.ENRICHER_MODEL_NAME
+    service_key = _service_key("enricher", config.ENRICHER_BACKEND, resolved_model_name)
+    service = _service_pool.get(service_key)
     if service is None:
         service = ContextEnricherService(
             backend=_get_backend(config.ENRICHER_BACKEND),
-            model_name=config.ENRICHER_MODEL_NAME,
+            model_name=resolved_model_name,
         )
-        _service_pool["enricher"] = service
+        _service_pool[service_key] = service
         logger.info(
             "Configured service role=enricher backend=%s model=%s",
             config.ENRICHER_BACKEND,
-            config.ENRICHER_MODEL_NAME,
+            resolved_model_name,
         )
     return service  # type: ignore[return-value]
 
 
-def get_context_adjuster_service() -> ContextAdjusterService:
-    service = _service_pool.get("adjuster")
+def get_context_adjuster_service(
+    adjust_model_name: str | None = None,
+    generalize_model_name: str | None = None,
+) -> ContextAdjusterService:
+    resolved_adjust_model_name = adjust_model_name or config.CONTEXT_ADJUSTER_MODEL_NAME
+    resolved_generalize_model_name = generalize_model_name or config.GENERALIZER_MODEL_NAME
+    service_key = _service_key(
+        "adjuster",
+        config.CONTEXT_ADJUSTER_BACKEND,
+        resolved_adjust_model_name,
+        config.GENERALIZER_BACKEND,
+        resolved_generalize_model_name,
+    )
+    service = _service_pool.get(service_key)
     if service is None:
         service = ContextAdjusterService(
             adjust_backend=_get_backend(config.CONTEXT_ADJUSTER_BACKEND),
-            adjust_model_name=config.CONTEXT_ADJUSTER_MODEL_NAME,
+            adjust_model_name=resolved_adjust_model_name,
             generalize_backend=_get_backend(config.GENERALIZER_BACKEND),
-            generalize_model_name=config.GENERALIZER_MODEL_NAME,
+            generalize_model_name=resolved_generalize_model_name,
         )
-        _service_pool["adjuster"] = service
+        _service_pool[service_key] = service
         logger.info(
             "Configured service role=context_adjuster backend=%s model=%s",
             config.CONTEXT_ADJUSTER_BACKEND,
-            config.CONTEXT_ADJUSTER_MODEL_NAME,
+            resolved_adjust_model_name,
         )
         logger.info(
             "Configured service role=generalizer backend=%s model=%s",
             config.GENERALIZER_BACKEND,
-            config.GENERALIZER_MODEL_NAME,
+            resolved_generalize_model_name,
         )
     return service  # type: ignore[return-value]
 
 
-def get_llm_router_service() -> LLMRouterService:
-    service = _service_pool.get("llm_router")
+def get_llm_router_service(model_name: str | None = None) -> LLMRouterService:
+    resolved_model_name = model_name or config.LOCAL_LLM_MODEL_NAME
+    service_key = _service_key("llm_router", config.LOCAL_LLM_BACKEND, resolved_model_name)
+    service = _service_pool.get(service_key)
     if service is None:
         service = LLMRouterService(
             backend=_get_backend(config.LOCAL_LLM_BACKEND),
-            model_name=config.LOCAL_LLM_MODEL_NAME,
+            model_name=resolved_model_name,
         )
-        _service_pool["llm_router"] = service
+        _service_pool[service_key] = service
         logger.info(
             "Configured service role=local_llm backend=%s model=%s",
             config.LOCAL_LLM_BACKEND,
-            config.LOCAL_LLM_MODEL_NAME,
+            resolved_model_name,
         )
     return service  # type: ignore[return-value]

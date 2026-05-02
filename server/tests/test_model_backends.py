@@ -127,6 +127,24 @@ def test_service_factory_selects_ollama_backend_for_configured_role(monkeypatch)
     assert service.model_name == "gemma_e2b"
 
 
+def test_service_factory_can_override_logical_model_for_temporary_profile(monkeypatch):
+    import app.config as config
+    import app.services.service_factory as service_factory
+
+    monkeypatch.setattr(config, "ENRICHER_BACKEND", "in_process")
+    monkeypatch.setattr(config, "ENRICHER_MODEL_NAME", "qwen_1_5b")
+    service_factory._backend_pool.clear()
+    service_factory._service_pool.clear()
+
+    default_service = service_factory.get_context_enricher_service()
+    weak_service = service_factory.get_context_enricher_service(model_name="qwen_0_5b")
+
+    assert default_service.model_name == "qwen_1_5b"
+    assert weak_service.model_name == "qwen_0_5b"
+    assert weak_service is service_factory.get_context_enricher_service(model_name="qwen_0_5b")
+    assert weak_service is not default_service
+
+
 def test_llm_router_can_switch_to_ollama_by_config(monkeypatch):
     import app.config as config
     import app.services.service_factory as service_factory

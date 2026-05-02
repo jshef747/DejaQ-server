@@ -2,6 +2,8 @@
 // Unlike lib/api.ts (server-only), this module runs in the browser and reads
 // credentials from React state, not Supabase session cookies.
 
+import type { ModelProfile, RoutingMode } from "@/lib/chat-store";
+
 function getApiBase(): string {
   // Allow the user to override the base URL via the settings modal at runtime.
   if (typeof window !== "undefined") {
@@ -62,10 +64,17 @@ function userFacingError(status: number, fallback: string): string {
   return HTTP_MESSAGES[status] ?? (fallback.trim() || `Request failed (HTTP ${status}).`);
 }
 
-function buildHeaders(apiKey: string, deptSlug: string): Record<string, string> {
+function buildHeaders(
+  apiKey: string,
+  deptSlug: string,
+  modelProfile: ModelProfile = "default",
+  routingMode: RoutingMode = "auto",
+): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Authorization: `Bearer ${apiKey}`,
+    "X-DejaQ-Model-Profile": modelProfile,
+    "X-DejaQ-Routing-Mode": routingMode,
   };
   const dept = deptSlug.trim();
   if (dept) headers["X-DejaQ-Department"] = dept;
@@ -85,12 +94,14 @@ export async function sendChatMessage(
   messages: ChatApiMessage[],
   apiKey: string,
   deptSlug: string,
+  modelProfile: ModelProfile = "default",
+  routingMode: RoutingMode = "auto",
 ): Promise<ChatResult> {
   let response: Response;
   try {
     response = await fetch(`${getApiBase()}/v1/chat/completions`, {
       method: "POST",
-      headers: buildHeaders(apiKey, deptSlug),
+      headers: buildHeaders(apiKey, deptSlug, modelProfile, routingMode),
       body: JSON.stringify({ model: "default", messages, stream: false }),
     });
   } catch {

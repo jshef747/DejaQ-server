@@ -4,6 +4,7 @@ import hashlib
 import logging
 import time
 import uuid
+from dataclasses import dataclass
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, BackgroundTasks, Request
@@ -46,6 +47,21 @@ logger = logging.getLogger("dejaq.router.openai_compat")
 
 router = APIRouter()
 
+MODEL_PROFILE_DEFAULT = "default"
+MODEL_PROFILE_WEAK_CPU = "weak_cpu"
+ROUTING_MODE_AUTO = "auto"
+ROUTING_MODE_EASY_LOCAL = "easy_local"
+ROUTING_MODE_HARD_EXTERNAL = "hard_external"
+WEAK_CPU_MODEL_NAME = "qwen_0_5b"
+
+
+@dataclass(frozen=True)
+class ModelServices:
+    normalizer: object
+    llm_router: object
+    adjuster: object
+    enricher: object
+
 # --- Service singletons (shared with main process; each service is safe to instantiate once per router module) ---
 logger.info("Initializing OpenAI-compat services...")
 _normalizer = get_normalizer_service()
@@ -56,6 +72,47 @@ _classifier = ClassifierService()
 _external_llm = ExternalLLMService()
 # MemoryService is namespace-aware; use get_memory_service(namespace) per-request
 logger.info("OpenAI-compat services ready.")
+
+
+def _request_model_profile(raw_request: Request) -> str:
+    value = raw_request.headers.get("X-DejaQ-Model-Profile", MODEL_PROFILE_DEFAULT).strip().lower()
+    if value == MODEL_PROFILE_WEAK_CPU:
+        return MODEL_PROFILE_WEAK_CPU
+    return MODEL_PROFILE_DEFAULT
+
+
+def _request_routing_mode(raw_request: Request) -> str:
+    value = raw_request.headers.get("X-DejaQ-Routing-Mode", ROUTING_MODE_AUTO).strip().lower()
+    if value in {ROUTING_MODE_AUTO, ROUTING_MODE_EASY_LOCAL, ROUTING_MODE_HARD_EXTERNAL}:
+        return value
+    return ROUTING_MODE_AUTO
+
+
+def _services_for_model_profile(model_profile: str) -> ModelServices:
+    # Temporary developer-only weak CPU profile. Keep the default singleton path
+    # unchanged so production behavior and existing tests remain stable.
+    if model_profile == MODEL_PROFILE_WEAK_CPU:
+        return ModelServices(
+            normalizer=get_normalizer_service(model_name=WEAK_CPU_MODEL_NAME),
+            llm_router=get_llm_router_service(model_name=WEAK_CPU_MODEL_NAME),
+            adjuster=get_context_adjuster_service(
+                adjust_model_name=WEAK_CPU_MODEL_NAME,
+                generalize_model_name=WEAK_CPU_MODEL_NAME,
+            ),
+            enricher=get_context_enricher_service(model_name=WEAK_CPU_MODEL_NAME),
+        )
+    return ModelServices(
+        normalizer=_normalizer,
+        llm_router=_llm_router,
+        adjuster=_adjuster,
+        enricher=_enricher,
+    )
+
+
+def _local_model_used(llm_router: object, model_profile: str) -> str:
+    if model_profile == MODEL_PROFILE_WEAK_CPU:
+        return str(getattr(llm_router, "model_name", WEAK_CPU_MODEL_NAME))
+    return _LOCAL_MODEL_NAME
 
 
 def _doc_id(clean_query: str) -> str:
@@ -75,12 +132,17 @@ def _short_request_id(completion_id: str) -> str:
 
 
 def _bg_generalize_and_store(
-    clean_query: str, answer: str, original_query: str, tenant_id: str, cache_namespace: str = "dejaq_default"
+    clean_query: str,
+    answer: str,
+    original_query: str,
+    tenant_id: str,
+    cache_namespace: str = "dejaq_default",
+    model_profile: str = MODEL_PROFILE_DEFAULT,
 ) -> None:
     start = time.perf_counter()
     doc_id = _doc_id(clean_query)
     try:
-        generalized = asyncio.run(_adjuster.generalize(answer))
+        generalized = asyncio.run(_services_for_model_profile(model_profile).adjuster.generalize(answer))
         memory = get_memory_service(cache_namespace)
         doc_id = memory.store_interaction(clean_query, generalized, original_query, tenant_id)
         latency_ms = int((time.perf_counter() - start) * 1000)
@@ -201,6 +263,9 @@ async def chat_completions(
     completion_id = _new_completion_id()
     request_token = set_request_id(_short_request_id(completion_id))
     max_tokens = oai_request.max_tokens or 1024
+    model_profile = _request_model_profile(raw_request)
+    routing_mode = _request_routing_mode(raw_request)
+    services = _services_for_model_profile(model_profile)
     try:
         query = content_snippet(user_query)
         if query:
@@ -226,7 +291,7 @@ async def chat_completions(
         # 1. Enrich
         try:
             with trace.step("enrich"):
-                enriched = await _enricher.enrich(user_query, history)
+                enriched = await services.enricher.enrich(user_query, history)
         except Exception:
             logger.exception("Enricher failed")
             enriched = user_query
@@ -234,7 +299,7 @@ async def chat_completions(
         # 2. Normalize
         try:
             with trace.step("normalize"):
-                clean_query = await _normalizer.normalize(enriched)
+                clean_query = await services.normalizer.normalize(enriched)
         except Exception:
             logger.exception("Normalizer failed")
             clean_query = enriched
@@ -251,7 +316,7 @@ async def chat_completions(
             cached_answer, _entry_id, _cache_distance = cache_result
             try:
                 with trace.step("adjust"):
-                    answer = await _adjuster.adjust(user_query, cached_answer)
+                    answer = await services.adjuster.adjust(user_query, cached_answer)
             except Exception:
                 logger.exception("Context adjuster failed")
                 answer = cached_answer
@@ -306,16 +371,21 @@ async def chat_completions(
             )
 
         # 4. Cache miss — classify then route
-        try:
-            with trace.step("classify"):
-                classification = _classifier.predict_complexity(user_query)
-        except Exception:
-            logger.exception("Classifier failed")
-            classification = {"complexity": "easy", "score": 0.0, "task_type": "Unknown"}
+        if routing_mode == ROUTING_MODE_EASY_LOCAL:
+            classification = {"complexity": "easy", "score": 0.0, "task_type": "forced_local"}
+        elif routing_mode == ROUTING_MODE_HARD_EXTERNAL:
+            classification = {"complexity": "hard", "score": 1.0, "task_type": "forced_external"}
+        else:
+            try:
+                with trace.step("classify"):
+                    classification = _classifier.predict_complexity(user_query)
+            except Exception:
+                logger.exception("Classifier failed")
+                classification = {"complexity": "easy", "score": 0.0, "task_type": "Unknown"}
 
         complexity = classification["complexity"]
         answer: str = ""
-        model_used: str = _LOCAL_MODEL_NAME
+        model_used: str = _local_model_used(services.llm_router, model_profile)
         route = "external" if complexity == "hard" else "local"
 
         try:
@@ -384,13 +454,13 @@ async def chat_completions(
                         system_prompt
                         or "You are a helpful assistant. Answer the user's query concisely and accurately."
                     )
-                    answer, _ = await _llm_router.generate_local_response(
+                    answer, _ = await services.llm_router.generate_local_response(
                         user_query,
                         history=history,
                         max_tokens=max_tokens,
                         system_prompt=llm_system_prompt,
                     )
-                    model_used = _LOCAL_MODEL_NAME
+                    model_used = _local_model_used(services.llm_router, model_profile)
         except ExternalLLMError as exc:
             if "not wired to a live client" in str(exc):
                 return JSONResponse(status_code=422, content={"detail": str(exc)})
@@ -420,11 +490,20 @@ async def chat_completions(
             miss_response_id = f"{cache_namespace}:{miss_doc_id}"
             with trace.step("store"):
                 if USE_CELERY:
-                    generalize_and_store_task.delay(clean_query, answer, user_query, org_slug, cache_namespace)
+                    generalize_and_store_task.apply_async(
+                        args=(clean_query, answer, user_query, org_slug, cache_namespace),
+                        headers={"dejaq_model_profile": model_profile},
+                    )
                     store_status = "queued"
                 else:
                     background_tasks.add_task(
-                        _bg_generalize_and_store, clean_query, answer, user_query, org_slug, cache_namespace
+                        _bg_generalize_and_store,
+                        clean_query,
+                        answer,
+                        user_query,
+                        org_slug,
+                        cache_namespace,
+                        model_profile,
                     )
                     store_status = "background"
 

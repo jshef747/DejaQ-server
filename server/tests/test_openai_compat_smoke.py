@@ -28,7 +28,10 @@ class StubRouter:
 
 
 class StubClassifier:
+    calls = 0
+
     def predict_complexity(self, query: str) -> dict:
+        self.calls += 1
         return {"complexity": "easy", "score": 0.0, "task_type": "qa"}
 
 
@@ -85,6 +88,150 @@ def test_chat_completions_smoke_preserves_response_shape(monkeypatch):
     assert payload["choices"][0]["message"]["content"] == "Paris is the capital of France."
     assert response.headers["x-dejaq-model-used"] == openai_compat._LOCAL_MODEL_NAME
     assert "x-dejaq-conversation-id" in response.headers
+
+
+def test_force_easy_local_header_skips_classifier(monkeypatch):
+    async def _noop_log(*args, **kwargs):
+        return None
+
+    class ExplodingClassifier:
+        def predict_complexity(self, query: str) -> dict:
+            raise AssertionError("classifier should be skipped")
+
+    monkeypatch.setattr(openai_compat, "_enricher", StubEnricher())
+    monkeypatch.setattr(openai_compat, "_normalizer", StubNormalizer())
+    monkeypatch.setattr(openai_compat, "_adjuster", StubAdjuster())
+    monkeypatch.setattr(openai_compat, "_llm_router", StubRouter())
+    monkeypatch.setattr(openai_compat, "_classifier", ExplodingClassifier())
+    monkeypatch.setattr(openai_compat, "_external_llm", StubExternalLLM())
+    monkeypatch.setattr(openai_compat, "get_memory_service", lambda namespace: StubMemory())
+    monkeypatch.setattr(openai_compat.request_logger, "log", _noop_log)
+    monkeypatch.setattr(openai_compat.cache_filter, "should_cache", lambda enriched, clean: (False, "test"))
+    monkeypatch.setattr(openai_compat, "USE_CELERY", False)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"X-DejaQ-Routing-Mode": "easy_local"},
+        json={
+            "model": "gpt-4o-mini",
+            "messages": [{"role": "user", "content": "What is the capital of France?"}],
+            "stream": False,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["x-dejaq-model-used"] == openai_compat._LOCAL_MODEL_NAME
+
+
+def test_force_hard_external_header_skips_classifier(monkeypatch):
+    async def _noop_log(*args, **kwargs):
+        return None
+
+    class ExplodingClassifier:
+        def predict_complexity(self, query: str) -> dict:
+            raise AssertionError("classifier should be skipped")
+
+    monkeypatch.setattr(openai_compat, "_enricher", StubEnricher())
+    monkeypatch.setattr(openai_compat, "_normalizer", StubNormalizer())
+    monkeypatch.setattr(openai_compat, "_classifier", ExplodingClassifier())
+    monkeypatch.setattr(openai_compat, "_external_llm", StubExternalLLM())
+    monkeypatch.setattr(openai_compat, "get_memory_service", lambda namespace: StubMemory())
+    monkeypatch.setattr(openai_compat.request_logger, "log", _noop_log)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"X-DejaQ-Routing-Mode": "hard_external"},
+        json={
+            "model": "gpt-4o-mini",
+            "messages": [{"role": "user", "content": "Explain a hard thing."}],
+            "stream": False,
+        },
+    )
+
+    assert response.status_code == 402
+    assert response.json()["detail"].startswith("No google API key configured")
+
+
+def test_weak_cpu_profile_uses_weak_local_services(monkeypatch):
+    async def _noop_log(*args, **kwargs):
+        return None
+
+    class WeakRouter:
+        model_name = "qwen_0_5b"
+
+        async def generate_local_response(self, query: str, history=None, max_tokens=1024, system_prompt=None):
+            return "weak local answer", 10.0
+
+    monkeypatch.setattr(openai_compat, "get_context_enricher_service", lambda model_name=None: StubEnricher())
+    monkeypatch.setattr(openai_compat, "get_normalizer_service", lambda model_name=None: StubNormalizer())
+    monkeypatch.setattr(openai_compat, "get_context_adjuster_service", lambda **kwargs: StubAdjuster())
+    monkeypatch.setattr(openai_compat, "get_llm_router_service", lambda model_name=None: WeakRouter())
+    monkeypatch.setattr(openai_compat, "_classifier", StubClassifier())
+    monkeypatch.setattr(openai_compat, "_external_llm", StubExternalLLM())
+    monkeypatch.setattr(openai_compat, "get_memory_service", lambda namespace: StubMemory())
+    monkeypatch.setattr(openai_compat.request_logger, "log", _noop_log)
+    monkeypatch.setattr(openai_compat.cache_filter, "should_cache", lambda enriched, clean: (False, "test"))
+    monkeypatch.setattr(openai_compat, "USE_CELERY", False)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/chat/completions",
+        headers={
+            "X-DejaQ-Model-Profile": "weak_cpu",
+            "X-DejaQ-Routing-Mode": "easy_local",
+        },
+        json={
+            "model": "gpt-4o-mini",
+            "messages": [{"role": "user", "content": "What is the capital of France?"}],
+            "stream": False,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["choices"][0]["message"]["content"] == "weak local answer"
+    assert response.headers["x-dejaq-model-used"] == "qwen_0_5b"
+
+
+def test_celery_store_keeps_legacy_args_and_sends_profile_header(monkeypatch):
+    async def _noop_log(*args, **kwargs):
+        return None
+
+    captured: dict[str, object] = {}
+
+    class FakeTask:
+        def apply_async(self, *, args, headers):
+            captured["args"] = args
+            captured["headers"] = headers
+
+    monkeypatch.setattr(openai_compat, "get_context_enricher_service", lambda model_name=None: StubEnricher())
+    monkeypatch.setattr(openai_compat, "get_normalizer_service", lambda model_name=None: StubNormalizer())
+    monkeypatch.setattr(openai_compat, "get_context_adjuster_service", lambda **kwargs: StubAdjuster())
+    monkeypatch.setattr(openai_compat, "get_llm_router_service", lambda model_name=None: StubRouter())
+    monkeypatch.setattr(openai_compat, "generalize_and_store_task", FakeTask())
+    monkeypatch.setattr(openai_compat, "get_memory_service", lambda namespace: StubMemory())
+    monkeypatch.setattr(openai_compat.request_logger, "log", _noop_log)
+    monkeypatch.setattr(openai_compat.cache_filter, "should_cache", lambda enriched, clean: (True, "test"))
+    monkeypatch.setattr(openai_compat, "USE_CELERY", True)
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/chat/completions",
+        headers={
+            "X-DejaQ-Model-Profile": "weak_cpu",
+            "X-DejaQ-Routing-Mode": "easy_local",
+        },
+        json={
+            "model": "gpt-4o-mini",
+            "messages": [{"role": "user", "content": "What is the capital of France?"}],
+            "stream": False,
+        },
+    )
+
+    assert response.status_code == 200
+    assert len(captured["args"]) == 5
+    assert captured["headers"] == {"dejaq_model_profile": "weak_cpu"}
 
 
 def test_chat_completions_logs_compact_miss_summary(monkeypatch, caplog):

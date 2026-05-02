@@ -24,17 +24,22 @@ def _is_suppressed(clean_query: str) -> bool:
         return False  # Redis unavailable: proceed with storage
 
 # Lazy-initialized adjuster (one per worker process; MemoryService is pooled per namespace)
-_context_adjuster: ContextAdjusterService | None = None
+_context_adjusters: dict[str, ContextAdjusterService] = {}
 _worker_loop: asyncio.AbstractEventLoop | None = None
 
 
-def _get_adjuster() -> ContextAdjusterService:
+def _get_adjuster(model_profile: str = "default") -> ContextAdjusterService:
     """Lazy-load ContextAdjusterService on first task execution in this worker process."""
-    global _context_adjuster
-    if _context_adjuster is None:
-        logger.info("Initializing ContextAdjusterService in worker...")
-        _context_adjuster = get_context_adjuster_service()
-    return _context_adjuster
+    if model_profile not in _context_adjusters:
+        logger.info("Initializing ContextAdjusterService in worker profile=%s...", model_profile)
+        if model_profile == "weak_cpu":
+            _context_adjusters[model_profile] = get_context_adjuster_service(
+                adjust_model_name="qwen_0_5b",
+                generalize_model_name="qwen_0_5b",
+            )
+        else:
+            _context_adjusters[model_profile] = get_context_adjuster_service()
+    return _context_adjusters[model_profile]
 
 
 def _run_async_in_worker(coro):
@@ -59,6 +64,7 @@ def generalize_and_store_task(
     original_query: str,
     user_id: str,
     cache_namespace: str = "dejaq_default",
+    model_profile: str = "default",
 ) -> dict:
     """Generalize an LLM answer (via Phi-3.5) and store in ChromaDB cache.
 
@@ -72,7 +78,9 @@ def generalize_and_store_task(
         return {"status": "suppressed", "clean_query": clean_query}
 
     try:
-        context_adjuster = _get_adjuster()
+        headers = getattr(self.request, "headers", None) or {}
+        resolved_model_profile = headers.get("dejaq_model_profile") or model_profile
+        context_adjuster = _get_adjuster(resolved_model_profile)
         memory = get_memory_service(cache_namespace)
         generalized = _run_async_in_worker(context_adjuster.generalize(answer))
         doc_id = memory.store_interaction(clean_query, generalized, original_query, user_id)

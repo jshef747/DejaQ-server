@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { sendChatMessage, sendFeedback, isApiError, type FeedbackRating } from "@/lib/chat-api";
-import { loadSettings, persistSettings, type ChatSettings } from "@/lib/chat-store";
+import { DEFAULT_CHAT_SETTINGS, loadSettings, persistSettings, type ChatSettings } from "@/lib/chat-store";
 import ChatMessage, { type AppMessage, type FeedbackPhase } from "@/components/chat/ChatMessage";
 import MessageInput from "@/components/chat/MessageInput";
 import SettingsModal from "@/components/chat/SettingsModal";
@@ -27,7 +27,7 @@ export default function ChatApp() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settings, setSettings] = useState<ChatSettings>({ apiKey: "", deptSlug: "", apiBaseUrl: "" });
+  const [settings, setSettings] = useState<ChatSettings>(DEFAULT_CHAT_SETTINGS);
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -78,7 +78,13 @@ export default function ChatApp() {
     // Build the conversation history to send (role + content only — no metadata).
     const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
 
-    const result = await sendChatMessage(history, settings.apiKey, settings.deptSlug);
+    const result = await sendChatMessage(
+      history,
+      settings.apiKey,
+      settings.deptSlug,
+      settings.modelProfile,
+      settings.routingMode,
+    );
     setIsLoading(false);
 
     if (isApiError(result)) {
