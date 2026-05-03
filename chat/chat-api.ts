@@ -2,7 +2,7 @@
 // Unlike lib/api.ts (server-only), this module runs in the browser and reads
 // credentials from React state, not Supabase session cookies.
 
-import type { ModelProfile, RoutingMode } from "@/lib/chat-store";
+import type { ModelProfile, RoutingMode } from "./chat-store";
 
 function getApiBase(): string {
   // Allow the user to override the base URL via the settings modal at runtime.

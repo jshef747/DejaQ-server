@@ -2,13 +2,31 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { sendChatMessage, sendFeedback, isApiError, type FeedbackRating } from "@/lib/chat-api";
-import { DEFAULT_CHAT_SETTINGS, loadSettings, persistSettings, type ChatSettings } from "@/lib/chat-store";
-import ChatMessage, { type AppMessage, type FeedbackPhase } from "@/components/chat/ChatMessage";
-import MessageInput from "@/components/chat/MessageInput";
-import SettingsModal from "@/components/chat/SettingsModal";
-import TypingIndicator from "@/components/chat/TypingIndicator";
-import ToastStack, { type ToastData } from "@/components/chat/Toast";
+import {
+  sendChatMessage,
+  sendFeedback,
+  isApiError,
+  type FeedbackRating,
+} from "./chat-api";
+import {
+  DEFAULT_CHAT_SETTINGS,
+  loadSettings,
+  persistSettings,
+  type ChatSettings,
+} from "./chat-store";
+import {
+  loadConversations,
+  saveConversation,
+  deleteConversation,
+  titleFromMessages,
+  type StoredConversation,
+} from "./conversation-store";
+import ChatMessage, { type AppMessage, type FeedbackPhase } from "./ChatMessage";
+import ConversationSidebar from "./ConversationSidebar";
+import MessageInput from "./MessageInput";
+import SettingsModal from "./SettingsModal";
+import TypingIndicator from "./TypingIndicator";
+import ToastStack, { type ToastData } from "./Toast";
 
 const WELCOME_PROMPTS = [
   "What are the main benefits of semantic caching for LLM APIs?",
@@ -29,14 +47,17 @@ export default function ChatApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<ChatSettings>(DEFAULT_CHAT_SETTINGS);
   const [toasts, setToasts] = useState<ToastData[]>([]);
+  const [conversations, setConversations] = useState<StoredConversation[]>([]);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Load settings from localStorage on first render.
+  // Load settings and conversation history from localStorage on first render.
   useEffect(() => {
     setSettings(loadSettings());
+    setConversations(loadConversations());
   }, []);
 
-  // Scroll to the newest message whenever messages change.
+  // Scroll to the newest message whenever the list changes.
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
@@ -60,6 +81,49 @@ export default function ChatApp() {
     setSettings(next);
   }
 
+  // Persist the given messages under the given conversation ID and refresh sidebar.
+  function persistConversation(convId: string, currentMessages: AppMessage[]) {
+    const conv: StoredConversation = {
+      id: convId,
+      title: titleFromMessages(currentMessages),
+      messages: currentMessages,
+      lastUpdated: Date.now(),
+    };
+    saveConversation(conv);
+    setConversations(loadConversations());
+  }
+
+  // Save the current conversation (if any) and start a blank slate.
+  function startNewConversation() {
+    if (messages.length > 0 && activeConvId) {
+      persistConversation(activeConvId, messages);
+    }
+    setMessages([]);
+    setActiveConvId(null);
+    setInput("");
+  }
+
+  // Load a conversation selected from the sidebar.
+  function handleSelectConversation(conv: StoredConversation) {
+    // Save the currently open conversation before switching away.
+    if (messages.length > 0 && activeConvId) {
+      persistConversation(activeConvId, messages);
+    }
+    setActiveConvId(conv.id);
+    setMessages(conv.messages);
+    setInput("");
+  }
+
+  function handleDeleteConversation(id: string) {
+    deleteConversation(id);
+    setConversations(loadConversations());
+    // If the deleted conversation was active, clear the chat area.
+    if (id === activeConvId) {
+      setMessages([]);
+      setActiveConvId(null);
+    }
+  }
+
   async function handleSend() {
     const text = input.trim();
     if (!text || isLoading) return;
@@ -69,14 +133,18 @@ export default function ChatApp() {
       return;
     }
 
-    // Append the user message immediately so the UI feels responsive.
     const userMsg: AppMessage = { id: newId(), role: "user", content: text, ts: Date.now() };
-    setMessages((prev) => [...prev, userMsg]);
+
+    // Capture snapshot before any state updates so async code works with stable refs.
+    const preSendMessages = messages;
+    const withUserMsg = [...preSendMessages, userMsg];
+
+    setMessages(withUserMsg);
     setInput("");
     setIsLoading(true);
 
-    // Build the conversation history to send (role + content only — no metadata).
-    const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
+    // Send the full conversation history so the model has context.
+    const history = withUserMsg.map((m) => ({ role: m.role, content: m.content }));
 
     const result = await sendChatMessage(
       history,
@@ -89,9 +157,8 @@ export default function ChatApp() {
 
     if (isApiError(result)) {
       addToast("error", result.message);
-      // Remove the optimistically added user message on hard errors so the
-      // user can retry without duplicating it.
-      setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
+      // Revert the optimistic user message so the user can retry.
+      setMessages(preSendMessages);
       setInput(text);
       return;
     }
@@ -107,7 +174,14 @@ export default function ChatApp() {
       completionTokens: result.completionTokens,
       feedbackPhase: "idle",
     };
-    setMessages((prev) => [...prev, assistantMsg]);
+
+    const finalMessages = [...withUserMsg, assistantMsg];
+    setMessages(finalMessages);
+
+    // Assign a conversation ID on the first reply and persist to localStorage.
+    const convId = activeConvId ?? `conv_${Date.now()}`;
+    if (!activeConvId) setActiveConvId(convId);
+    persistConversation(convId, finalMessages);
   }
 
   function updateFeedbackPhase(msgId: string, phase: FeedbackPhase) {
@@ -143,11 +217,6 @@ export default function ChatApp() {
     } else {
       addToast("success", `Feedback recorded. New score: ${result.newScore?.toFixed(1) ?? "—"}`);
     }
-  }
-
-  function handleClear() {
-    if (messages.length === 0) return;
-    setMessages([]);
   }
 
   function handleWelcomePrompt(prompt: string) {
@@ -229,20 +298,9 @@ export default function ChatApp() {
           {hasApiKey ? `Connected${settings.deptSlug ? ` · ${settings.deptSlug}` : ""}` : "No API key"}
         </div>
 
-        {/* Spacer */}
         <div style={{ flex: 1 }} />
 
-        {/* Action buttons */}
-        {messages.length > 0 && (
-          <button
-            onClick={handleClear}
-            title="Clear conversation"
-            style={iconBtn()}
-          >
-            <TrashIcon />
-            <span>Clear</span>
-          </button>
-        )}
+        {/* Header action buttons */}
         <button
           onClick={() => setSettingsOpen(true)}
           title="Settings"
@@ -268,44 +326,59 @@ export default function ChatApp() {
         </Link>
       </header>
 
-      {/* ── Message list ── */}
-      <main
-        style={{
-          display: "flex",
-          flex: 1,
-          flexDirection: "column",
-          overflowY: "auto",
-          paddingTop: "16px",
-        }}
-      >
-        {messages.length === 0 ? (
-          <WelcomeScreen
-            hasApiKey={hasApiKey}
-            onOpenSettings={() => setSettingsOpen(true)}
-            onSelectPrompt={handleWelcomePrompt}
-          />
-        ) : (
-          <>
-            {messages.map((msg) => (
-              <ChatMessage
-                key={msg.id}
-                message={msg}
-                onFeedback={handleFeedback}
-              />
-            ))}
-            {isLoading && <TypingIndicator />}
-          </>
-        )}
-        <div ref={bottomRef} />
-      </main>
+      {/* ── Body: sidebar + chat area ── */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* Conversation history sidebar */}
+        <ConversationSidebar
+          conversations={conversations}
+          activeId={activeConvId}
+          onSelect={handleSelectConversation}
+          onNew={startNewConversation}
+          onDelete={handleDeleteConversation}
+        />
 
-      {/* ── Input area ── */}
-      <MessageInput
-        value={input}
-        onChange={setInput}
-        onSend={handleSend}
-        disabled={isLoading}
-      />
+        {/* Main chat area: message list + input */}
+        <div style={{ display: "flex", flex: 1, flexDirection: "column", overflow: "hidden" }}>
+          {/* Message list */}
+          <main
+            style={{
+              display: "flex",
+              flex: 1,
+              flexDirection: "column",
+              overflowY: "auto",
+              paddingTop: "16px",
+            }}
+          >
+            {messages.length === 0 ? (
+              <WelcomeScreen
+                hasApiKey={hasApiKey}
+                onOpenSettings={() => setSettingsOpen(true)}
+                onSelectPrompt={handleWelcomePrompt}
+              />
+            ) : (
+              <>
+                {messages.map((msg) => (
+                  <ChatMessage
+                    key={msg.id}
+                    message={msg}
+                    onFeedback={handleFeedback}
+                  />
+                ))}
+                {isLoading && <TypingIndicator />}
+              </>
+            )}
+            <div ref={bottomRef} />
+          </main>
+
+          {/* Message input */}
+          <MessageInput
+            value={input}
+            onChange={setInput}
+            onSend={handleSend}
+            disabled={isLoading}
+          />
+        </div>
+      </div>
 
       {/* ── Overlays ── */}
       <SettingsModal
@@ -319,7 +392,7 @@ export default function ChatApp() {
   );
 }
 
-// ─── Welcome screen ────────────────────────────────────────────────────────
+// ─── Welcome screen ────────────────────────────────────────────────────────────
 
 function WelcomeScreen({
   hasApiKey,
@@ -388,8 +461,17 @@ function WelcomeScreen({
             width: "100%",
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ flexShrink: 0 }}>
-            <path d="M8 1L15 14H1L8 1z" /><path d="M8 6v3.5M8 11.5v.5" strokeLinecap="round" />
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            style={{ flexShrink: 0 }}
+          >
+            <path d="M8 1L15 14H1L8 1z" />
+            <path d="M8 6v3.5M8 11.5v.5" strokeLinecap="round" />
           </svg>
           <span style={{ flex: 1, fontSize: "12px", lineHeight: 1.45 }}>
             No API key configured. Add your organization API key to start chatting.
@@ -414,8 +496,24 @@ function WelcomeScreen({
       )}
 
       {/* Example prompts */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxWidth: "460px", width: "100%" }}>
-        <p style={{ color: "var(--fg-dimmer)", fontSize: "11px", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          maxWidth: "460px",
+          width: "100%",
+        }}
+      >
+        <p
+          style={{
+            color: "var(--fg-dimmer)",
+            fontSize: "11px",
+            letterSpacing: "0.06em",
+            margin: "0 0 4px",
+            textTransform: "uppercase",
+          }}
+        >
           Try asking
         </p>
         {WELCOME_PROMPTS.map((prompt) => (
@@ -454,7 +552,7 @@ function WelcomeScreen({
   );
 }
 
-// ─── Shared style helpers ──────────────────────────────────────────────────
+// ─── Style helpers ─────────────────────────────────────────────────────────────
 
 function iconBtn(): React.CSSProperties {
   return {
@@ -471,21 +569,13 @@ function iconBtn(): React.CSSProperties {
   };
 }
 
-// ─── Header icons ──────────────────────────────────────────────────────────
+// ─── Header icons ──────────────────────────────────────────────────────────────
 
 function SettingsGearIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
       <circle cx="8" cy="8" r="2.5" />
       <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M2 4h12M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1M6 7v5M10 7v5M3 4l1 9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-9" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

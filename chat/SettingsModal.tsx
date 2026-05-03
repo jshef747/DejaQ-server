@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { checkServerHealth, fetchDepartments, isApiError, type Department } from "@/lib/chat-api";
-import type { ChatSettings, ModelProfile, RoutingMode } from "@/lib/chat-store";
+import { checkServerHealth, fetchDepartments, isApiError, type Department } from "./chat-api";
+import type { ChatSettings, ModelProfile, RoutingMode } from "./chat-store";
 
 interface Props {
   open: boolean;
@@ -120,7 +120,7 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
   const defaultBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
   return (
-    // Backdrop
+    // Backdrop — clicking outside the card closes the modal.
     <div
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
