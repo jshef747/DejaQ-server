@@ -164,7 +164,7 @@ export default function Sidebar({ email }: SidebarProps) {
       {/* Account section */}
       <div className="ds-nav-section">Account</div>
       <Link
-        href="/dashboard/settings"
+        href={buildHref("/dashboard/settings")}
         className={`ds-nav-item${pathname.startsWith("/dashboard/settings") ? " active" : ""}`}
         title="Settings"
         aria-label="Settings"
