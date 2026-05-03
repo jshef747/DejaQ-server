@@ -15,71 +15,52 @@ type HealthStatus = "idle" | "checking" | "ok" | "error";
 type DeptLoadStatus = "idle" | "loading" | "loaded" | "error";
 
 export default function SettingsModal({ open, initialSettings, onSave, onClose }: Props) {
-  const [apiKey, setApiKey] = useState(initialSettings.apiKey);
   const [deptSlug, setDeptSlug] = useState(initialSettings.deptSlug);
-  const [apiBaseUrl, setApiBaseUrl] = useState(initialSettings.apiBaseUrl);
   const [modelProfile, setModelProfile] = useState<ModelProfile>(initialSettings.modelProfile);
   const [routingMode, setRoutingMode] = useState<RoutingMode>(initialSettings.routingMode);
   const [health, setHealth] = useState<HealthStatus>("idle");
   const [healthText, setHealthText] = useState("");
   const [departments, setDepartments] = useState<Department[]>([]);
   const [deptStatus, setDeptStatus] = useState<DeptLoadStatus>("idle");
-  const firstInputRef = useRef<HTMLInputElement>(null);
-  const deptFetchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firstInputRef = useRef<HTMLSelectElement>(null);
 
-  // Reset local state whenever the modal opens with fresh initial values.
   useEffect(() => {
     if (!open) return;
-    setApiKey(initialSettings.apiKey);
     setDeptSlug(initialSettings.deptSlug);
-    setApiBaseUrl(initialSettings.apiBaseUrl);
     setModelProfile(initialSettings.modelProfile);
     setRoutingMode(initialSettings.routingMode);
     setHealth("idle");
     setHealthText("");
     setDepartments([]);
-    setDeptStatus("idle");
+    setDeptStatus("loading");
     setTimeout(() => firstInputRef.current?.focus(), 50);
+
+    let cancelled = false;
+    fetchDepartments().then((result) => {
+      if (cancelled) return;
+      if (isApiError(result)) {
+        setDepartments([]);
+        setDeptStatus("error");
+        setHealth("error");
+        setHealthText(result.message);
+        return;
+      }
+
+      setDepartments(result);
+      setDeptStatus("loaded");
+      setDeptSlug((prev) => (result.some((d) => d.slug === prev) ? prev : result[0]?.slug ?? ""));
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     open,
-    initialSettings.apiKey,
     initialSettings.deptSlug,
-    initialSettings.apiBaseUrl,
     initialSettings.modelProfile,
     initialSettings.routingMode,
   ]);
 
-  // Load departments whenever the API key (or base URL) changes — debounced 600ms.
-  useEffect(() => {
-    if (deptFetchRef.current) clearTimeout(deptFetchRef.current);
-    if (!apiKey.trim()) {
-      setDepartments([]);
-      setDeptStatus("idle");
-      setDeptSlug("");
-      return;
-    }
-    setDeptStatus("loading");
-    deptFetchRef.current = setTimeout(async () => {
-      const result = await fetchDepartments(apiKey.trim(), apiBaseUrl.trim());
-      if (isApiError(result)) {
-        setDepartments([]);
-        setDeptStatus("error");
-        setDeptSlug("");
-      } else {
-        setDepartments(result);
-        setDeptStatus("loaded");
-        // Keep the previous selection only if it still exists in the new list.
-        setDeptSlug((prev) =>
-          result.some((d) => d.slug === prev) ? prev : result[0]?.slug ?? ""
-        );
-      }
-    }, 600);
-    return () => {
-      if (deptFetchRef.current) clearTimeout(deptFetchRef.current);
-    };
-  }, [apiKey, apiBaseUrl]);
-
-  // Close on Escape key.
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -95,32 +76,28 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
     const result = await checkServerHealth();
     if (result.reachable) {
       setHealth("ok");
-      setHealthText(`Connected — Celery: ${result.celery}`);
+      setHealthText(`Connected. Celery: ${result.celery}`);
     } else {
       setHealth("error");
-      setHealthText("Cannot reach the server. Check the API base URL.");
+      setHealthText(result.message ?? "Cannot reach the DejaQ server.");
     }
   }
 
   function handleSave() {
     onSave({
-      apiKey: apiKey.trim(),
       deptSlug: deptSlug.trim(),
-      apiBaseUrl: apiBaseUrl.trim(),
       modelProfile,
       routingMode,
     });
     onClose();
   }
 
-  const canSave = apiKey.trim().length > 0 && deptSlug.trim().length > 0;
+  const canSave = deptSlug.trim().length > 0;
+  const deptDisabled = deptStatus === "loading" || departments.length === 0;
 
   if (!open) return null;
 
-  const defaultBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
-
   return (
-    // Backdrop — clicking outside the card closes the modal.
     <div
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
@@ -137,7 +114,6 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
         zIndex: 50,
       }}
     >
-      {/* Modal card */}
       <div
         style={{
           background: "var(--bg-2)",
@@ -151,7 +127,6 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
           width: "calc(100vw - 40px)",
         }}
       >
-        {/* Header */}
         <div
           style={{
             alignItems: "center",
@@ -161,9 +136,9 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
           }}
         >
           <div>
-            <h2 style={{ fontSize: "14px", fontWeight: 600, margin: 0 }}>Connection Settings</h2>
+            <h2 style={{ fontSize: "14px", fontWeight: 600, margin: 0 }}>Chat Settings</h2>
             <p style={{ color: "var(--fg-dim)", fontSize: "12px", margin: "2px 0 0" }}>
-              Settings are saved locally in your browser.
+              Credentials are configured server-side in chat/.env.local.
             </p>
           </div>
           <button
@@ -180,35 +155,18 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
             }}
             aria-label="Close settings"
           >
-            ✕
+            x
           </button>
         </div>
 
-        {/* Body */}
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "20px" }}>
-          <Field
-            label="Organization API Key"
-            hint="Required — Bearer token for /v1/chat/completions"
-          >
-            <input
-              ref={firstInputRef}
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="dq_..."
-              style={inputStyle}
-              autoComplete="off"
-            />
-          </Field>
-
-          {/* Department selector */}
           <Field
             label={
               <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 Department
                 <span style={{ color: "var(--red)", fontSize: "11px" }}>required</span>
                 {deptStatus === "loading" && (
-                  <span style={{ color: "var(--fg-dimmer)", fontSize: "11px" }}>Loading…</span>
+                  <span style={{ color: "var(--fg-dimmer)", fontSize: "11px" }}>Loading...</span>
                 )}
                 {deptStatus === "error" && (
                   <span style={{ color: "var(--red)", fontSize: "11px" }}>Could not load</span>
@@ -218,17 +176,18 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
             hint="Select the department whose cache namespace you want to use"
           >
             <select
+              ref={firstInputRef}
               value={deptSlug}
               onChange={(e) => setDeptSlug(e.target.value)}
-              disabled={deptStatus === "loading" || !apiKey.trim()}
+              disabled={deptDisabled}
               style={{
                 ...inputStyle,
-                cursor: deptStatus === "loading" || !apiKey.trim() ? "not-allowed" : "pointer",
-                opacity: deptStatus === "loading" || !apiKey.trim() ? 0.55 : 1,
+                cursor: deptDisabled ? "not-allowed" : "pointer",
+                opacity: deptDisabled ? 0.55 : 1,
               }}
             >
               {departments.length === 0 ? (
-                <option value="">--</option>
+                <option value={deptSlug}>{deptSlug || "--"}</option>
               ) : (
                 departments.map((d) => (
                   <option key={d.id} value={d.slug}>
@@ -237,20 +196,6 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
                 ))
               )}
             </select>
-          </Field>
-
-          <Field
-            label="API Base URL"
-            hint={`Optional — overrides the default (${defaultBase})`}
-          >
-            <input
-              type="text"
-              value={apiBaseUrl}
-              onChange={(e) => setApiBaseUrl(e.target.value)}
-              placeholder={defaultBase}
-              style={inputStyle}
-              autoComplete="off"
-            />
           </Field>
 
           <div
@@ -263,10 +208,10 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
           >
             <div style={{ marginBottom: "12px" }}>
               <div style={{ color: "var(--fg)", fontSize: "12px", fontWeight: 600 }}>
-                Temporary developer overrides
+                Developer overrides
               </div>
               <div style={{ color: "var(--fg-dimmer)", fontSize: "11px", lineHeight: 1.45, marginTop: "3px" }}>
-                Browser-only controls for CPU-only testing.
+                Browser controls for CPU-only testing and routing diagnostics.
               </div>
             </div>
             <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "1fr" }}>
@@ -300,7 +245,6 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
             </div>
           </div>
 
-          {/* Connection test */}
           <div
             style={{
               alignItems: "center",
@@ -315,17 +259,17 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
             <div style={{ flex: 1 }}>
               {health === "idle" && (
                 <span style={{ color: "var(--fg-dimmer)", fontSize: "12px" }}>
-                  Test connectivity to the DejaQ server.
+                  Test the chat app's server-side DejaQ connection.
                 </span>
               )}
               {health === "checking" && (
-                <span style={{ color: "var(--fg-dim)", fontSize: "12px" }}>Checking…</span>
+                <span style={{ color: "var(--fg-dim)", fontSize: "12px" }}>Checking...</span>
               )}
               {health === "ok" && (
-                <span style={{ color: "var(--green)", fontSize: "12px" }}>✓ {healthText}</span>
+                <span style={{ color: "var(--green)", fontSize: "12px" }}>{healthText}</span>
               )}
               {health === "error" && (
-                <span style={{ color: "var(--red)", fontSize: "12px" }}>✗ {healthText}</span>
+                <span style={{ color: "var(--red)", fontSize: "12px" }}>{healthText}</span>
               )}
             </div>
             <button
@@ -333,12 +277,11 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
               disabled={health === "checking"}
               style={btn("secondary", health === "checking")}
             >
-              {health === "checking" ? "Testing…" : "Test connection"}
+              {health === "checking" ? "Testing..." : "Test connection"}
             </button>
           </div>
         </div>
 
-        {/* Footer */}
         <div
           style={{
             borderTop: "1px solid var(--border)",
@@ -354,7 +297,7 @@ export default function SettingsModal({ open, initialSettings, onSave, onClose }
           <button
             onClick={handleSave}
             disabled={!canSave}
-            title={!canSave ? "API key and department are required" : undefined}
+            title={!canSave ? "Department is required" : undefined}
             style={btn("primary", !canSave)}
           >
             Save settings

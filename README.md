@@ -22,6 +22,7 @@ OpenAI-compatible request
 ```text
 server/              FastAPI app, gateway, management API, CLI/TUI, Celery tasks
 frontend/            Next.js dashboard using Supabase auth and /admin/v1/*
+chat/                Standalone Next.js chat app with server-side org API key proxy
 normalization-test/  Offline query-normalizer eval harness
 enricher-test/       Offline context-enricher eval harness
 adjuster-test/       Offline context-adjuster eval harness
@@ -62,6 +63,17 @@ npm run dev
 
 The dashboard runs at `http://localhost:3000` and talks to the backend through `NEXT_PUBLIC_API_BASE_URL`.
 
+## Chat
+
+```bash
+cd chat
+npm install
+cp .env.local.example .env.local
+npm run dev
+```
+
+Fill `DEJAQ_API_KEY` in `chat/.env.local`. The chat app runs at `http://localhost:3001`, calls its own `/api/*` routes from the browser, and those server routes forward to the backend through `DEJAQ_API_BASE_URL`.
+
 ## Main Interfaces
 
 - `GET /health`
@@ -94,6 +106,10 @@ uv run pytest --collect-only -q
 uv run pytest -q -m no_model
 
 cd ../frontend
+npx tsc --noEmit --pretty false
+npm run build
+
+cd ../chat
 npx tsc --noEmit --pretty false
 npm run build
 ```

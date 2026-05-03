@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import {
   sendChatMessage,
   sendFeedback,
@@ -62,10 +61,10 @@ export default function ChatApp() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  // Open settings automatically if no API key is configured.
+  // Open settings automatically until the user picks a department.
   useEffect(() => {
-    if (!settings.apiKey) setSettingsOpen(true);
-  }, [settings.apiKey]);
+    if (!settings.deptSlug) setSettingsOpen(true);
+  }, [settings.deptSlug]);
 
   function addToast(kind: ToastData["kind"], message: string) {
     const id = `toast_${Date.now()}_${Math.random()}`;
@@ -127,8 +126,8 @@ export default function ChatApp() {
   async function handleSend() {
     const text = input.trim();
     if (!text || isLoading) return;
-    if (!settings.apiKey) {
-      addToast("error", "Paste your organization API key in Settings to start chatting.");
+    if (!settings.deptSlug) {
+      addToast("error", "Select a department in Settings to start chatting.");
       setSettingsOpen(true);
       return;
     }
@@ -148,7 +147,6 @@ export default function ChatApp() {
 
     const result = await sendChatMessage(
       history,
-      settings.apiKey,
       settings.deptSlug,
       settings.modelProfile,
       settings.routingMode,
@@ -200,7 +198,6 @@ export default function ChatApp() {
       msg.responseId,
       rating,
       comment,
-      settings.apiKey,
       settings.deptSlug,
     );
 
@@ -223,7 +220,8 @@ export default function ChatApp() {
     setInput(prompt);
   }
 
-  const hasApiKey = Boolean(settings.apiKey);
+  const hasDepartment = Boolean(settings.deptSlug);
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3000/dashboard";
 
   return (
     <div
@@ -276,10 +274,10 @@ export default function ChatApp() {
         <div
           style={{
             alignItems: "center",
-            background: hasApiKey ? "var(--green-bg)" : "var(--red-bg)",
-            border: `1px solid ${hasApiKey ? "rgba(34,197,94,0.3)" : "var(--red-border)"}`,
+            background: hasDepartment ? "var(--green-bg)" : "var(--red-bg)",
+            border: `1px solid ${hasDepartment ? "rgba(34,197,94,0.3)" : "var(--red-border)"}`,
             borderRadius: "4px",
-            color: hasApiKey ? "var(--green)" : "var(--red)",
+            color: hasDepartment ? "var(--green)" : "var(--red)",
             display: "flex",
             fontSize: "11px",
             gap: "5px",
@@ -288,14 +286,14 @@ export default function ChatApp() {
         >
           <span
             style={{
-              background: hasApiKey ? "var(--green)" : "var(--red)",
+              background: hasDepartment ? "var(--green)" : "var(--red)",
               borderRadius: "50%",
               display: "inline-block",
               height: "5px",
               width: "5px",
             }}
           />
-          {hasApiKey ? `Connected${settings.deptSlug ? ` · ${settings.deptSlug}` : ""}` : "No API key"}
+          {hasDepartment ? `Department · ${settings.deptSlug}` : "No department"}
         </div>
 
         <div style={{ flex: 1 }} />
@@ -309,8 +307,8 @@ export default function ChatApp() {
           <SettingsGearIcon />
           <span>Settings</span>
         </button>
-        <Link
-          href="/dashboard"
+        <a
+          href={dashboardUrl}
           style={{
             ...iconBtn(),
             color: "var(--fg-dim)",
@@ -323,7 +321,7 @@ export default function ChatApp() {
         >
           <DashboardIcon />
           <span>Dashboard</span>
-        </Link>
+        </a>
       </header>
 
       {/* ── Body: sidebar + chat area ── */}
@@ -351,7 +349,7 @@ export default function ChatApp() {
           >
             {messages.length === 0 ? (
               <WelcomeScreen
-                hasApiKey={hasApiKey}
+                hasDepartment={hasDepartment}
                 onOpenSettings={() => setSettingsOpen(true)}
                 onSelectPrompt={handleWelcomePrompt}
               />
@@ -395,11 +393,11 @@ export default function ChatApp() {
 // ─── Welcome screen ────────────────────────────────────────────────────────────
 
 function WelcomeScreen({
-  hasApiKey,
+  hasDepartment,
   onOpenSettings,
   onSelectPrompt,
 }: {
-  hasApiKey: boolean;
+  hasDepartment: boolean;
   onOpenSettings: () => void;
   onSelectPrompt: (p: string) => void;
 }) {
@@ -445,8 +443,8 @@ function WelcomeScreen({
         </p>
       </div>
 
-      {/* API key warning */}
-      {!hasApiKey && (
+      {/* Department warning */}
+      {!hasDepartment && (
         <div
           style={{
             alignItems: "center",
@@ -474,7 +472,7 @@ function WelcomeScreen({
             <path d="M8 6v3.5M8 11.5v.5" strokeLinecap="round" />
           </svg>
           <span style={{ flex: 1, fontSize: "12px", lineHeight: 1.45 }}>
-            No API key configured. Add your organization API key to start chatting.
+            Select a department to start chatting. The API key is loaded from chat/.env.local.
           </span>
           <button
             onClick={onOpenSettings}
@@ -520,13 +518,13 @@ function WelcomeScreen({
           <button
             key={prompt}
             onClick={() => onSelectPrompt(prompt)}
-            disabled={!hasApiKey}
+            disabled={!hasDepartment}
             style={{
               background: "var(--bg-2)",
               border: "1px solid var(--border)",
               borderRadius: "8px",
-              color: hasApiKey ? "var(--fg)" : "var(--fg-dimmer)",
-              cursor: hasApiKey ? "pointer" : "not-allowed",
+              color: hasDepartment ? "var(--fg)" : "var(--fg-dimmer)",
+              cursor: hasDepartment ? "pointer" : "not-allowed",
               fontSize: "13px",
               lineHeight: 1.5,
               padding: "10px 14px",
@@ -534,7 +532,7 @@ function WelcomeScreen({
               transition: "border-color 0.15s, background 0.15s",
             }}
             onMouseEnter={(e) => {
-              if (hasApiKey) {
+              if (hasDepartment) {
                 (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-3)";
                 (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-2)";
               }

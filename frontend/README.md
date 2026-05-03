@@ -2,6 +2,8 @@
 
 Next.js dashboard for the DejaQ management API. It uses Supabase email/password auth, stores the session through `@supabase/ssr`, and sends the Supabase access token to FastAPI `/admin/v1/*` routes.
 
+The customer chat UI now lives in the standalone `../chat` app. The dashboard no longer imports or serves the chat source.
+
 ## Setup
 
 ```bash

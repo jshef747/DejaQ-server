@@ -1,26 +1,8 @@
-// Client-side API utility for the DejaQ chat gateway and feedback endpoints.
-// Unlike lib/api.ts (server-only), this module runs in the browser and reads
-// credentials from React state, not Supabase session cookies.
+// Browser-side API utility for the standalone chat app.
+// It only calls this Next.js app's /api/* routes; DejaQ credentials stay
+// server-side in chat/.env.local.
 
 import type { ModelProfile, RoutingMode } from "./chat-store";
-
-function getApiBase(): string {
-  // Allow the user to override the base URL via the settings modal at runtime.
-  if (typeof window !== "undefined") {
-    try {
-      const raw = localStorage.getItem("dejaq_chat_settings");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed.apiBaseUrl === "string" && parsed.apiBaseUrl.trim()) {
-          return parsed.apiBaseUrl.trim().replace(/\/$/, "");
-        }
-      }
-    } catch {
-      // Ignore parse errors — fall through to env var.
-    }
-  }
-  return (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
-}
 
 export interface ChatApiMessage {
   role: "user" | "assistant" | "system";
@@ -50,62 +32,47 @@ export function isApiError(v: unknown): v is ApiError {
 }
 
 const HTTP_MESSAGES: Record<number, string> = {
-  401: "Invalid or missing API key — check your organization API key in Settings.",
+  401: "The server-side DejaQ API key was rejected. Check DEJAQ_API_KEY in chat/.env.local.",
   402: "No external LLM credential configured for this organization. Add a provider key in the DejaQ dashboard.",
   403: "Access denied to this organization.",
-  404: "Endpoint not found. Verify the API base URL in Settings.",
+  404: "Endpoint not found. Verify the chat app API routes and backend URL.",
   422: "Malformed request body.",
-  429: "Rate limited — wait a moment and try again.",
+  429: "Rate limited. Wait a moment and try again.",
   500: "Internal server error from the DejaQ backend.",
-  503: "Service unavailable — make sure the DejaQ server is running.",
+  503: "Service unavailable. Make sure the DejaQ server is running.",
 };
-
-function userFacingError(status: number, fallback: string): string {
-  return HTTP_MESSAGES[status] ?? (fallback.trim() || `Request failed (HTTP ${status}).`);
-}
-
-function buildHeaders(
-  apiKey: string,
-  deptSlug: string,
-  modelProfile: ModelProfile = "default",
-  routingMode: RoutingMode = "auto",
-): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${apiKey}`,
-    "X-DejaQ-Model-Profile": modelProfile,
-    "X-DejaQ-Routing-Mode": routingMode,
-  };
-  const dept = deptSlug.trim();
-  if (dept) headers["X-DejaQ-Department"] = dept;
-  return headers;
-}
 
 async function parseErrorDetail(res: Response): Promise<string> {
   try {
     const body = await res.json();
-    return body?.detail ?? body?.message ?? "";
+    return body?.message ?? body?.detail ?? "";
   } catch {
     return "";
   }
 }
 
+function userFacingError(status: number, fallback: string): string {
+  if (status === 424 || fallback.includes("DEJAQ_API_BASE_URL")) {
+    return fallback.trim() || `Request failed (HTTP ${status}).`;
+  }
+  return HTTP_MESSAGES[status] ?? (fallback.trim() || `Request failed (HTTP ${status}).`);
+}
+
 export async function sendChatMessage(
   messages: ChatApiMessage[],
-  apiKey: string,
   deptSlug: string,
   modelProfile: ModelProfile = "default",
   routingMode: RoutingMode = "auto",
 ): Promise<ChatResult> {
   let response: Response;
   try {
-    response = await fetch(`${getApiBase()}/v1/chat/completions`, {
+    response = await fetch("/api/chat", {
       method: "POST",
-      headers: buildHeaders(apiKey, deptSlug, modelProfile, routingMode),
-      body: JSON.stringify({ model: "default", messages, stream: false }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages, deptSlug, modelProfile, routingMode }),
     });
   } catch {
-    return { kind: "error", status: 0, message: "Network error — could not reach the DejaQ server." };
+    return { kind: "error", status: 0, message: "Network error. Could not reach the chat server." };
   }
 
   if (!response.ok) {
@@ -113,23 +80,15 @@ export async function sendChatMessage(
     return { kind: "error", status: response.status, message: userFacingError(response.status, detail) };
   }
 
-  // Extract DejaQ-specific metadata headers before consuming the body.
-  const modelUsed = response.headers.get("x-dejaq-model-used");
-  const responseId = response.headers.get("x-dejaq-response-id");
-  const conversationId = response.headers.get("x-dejaq-conversation-id");
-
   const data = await response.json();
-  const choice = data.choices?.[0];
-  const usage = data.usage ?? {};
-
   return {
     kind: "success",
-    text: choice?.message?.content ?? "",
-    modelUsed,
-    responseId,
-    conversationId,
-    promptTokens: usage.prompt_tokens ?? 0,
-    completionTokens: usage.completion_tokens ?? 0,
+    text: data.text ?? "",
+    modelUsed: data.modelUsed ?? null,
+    responseId: data.responseId ?? null,
+    conversationId: data.conversationId ?? null,
+    promptTokens: data.promptTokens ?? 0,
+    completionTokens: data.completionTokens ?? 0,
   };
 }
 
@@ -147,22 +106,17 @@ export async function sendFeedback(
   responseId: string,
   rating: FeedbackRating,
   comment: string,
-  apiKey: string,
   deptSlug: string,
 ): Promise<FeedbackResult> {
   let response: Response;
   try {
-    response = await fetch(`${getApiBase()}/v1/feedback`, {
+    response = await fetch("/api/feedback", {
       method: "POST",
-      headers: buildHeaders(apiKey, deptSlug),
-      body: JSON.stringify({
-        response_id: responseId,
-        rating,
-        ...(comment.trim() ? { comment: comment.trim() } : {}),
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ responseId, rating, comment, deptSlug }),
     });
   } catch {
-    return { kind: "error", status: 0, message: "Network error — could not submit feedback." };
+    return { kind: "error", status: 0, message: "Network error. Could not submit feedback." };
   }
 
   if (!response.ok) {
@@ -171,7 +125,7 @@ export async function sendFeedback(
   }
 
   const data = await response.json();
-  return { kind: "success", status: data.status, newScore: data.new_score };
+  return { kind: "success", status: data.status, newScore: data.newScore };
 }
 
 export interface Department {
@@ -182,35 +136,29 @@ export interface Department {
 
 export type DepartmentsResult = Department[] | ApiError;
 
-export async function fetchDepartments(
-  apiKey: string,
-  apiBaseUrl?: string,
-): Promise<DepartmentsResult> {
-  const base = apiBaseUrl?.trim().replace(/\/$/, "") || getApiBase();
+export async function fetchDepartments(): Promise<DepartmentsResult> {
   try {
-    const response = await fetch(`${base}/departments`, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-      signal: AbortSignal.timeout(5000),
-    });
+    const response = await fetch("/api/departments", { signal: AbortSignal.timeout(5000) });
     if (!response.ok) {
       const detail = await parseErrorDetail(response);
       return { kind: "error", status: response.status, message: userFacingError(response.status, detail) };
     }
-    return await response.json() as Department[];
+    return (await response.json()) as Department[];
   } catch {
-    return { kind: "error", status: 0, message: "Network error — could not reach the DejaQ server." };
+    return { kind: "error", status: 0, message: "Network error. Could not load departments." };
   }
 }
 
-export async function checkServerHealth(): Promise<{ reachable: boolean; celery: string }> {
+export async function checkServerHealth(): Promise<{ reachable: boolean; celery: string; message?: string }> {
   try {
-    const response = await fetch(`${getApiBase()}/health`, { signal: AbortSignal.timeout(5000) });
-    if (!response.ok) return { reachable: false, celery: "" };
+    const response = await fetch("/api/health", { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response);
+      return { reachable: false, celery: "", message: userFacingError(response.status, detail) };
+    }
     const data = await response.json();
     return { reachable: data.status === "ok", celery: data.celery ?? "" };
   } catch {
-    return { reachable: false, celery: "" };
+    return { reachable: false, celery: "", message: "Network error. Could not reach the chat server." };
   }
 }
