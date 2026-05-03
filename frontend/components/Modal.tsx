@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
+import { X } from "lucide-react";
 
 interface ModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
+  subtitle?: string;
   children: React.ReactNode;
   widthPx?: number;
+  footer?: React.ReactNode;
 }
 
-export default function Modal({ open, onClose, title, children, widthPx = 360 }: ModalProps) {
+export default function Modal({ open, onClose, title, subtitle, children, widthPx = 440, footer }: ModalProps) {
   const panelId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -35,14 +38,7 @@ export default function Modal({ open, onClose, title, children, widthPx = 360 }:
     <div
       role="presentation"
       onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.55)",
-        display: "grid",
-        placeItems: "center",
-        zIndex: 50,
-      }}
+      className="ds-modal-backdrop"
     >
       <div
         ref={panelRef}
@@ -51,46 +47,25 @@ export default function Modal({ open, onClose, title, children, widthPx = 360 }:
         aria-modal="true"
         aria-labelledby={`${panelId}-title`}
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "var(--bg-2)",
-          border: "1px solid var(--border-2)",
-          borderRadius: "8px",
-          padding: "18px 20px",
-          width: `${widthPx}px`,
-          maxWidth: "calc(100vw - 32px)",
-        }}
+        className="ds-modal"
+        style={{ width: widthPx }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "16px",
-          }}
-        >
-          <span
-            id={`${panelId}-title`}
-            style={{ fontWeight: 600, fontSize: "14px", letterSpacing: "-0.01em" }}
-          >
-            {title}
-          </span>
+        <div className="ds-modal-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+          <div>
+            <p id={`${panelId}-title`} className="ds-modal-title">{title}</p>
+            {subtitle && <p className="ds-modal-sub">{subtitle}</p>}
+          </div>
           <button
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--fg-dimmer)",
-              cursor: "pointer",
-              fontSize: "16px",
-              lineHeight: 1,
-              padding: "2px 4px",
-            }}
             aria-label="Close"
+            className="ds-btn ds-btn-ghost ds-btn-icon"
+            style={{ flexShrink: 0, marginTop: "-2px" }}
           >
-            ×
+            <X size={14} />
           </button>
         </div>
-        {children}
+        <div className="ds-modal-body">{children}</div>
+        {footer && <div className="ds-modal-footer">{footer}</div>}
       </div>
     </div>
   );

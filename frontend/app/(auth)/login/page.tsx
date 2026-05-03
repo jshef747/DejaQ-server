@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { signIn } from "@/app/actions/auth";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Field from "@/components/ui/Field";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -20,135 +24,76 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      style={{
-        width: "100%",
-        maxWidth: "380px",
-        background: "var(--bg-2)",
-        border: "1px solid var(--border)",
-        borderRadius: "8px",
-        padding: "32px",
-      }}
-    >
-      <div style={{ marginBottom: "28px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-          <div
-            style={{
-              width: "28px",
-              height: "28px",
-              background: "var(--accent)",
-              borderRadius: "5px",
-              display: "grid",
-              placeItems: "center",
-              fontFamily: "var(--font-mono)",
-              fontWeight: 700,
-              fontSize: "14px",
-              color: "#1a0d00",
-            }}
-          >
-            Dq
-          </div>
-          <span style={{ fontWeight: 600, fontSize: "15px" }}>DejaQ</span>
-        </div>
-        <h1 style={{ margin: "0 0 6px", fontSize: "18px", fontWeight: 600, letterSpacing: "-0.02em" }}>
-          Sign in
-        </h1>
-        <p style={{ margin: 0, color: "var(--fg-dim)", fontSize: "13px" }}>
-          Enter your credentials to continue
-        </p>
-      </div>
+    <div style={{ width: "100%", maxWidth: 360 }}>
+      <h2 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 6px" }}>
+        Welcome back
+      </h2>
+      <p style={{ fontSize: 13, color: "var(--fg-dim)", margin: "0 0 24px" }}>
+        Sign in to continue to DejaQ.
+      </p>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-        <div>
-          <label style={{ display: "block", fontSize: "12px", color: "var(--fg-dim)", marginBottom: "6px" }}>
-            Email
-          </label>
-          <input
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <Field label="Email" required>
+          <Input
             name="email"
             type="email"
             required
-            autoComplete="email"
-            placeholder="you@example.com"
-            style={{
-              width: "100%",
-              background: "var(--bg)",
-              border: "1px solid var(--border-2)",
-              borderRadius: "5px",
-              color: "var(--fg)",
-              padding: "8px 10px",
-              fontSize: "13px",
-              outline: "none",
-            }}
-            onFocus={(e) => (e.target.style.borderColor = "var(--accent)")}
-            onBlur={(e) => (e.target.style.borderColor = "var(--border-2)")}
+            autoComplete="username email"
+            placeholder="you@company.com"
+            autoFocus
           />
-        </div>
+        </Field>
 
-        <div>
-          <label style={{ display: "block", fontSize: "12px", color: "var(--fg-dim)", marginBottom: "6px" }}>
-            Password
-          </label>
-          <input
+        <Field
+          label="Password"
+          required
+          labelRight={
+            <span style={{ fontSize: 11, color: "var(--accent)", cursor: "default" }}>Forgot?</span>
+          }
+        >
+          <Input
             name="password"
             type="password"
             required
             autoComplete="current-password"
             placeholder="••••••••"
-            style={{
-              width: "100%",
-              background: "var(--bg)",
-              border: "1px solid var(--border-2)",
-              borderRadius: "5px",
-              color: "var(--fg)",
-              padding: "8px 10px",
-              fontSize: "13px",
-              outline: "none",
-            }}
-            onFocus={(e) => (e.target.style.borderColor = "var(--accent)")}
-            onBlur={(e) => (e.target.style.borderColor = "var(--border-2)")}
+            reveal
           />
-        </div>
+        </Field>
 
         {error && (
-          <div
-            style={{
-              background: "var(--red-bg)",
-              border: "1px solid var(--red-border)",
-              borderRadius: "5px",
-              padding: "8px 10px",
-              color: "var(--red)",
-              fontSize: "12px",
-            }}
-          >
+          <div style={{
+            background: "var(--red-bg)", border: "1px solid var(--red-border)",
+            borderRadius: 5, padding: "8px 10px", color: "var(--red)",
+            fontSize: 12, marginBottom: 10,
+          }}>
             {error}
           </div>
         )}
 
-        <button
+        <Button
           type="submit"
-          disabled={loading}
-          style={{
-            width: "100%",
-            background: loading ? "var(--bg-3)" : "var(--accent)",
-            color: loading ? "var(--fg-dim)" : "#1a0d00",
-            border: "none",
-            borderRadius: "5px",
-            padding: "9px 16px",
-            fontSize: "13px",
-            fontWeight: 600,
-            cursor: loading ? "not-allowed" : "pointer",
-            marginTop: "4px",
-          }}
+          variant="primary"
+          loading={loading}
+          style={{ width: "100%", padding: "9px 12px", marginTop: 4, fontSize: 13 }}
         >
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
+          Sign in
+          {!loading && <ArrowRight size={13} />}
+        </Button>
       </form>
 
-      <p style={{ marginTop: "20px", textAlign: "center", fontSize: "12px", color: "var(--fg-dimmer)" }}>
+      <p style={{ marginTop: 18, textAlign: "center", fontSize: 12.5, color: "var(--fg-dim)" }}>
         Don&apos;t have an account?{" "}
-        <Link href="/signup" style={{ color: "var(--accent)", textDecoration: "none" }}>
+        <Link href="/signup" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}>
           Sign up
         </Link>
+      </p>
+
+      <p style={{ marginTop: 20, fontSize: 11, color: "var(--fg-dimmer)", textAlign: "center", lineHeight: 1.6 }}>
+        By continuing you agree to our{" "}
+        <a href="#" style={{ color: "var(--fg-dim)", textDecoration: "none" }}>Terms</a>{" "}
+        and{" "}
+        <a href="#" style={{ color: "var(--fg-dim)", textDecoration: "none" }}>Privacy Policy</a>.
       </p>
     </div>
   );

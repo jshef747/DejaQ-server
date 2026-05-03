@@ -17,15 +17,9 @@ export default async function DashboardLayout({
   if (!user) redirect("/login");
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "220px 1fr",
-        minHeight: "100vh",
-      }}
-    >
+    <div className="ds-app">
       <Sidebar email={user.email ?? "unknown"} />
-      <main style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <main className="ds-main">
         {children}
       </main>
     </div>

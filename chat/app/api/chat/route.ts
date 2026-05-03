@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   let response: Response;
+  const fetchStart = Date.now();
   try {
     response = await fetch(`${config.apiBaseUrl}/v1/chat/completions`, {
       method: "POST",
@@ -38,6 +39,7 @@ export async function POST(request: NextRequest) {
   } catch {
     return backendUnavailableError();
   }
+  const latencyMs = Date.now() - fetchStart;
 
   if (!response.ok) {
     return proxyError(response.status, await parseErrorDetail(response));
@@ -54,5 +56,6 @@ export async function POST(request: NextRequest) {
     conversationId: response.headers.get("x-dejaq-conversation-id"),
     promptTokens: usage.prompt_tokens ?? 0,
     completionTokens: usage.completion_tokens ?? 0,
+    latencyMs,
   });
 }
