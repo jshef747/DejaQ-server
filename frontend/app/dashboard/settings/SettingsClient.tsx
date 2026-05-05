@@ -278,7 +278,7 @@ export default function SettingsClient({
               </div>
             </Field>
 
-            <Field label="Difficulty threshold" hint="Lower = more local answers, higher = more provider calls">
+            <Field label="Difficulty threshold" hint="Lower = more provider calls, higher = more local answers">
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <input
                   type="range"

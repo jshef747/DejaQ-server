@@ -11,6 +11,7 @@ def test_llm_config_update_rejects_empty_body_and_out_of_range_threshold():
     with pytest.raises(ValidationError):
         LlmConfigUpdate(routing_threshold=1.5)
 
+    assert LlmConfigUpdate(routing_threshold=0.0).routing_threshold == 0.0
     assert LlmConfigUpdate(external_model=None).external_model is None
 
 

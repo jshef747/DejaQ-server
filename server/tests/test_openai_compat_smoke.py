@@ -40,6 +40,11 @@ class HardClassifier:
         return {"complexity": "hard", "score": 0.99, "task_type": "qa"}
 
 
+class EasyLabelHighScoreClassifier:
+    def predict_complexity(self, query: str) -> dict:
+        return {"complexity": "easy", "score": 0.42, "task_type": "qa"}
+
+
 class StubExternalLLM:
     async def generate_response(self, request, provider=None, api_key=None):
         raise AssertionError("External LLM should not be called for easy query smoke test")
@@ -152,6 +157,145 @@ def test_force_hard_external_header_skips_classifier(monkeypatch):
 
     assert response.status_code == 402
     assert response.json()["detail"].startswith("No google API key configured")
+
+
+def test_auto_routing_uses_org_threshold_zero_to_route_external(monkeypatch):
+    async def _noop_log(*args, **kwargs):
+        return None
+
+    class CapturingExternalLLM:
+        async def generate_response(self, request, provider=None, api_key=None):
+            self.request = request
+            self.provider = provider
+            self.api_key = api_key
+            from app.schemas.chat import ExternalLLMResponse
+
+            return ExternalLLMResponse(
+                text="external answer",
+                model_used=request.model,
+                prompt_tokens=5,
+                completion_tokens=6,
+                latency_ms=10.0,
+            )
+
+    external = CapturingExternalLLM()
+
+    monkeypatch.setattr(openai_compat, "_enricher", StubEnricher())
+    monkeypatch.setattr(openai_compat, "_normalizer", StubNormalizer())
+    monkeypatch.setattr(openai_compat, "_classifier", EasyLabelHighScoreClassifier())
+    monkeypatch.setattr(openai_compat, "_external_llm", external)
+    monkeypatch.setattr(openai_compat, "get_memory_service", lambda namespace: StubMemory())
+    monkeypatch.setattr(openai_compat.request_logger, "log", _noop_log)
+    monkeypatch.setattr(openai_compat.cache_filter, "should_cache", lambda enriched, clean: (False, "test"))
+    monkeypatch.setattr(openai_compat, "USE_CELERY", False)
+    monkeypatch.setattr(
+        openai_compat,
+        "_read_effective_llm_config",
+        lambda org_slug, org_id: openai_compat.EffectiveLlmConfig(
+            external_model="gpt-5.4-mini",
+            routing_threshold=0.0,
+        ),
+    )
+    monkeypatch.setattr(
+        openai_compat.CredentialService,
+        "get_decrypted_key",
+        lambda self, session, org_id, provider: "sk-openai-live",
+    )
+
+    from app.middleware.api_key import _KEY_CACHE
+
+    monkeypatch.setattr(_KEY_CACHE, "resolve", lambda token: ("acme", 123))
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": "Bearer org-key"},
+        json={
+            "model": "gpt-4o-mini",
+            "messages": [{"role": "user", "content": "What is the capital of France?"}],
+            "stream": False,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["choices"][0]["message"]["content"] == "external answer"
+    assert response.headers["x-dejaq-prompt-difficulty"] == "hard"
+    assert response.headers["x-dejaq-model-used"] == "gpt-5.4-mini"
+    assert external.provider == "openai"
+    assert external.api_key == "sk-openai-live"
+    assert external.request.model == "gpt-5.4-mini"
+
+
+def test_force_hard_external_uses_org_external_model_provider(monkeypatch):
+    async def _noop_log(*args, **kwargs):
+        return None
+
+    class ExplodingClassifier:
+        def predict_complexity(self, query: str) -> dict:
+            raise AssertionError("classifier should be skipped")
+
+    class CapturingExternalLLM:
+        async def generate_response(self, request, provider=None, api_key=None):
+            self.request = request
+            self.provider = provider
+            self.api_key = api_key
+            from app.schemas.chat import ExternalLLMResponse
+
+            return ExternalLLMResponse(
+                text="forced external answer",
+                model_used=request.model,
+                prompt_tokens=5,
+                completion_tokens=6,
+                latency_ms=10.0,
+            )
+
+    external = CapturingExternalLLM()
+
+    monkeypatch.setattr(openai_compat, "_enricher", StubEnricher())
+    monkeypatch.setattr(openai_compat, "_normalizer", StubNormalizer())
+    monkeypatch.setattr(openai_compat, "_classifier", ExplodingClassifier())
+    monkeypatch.setattr(openai_compat, "_external_llm", external)
+    monkeypatch.setattr(openai_compat, "get_memory_service", lambda namespace: StubMemory())
+    monkeypatch.setattr(openai_compat.request_logger, "log", _noop_log)
+    monkeypatch.setattr(openai_compat.cache_filter, "should_cache", lambda enriched, clean: (False, "test"))
+    monkeypatch.setattr(openai_compat, "USE_CELERY", False)
+    monkeypatch.setattr(
+        openai_compat,
+        "_read_effective_llm_config",
+        lambda org_slug, org_id: openai_compat.EffectiveLlmConfig(
+            external_model="claude-sonnet-4-6",
+            routing_threshold=0.75,
+        ),
+    )
+    monkeypatch.setattr(
+        openai_compat.CredentialService,
+        "get_decrypted_key",
+        lambda self, session, org_id, provider: "sk-ant-live" if provider == "anthropic" else None,
+    )
+
+    from app.middleware.api_key import _KEY_CACHE
+
+    monkeypatch.setattr(_KEY_CACHE, "resolve", lambda token: ("acme", 123))
+
+    client = TestClient(app)
+    response = client.post(
+        "/v1/chat/completions",
+        headers={
+            "Authorization": "Bearer org-key",
+            "X-DejaQ-Routing-Mode": "hard_external",
+        },
+        json={
+            "model": "gpt-4o-mini",
+            "messages": [{"role": "user", "content": "Explain a hard thing."}],
+            "stream": False,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["x-dejaq-model-used"] == "claude-sonnet-4-6"
+    assert external.provider == "anthropic"
+    assert external.api_key == "sk-ant-live"
+    assert external.request.model == "claude-sonnet-4-6"
 
 
 def test_weak_cpu_profile_uses_weak_local_services(monkeypatch):

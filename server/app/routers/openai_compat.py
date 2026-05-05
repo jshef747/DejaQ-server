@@ -9,6 +9,7 @@ from typing import AsyncGenerator
 
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from starlette.concurrency import run_in_threadpool
 
 from app.schemas.openai_compat import (
     OAIChatChunk,
@@ -26,7 +27,7 @@ from app.services.credential_service import CredentialService, SUPPORTED_PROVIDE
 from app.services.llm_providers import LIVE_PROVIDERS
 from app.services.memory_chromaDB import get_memory_service
 from app.services.provider_inference import provider_for_model
-from app.services import cache_filter
+from app.services import cache_filter, llm_config_service
 from app.services.classifier import ClassifierService
 from app.services.service_factory import (
     get_context_adjuster_service,
@@ -35,7 +36,7 @@ from app.services.service_factory import (
     get_normalizer_service,
 )
 from app.tasks.cache_tasks import generalize_and_store_task
-from app.config import USE_CELERY, EXTERNAL_MODEL_NAME
+from app.config import USE_CELERY, EXTERNAL_MODEL_NAME, ROUTING_THRESHOLD
 from app.db.session import get_session
 from app.utils.exceptions import ExternalLLMError
 from app.utils.logger import clear_request_id, content_snippet, set_request_id
@@ -62,6 +63,13 @@ class ModelServices:
     adjuster: object
     enricher: object
 
+
+@dataclass(frozen=True)
+class EffectiveLlmConfig:
+    external_model: str
+    routing_threshold: float
+
+
 # --- Service singletons (shared with main process; each service is safe to instantiate once per router module) ---
 logger.info("Initializing OpenAI-compat services...")
 _normalizer = get_normalizer_service()
@@ -86,6 +94,26 @@ def _request_routing_mode(raw_request: Request) -> str:
     if value in {ROUTING_MODE_AUTO, ROUTING_MODE_EASY_LOCAL, ROUTING_MODE_HARD_EXTERNAL}:
         return value
     return ROUTING_MODE_AUTO
+
+
+def _read_effective_llm_config(org_slug: str, org_id: int | None) -> EffectiveLlmConfig:
+    if org_id is None:
+        return EffectiveLlmConfig(
+            external_model=EXTERNAL_MODEL_NAME,
+            routing_threshold=ROUTING_THRESHOLD,
+        )
+    try:
+        config = llm_config_service.read_for_org(org_slug)
+    except llm_config_service.OrgNotFound:
+        logger.warning("LLM config requested for missing org slug=%s; using defaults", org_slug)
+        return EffectiveLlmConfig(
+            external_model=EXTERNAL_MODEL_NAME,
+            routing_threshold=ROUTING_THRESHOLD,
+        )
+    return EffectiveLlmConfig(
+        external_model=config.external_model,
+        routing_threshold=config.routing_threshold,
+    )
 
 
 def _services_for_model_profile(model_profile: str) -> ModelServices:
@@ -265,6 +293,7 @@ async def chat_completions(
     max_tokens = oai_request.max_tokens or 1024
     model_profile = _request_model_profile(raw_request)
     routing_mode = _request_routing_mode(raw_request)
+    llm_config = await run_in_threadpool(_read_effective_llm_config, org_slug, org_id)
     services = _services_for_model_profile(model_profile)
     try:
         query = content_snippet(user_query)
@@ -382,6 +411,12 @@ async def chat_completions(
             except Exception:
                 logger.exception("Classifier failed")
                 classification = {"complexity": "easy", "score": 0.0, "task_type": "Unknown"}
+            else:
+                score = float(classification.get("score", 0.0))
+                classification = {
+                    **classification,
+                    "complexity": "hard" if score >= llm_config.routing_threshold else "easy",
+                }
 
         complexity = classification["complexity"]
         answer: str = ""
@@ -392,13 +427,13 @@ async def chat_completions(
             with trace.step("generate"):
                 if complexity == "hard":
                     try:
-                        provider = provider_for_model(EXTERNAL_MODEL_NAME)
+                        provider = provider_for_model(llm_config.external_model)
                     except ValueError:
                         return JSONResponse(
                             status_code=422,
                             content={
                                 "detail": (
-                                    f"Configured external model '{EXTERNAL_MODEL_NAME}' "
+                                    f"Configured external model '{llm_config.external_model}' "
                                     "is not mapped to a supported provider."
                                 )
                             },
@@ -436,7 +471,7 @@ async def chat_completions(
                     ext_request = ExternalLLMRequest(
                         query=user_query,
                         history=history,
-                        model=EXTERNAL_MODEL_NAME,
+                        model=llm_config.external_model,
                         max_tokens=max_tokens,
                         system_prompt=system_prompt
                         or "You are a helpful assistant. Answer the user's query concisely and accurately.",
