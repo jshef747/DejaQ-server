@@ -9,7 +9,7 @@ import Button from "@/components/ui/Button";
 import Pill from "@/components/ui/Pill";
 import EmptyState from "@/components/ui/EmptyState";
 import SectionHeader from "@/components/ui/SectionHeader";
-import { generateKey, revokeKey } from "@/app/actions/keys";
+import { deleteRevokedKey, generateKey, revokeKey } from "@/app/actions/keys";
 import type { ApiKeyCreated, ApiKeyItem } from "@/lib/types";
 
 const fmt = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -34,6 +34,10 @@ export default function KeysClient({ orgSlug, keys, error }: Props) {
   const [confirmRevokeId, setConfirmRevokeId] = useState<number | null>(null);
   const [revokeBusy, setRevokeBusy] = useState(false);
   const [revokeErr, setRevokeErr] = useState<string | null>(null);
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteErr, setDeleteErr] = useState<string | null>(null);
 
   async function handleGenerate(force = false) {
     setGenerateBusy(true);
@@ -60,6 +64,16 @@ export default function KeysClient({ orgSlug, keys, error }: Props) {
     router.refresh();
   }
 
+  async function handleDelete(keyId: number) {
+    setDeleteBusy(true);
+    setDeleteErr(null);
+    const res = await deleteRevokedKey(keyId);
+    setDeleteBusy(false);
+    if (!res.ok) { setDeleteErr(res.error); return; }
+    setConfirmDeleteId(null);
+    router.refresh();
+  }
+
   function openGenerate() {
     setGenerateErr(null);
     setGenerateConflict(false);
@@ -80,6 +94,7 @@ export default function KeysClient({ orgSlug, keys, error }: Props) {
   }
 
   const confirmRevokeKey = keys.find((k) => k.id === confirmRevokeId);
+  const confirmDeleteKey = keys.find((k) => k.id === confirmDeleteId);
 
   return (
     <div className="ds-page">
@@ -89,9 +104,9 @@ export default function KeysClient({ orgSlug, keys, error }: Props) {
         action={<Button variant="primary" onClick={openGenerate}>+ Generate key</Button>}
       />
 
-      {(error || revokeErr) && (
+      {(error || revokeErr || deleteErr) && (
         <div className="ds-pill ds-pill-err" style={{ marginBottom: 16, padding: "8px 12px", borderRadius: 5, fontSize: 12 }}>
-          {error ?? revokeErr}
+          {error ?? revokeErr ?? deleteErr}
         </div>
       )}
 
@@ -132,15 +147,27 @@ export default function KeysClient({ orgSlug, keys, error }: Props) {
                       </Pill>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      <Button
-                        variant="ghost-danger"
-                        size="sm"
-                        onClick={() => { setRevokeErr(null); setConfirmRevokeId(key.id); }}
-                        disabled={isRevoked}
-                        aria-label={`Revoke key ${key.token_prefix}`}
-                      >
-                        <Trash2 size={12} />
-                      </Button>
+                      {isRevoked ? (
+                        <Button
+                          variant="ghost-danger"
+                          size="sm"
+                          onClick={() => { setDeleteErr(null); setConfirmDeleteId(key.id); }}
+                          aria-label={`Delete revoked key ${key.token_prefix}`}
+                          title={`Delete revoked key ${key.token_prefix}`}
+                        >
+                          <Trash2 size={12} />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost-danger"
+                          size="sm"
+                          onClick={() => { setRevokeErr(null); setConfirmRevokeId(key.id); }}
+                          aria-label={`Revoke key ${key.token_prefix}`}
+                          title={`Revoke key ${key.token_prefix}`}
+                        >
+                          <Trash2 size={12} />
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -215,6 +242,18 @@ export default function KeysClient({ orgSlug, keys, error }: Props) {
         busy={revokeBusy}
         onCancel={() => setConfirmRevokeId(null)}
         onConfirm={() => confirmRevokeId !== null && handleRevoke(confirmRevokeId)}
+      />
+
+      {/* Delete revoked confirm */}
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="Delete revoked API key"
+        message={`Permanently delete revoked key ${confirmDeleteKey?.token_prefix ?? ""}? This only removes the old dashboard record and cannot be undone.`}
+        confirmLabel="Delete"
+        destructive
+        busy={deleteBusy}
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={() => confirmDeleteId !== null && handleDelete(confirmDeleteId)}
       />
     </div>
   );

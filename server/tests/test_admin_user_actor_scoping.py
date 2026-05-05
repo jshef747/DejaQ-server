@@ -136,6 +136,26 @@ def test_user_actor_revoke_key_allowed_with_membership(seeded_db, scoped_admin_c
     assert resp.status_code == 200
 
 
+def test_user_actor_delete_revoked_key_forbidden_without_membership(seeded_db, scoped_admin_client):
+    org_ref = _make_org_ref(seeded_db["org_id"], "Acme", "acme")
+    member_client, member_headers = scoped_admin_client([org_ref])
+    member_client.delete(f"/admin/v1/keys/{seeded_db['key_id']}", headers=member_headers)
+
+    client, headers = scoped_admin_client([])
+    resp = client.delete(f"/admin/v1/keys/{seeded_db['key_id']}/revoked", headers=headers)
+    assert resp.status_code == 403
+
+
+def test_user_actor_delete_revoked_key_allowed_with_membership(seeded_db, scoped_admin_client):
+    org_ref = _make_org_ref(seeded_db["org_id"], "Acme", "acme")
+    client, headers = scoped_admin_client([org_ref])
+    client.delete(f"/admin/v1/keys/{seeded_db['key_id']}", headers=headers)
+
+    resp = client.delete(f"/admin/v1/keys/{seeded_db['key_id']}/revoked", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json() == {"id": seeded_db["key_id"], "deleted": True}
+
+
 # ── stats routes ──────────────────────────────────────────────────────────────
 
 def test_user_actor_dept_stats_forbidden_without_membership(seeded_db, isolated_stats_db, scoped_admin_client):

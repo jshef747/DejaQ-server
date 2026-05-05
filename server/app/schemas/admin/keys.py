@@ -22,3 +22,8 @@ class KeyRevokeResponse(BaseModel):
     revoked: bool
     already_revoked: bool
     revoked_at: datetime | None
+
+
+class KeyDeleteResponse(BaseModel):
+    id: int
+    deleted: bool

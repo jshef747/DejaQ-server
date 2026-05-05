@@ -150,6 +150,7 @@ def test_sync_persistence_admin_routes_are_sync_handlers():
         "list_keys",
         "generate_key",
         "revoke_key",
+        "delete_revoked_key",
         "org_stats",
         "department_stats",
         "read_llm_config",

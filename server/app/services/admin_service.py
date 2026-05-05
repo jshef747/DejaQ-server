@@ -43,6 +43,12 @@ class KeyForbidden(Exception):
         super().__init__(f"Access denied to key id={key_id}.")
 
 
+class ActiveKeyCannotBeDeleted(Exception):
+    def __init__(self, key_id: int) -> None:
+        self.key_id = key_id
+        super().__init__(f"Key id={key_id} must be revoked before it can be deleted.")
+
+
 class DuplicateSlug(Exception):
     def __init__(self, slug: str) -> None:
         self.slug = slug
@@ -96,6 +102,11 @@ class KeyRevokeResult(BaseModel):
     revoked: bool
     already_revoked: bool
     revoked_at: datetime | None
+
+
+class KeyDeleteResult(BaseModel):
+    id: int
+    deleted: bool
 
 
 _SYSTEM_CTX = ManagementAuthContext.system()
@@ -285,3 +296,22 @@ def revoke_key(
             already_revoked=already_revoked,
             revoked_at=revoked.revoked_at,
         )
+
+
+def delete_revoked_key(
+    key_id: int,
+    ctx: ManagementAuthContext = _SYSTEM_CTX,
+) -> KeyDeleteResult:
+    with get_session() as session:
+        key = session.query(ApiKey).filter_by(id=key_id).first()
+        if key is None:
+            raise KeyNotFound(key_id)
+        org = session.query(Organization).filter_by(id=key.org_id).first()
+        if org and not ctx.has_org_access(org.id):
+            raise KeyForbidden(key_id)
+        if key.revoked_at is None:
+            raise ActiveKeyCannotBeDeleted(key_id)
+        deleted = api_key_repo.delete_revoked_key(session, key_id)
+        if deleted is None:
+            raise KeyNotFound(key_id)
+        return KeyDeleteResult(id=key_id, deleted=True)

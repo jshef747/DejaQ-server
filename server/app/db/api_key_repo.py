@@ -50,3 +50,12 @@ def revoke_key(session: Session, key_id: int) -> ApiKey | None:
     session.flush()
     session.refresh(key)
     return key
+
+
+def delete_revoked_key(session: Session, key_id: int) -> ApiKey | None:
+    key = session.query(ApiKey).filter(ApiKey.id == key_id).first()
+    if key is None or key.revoked_at is None:
+        return None
+    session.delete(key)
+    session.flush()
+    return key

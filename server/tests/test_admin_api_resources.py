@@ -44,6 +44,40 @@ def test_admin_keys_mask_rotate_and_revoke(isolated_org_db, authed_admin_client)
     assert revoked_again.json()["already_revoked"] is True
 
 
+def test_admin_delete_revoked_key_removes_it_from_key_list(isolated_org_db, authed_admin_client):
+    client, headers = authed_admin_client
+    client.post("/admin/v1/orgs", json={"name": "Acme"}, headers=headers)
+
+    created = client.post("/admin/v1/orgs/acme/keys", headers=headers)
+    key_id = created.json()["id"]
+    client.delete(f"/admin/v1/keys/{key_id}", headers=headers)
+
+    deleted = client.delete(f"/admin/v1/keys/{key_id}/revoked", headers=headers)
+    listed = client.get("/admin/v1/orgs/acme/keys", headers=headers)
+
+    assert deleted.status_code == 200
+    assert deleted.json() == {"id": key_id, "deleted": True}
+    assert listed.status_code == 200
+    assert [item["id"] for item in listed.json()] == []
+
+
+def test_admin_delete_revoked_key_rejects_active_and_missing_keys(
+    isolated_org_db,
+    authed_admin_client,
+):
+    client, headers = authed_admin_client
+    client.post("/admin/v1/orgs", json={"name": "Acme"}, headers=headers)
+
+    created = client.post("/admin/v1/orgs/acme/keys", headers=headers)
+
+    active_delete = client.delete(f"/admin/v1/keys/{created.json()['id']}/revoked", headers=headers)
+    missing_delete = client.delete("/admin/v1/keys/999999/revoked", headers=headers)
+
+    assert active_delete.status_code == 409
+    assert active_delete.json()["detail"] == "Key must be revoked before it can be deleted"
+    assert missing_delete.status_code == 404
+
+
 def test_admin_stats_date_filters_and_unknown_org(isolated_org_db, isolated_stats_db, authed_admin_client):
     client, headers = authed_admin_client
     client.post("/admin/v1/orgs", json={"name": "Acme"}, headers=headers)

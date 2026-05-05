@@ -57,6 +57,7 @@ def test_sync_persistence_admin_routes_are_sync_handlers():
         ("GET", "/admin/v1/orgs/{org_slug}/keys"): "list_keys",
         ("POST", "/admin/v1/orgs/{org_slug}/keys"): "generate_key",
         ("DELETE", "/admin/v1/keys/{key_id}"): "revoke_key",
+        ("DELETE", "/admin/v1/keys/{key_id}/revoked"): "delete_revoked_key",
         ("GET", "/admin/v1/stats/orgs"): "org_stats",
         ("GET", "/admin/v1/stats/orgs/{org_slug}/departments"): "department_stats",
         ("GET", "/admin/v1/orgs/{org_slug}/llm-config"): "read_llm_config",

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { apiFetch } from "@/lib/api";
-import type { ApiKeyCreated, ApiKeyItem } from "@/lib/types";
+import type { ApiKeyCreated, ApiKeyDeleted, ApiKeyItem } from "@/lib/types";
 import { responseErrorMessage } from "./errors";
 
 export async function listKeys(orgSlug: string): Promise<ApiKeyItem[]> {
@@ -52,4 +52,23 @@ export async function revokeKey(
 
   revalidatePath("/dashboard/keys");
   return { ok: true };
+}
+
+export async function deleteRevokedKey(
+  keyId: number,
+): Promise<{ ok: true; deleted: ApiKeyDeleted } | { ok: false; error: string }> {
+  let res: Response;
+  try {
+    res = await apiFetch(`/admin/v1/keys/${keyId}/revoked`, { method: "DELETE" });
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+
+  if (!res.ok) {
+    return { ok: false, error: await responseErrorMessage(res, `Delete failed (${res.status})`) };
+  }
+
+  const deleted = (await res.json()) as ApiKeyDeleted;
+  revalidatePath("/dashboard/keys");
+  return { ok: true, deleted };
 }

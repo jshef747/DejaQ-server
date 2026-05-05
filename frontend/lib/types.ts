@@ -68,6 +68,11 @@ export type ApiKeyRevoked = {
   revoked_at: string | null;
 };
 
+export type ApiKeyDeleted = {
+  id: number;
+  deleted: boolean;
+};
+
 export type Provider = "google" | "openai" | "anthropic";
 
 export const LIVE_PROVIDERS: Provider[] = ["google", "openai", "anthropic"];
