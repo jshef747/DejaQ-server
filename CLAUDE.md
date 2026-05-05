@@ -26,8 +26,12 @@ uv sync
 
 ### Run
 ```bash
-# Preferred: start the full local stack with deployment-mode selection
-./server/scripts/start.sh
+# Preferred: start from the repo root with stack + deployment-mode selection
+./start.sh
+
+# Non-interactive examples:
+./start.sh --stack=server --mode=in-process
+./start.sh --stack=all --mode=in-process
 
 # Terminal 1: Start Redis
 redis-server
@@ -249,10 +253,10 @@ All three modes require Python dependencies installed with `uv sync` and ChromaD
 Use the combined startup script from the repo root:
 
 ```bash
-./server/scripts/start.sh
+./start.sh
 ```
 
-The script prompts for a mode by default. Automation can pass `--mode=in-process`, `--mode=self-hosted`, or `--mode=cloud`; self-hosted and cloud also accept `--ollama-url=<url>` or `DEJAQ_OLLAMA_URL`.
+The script prompts for a stack (`server` or `all`) and deployment mode by default. Automation can pass `--stack=server`, `--stack=all`, `--mode=in-process`, `--mode=self-hosted`, or `--mode=cloud`; self-hosted and cloud also accept `--ollama-url=<url>` or `DEJAQ_OLLAMA_URL`.
 
 ### in-process (development)
 

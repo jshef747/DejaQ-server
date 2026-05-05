@@ -102,6 +102,13 @@ npm run dev
 # Running at http://localhost:3000
 ```
 
+**Terminal 5 — Chat app**
+```bash
+cd chat
+npm run dev
+# Running at http://localhost:4000
+```
+
 > **No Redis?** Skip terminals 1 and 3 and set `DEJAQ_USE_CELERY=false` in terminal 2.
 
 ---
@@ -111,12 +118,12 @@ npm run dev
 | Surface | URL |
 |---------|-----|
 | Dashboard (login required) | http://localhost:3000 |
-| Chat UI | http://localhost:3000/chat |
+| Chat UI | http://localhost:4000 |
 | API health check | http://127.0.0.1:8000/health |
 
 ### Chat UI quick start
 
-1. Go to **http://localhost:3000/chat**
+1. Go to **http://localhost:4000**
 2. Click **Settings** and paste your DejaQ org API key
 3. Optionally enter a department slug
 4. Start chatting — easy questions route to the local model, hard ones go to your configured external provider, and repeated questions are answered instantly from the semantic cache
@@ -126,7 +133,8 @@ npm run dev
 ## Shortcut: combined startup script
 
 ```bash
-./server/scripts/start.sh
+./start.sh --stack=server
+./start.sh --stack=all
 ```
 
-The script prompts for a deployment mode (`in-process`, `self-hosted`, or `cloud`) and starts all services.
+The script prompts for a stack (`server` or `all`) and deployment mode (`in-process`, `self-hosted`, or `cloud`).

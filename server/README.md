@@ -42,9 +42,9 @@ DEJAQ_USE_CELERY=false uv run uvicorn app.main:app --reload
 The startup helper can write deployment-mode env choices:
 
 ```bash
-./scripts/start.sh --mode=in-process
-./scripts/start.sh --mode=self-hosted --ollama-url=http://127.0.0.1:11434
-./scripts/start.sh --mode=cloud --ollama-url=https://<ollama-endpoint>
+../start.sh --stack=server --mode=in-process
+../start.sh --stack=server --mode=self-hosted --ollama-url=http://127.0.0.1:11434
+../start.sh --stack=server --mode=cloud --ollama-url=https://<ollama-endpoint>
 ```
 
 ## API Surfaces

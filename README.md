@@ -52,6 +52,13 @@ For local development without Redis:
 DEJAQ_USE_CELERY=false uv run uvicorn app.main:app --reload
 ```
 
+Or use the root startup script:
+
+```bash
+./start.sh --stack=server --mode=in-process
+./start.sh --stack=all --mode=in-process
+```
+
 ## Frontend
 
 ```bash
@@ -72,7 +79,7 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-Fill `DEJAQ_API_KEY` in `chat/.env.local`. The chat app runs at `http://localhost:3001`, calls its own `/api/*` routes from the browser, and those server routes forward to the backend through `DEJAQ_API_BASE_URL`.
+Fill `DEJAQ_API_KEY` in `chat/.env.local`. The chat app runs at `http://localhost:4000`, calls its own `/api/*` routes from the browser, and those server routes forward to the backend through `DEJAQ_API_BASE_URL`.
 
 ## Main Interfaces
 

@@ -24,7 +24,7 @@ NEXT_PUBLIC_DASHBOARD_URL=http://localhost:3000/dashboard
 npm run dev
 ```
 
-Open `http://localhost:3001`.
+Open `http://localhost:4000`.
 
 ## Verify
 

@@ -1,32 +1,54 @@
 #!/usr/bin/env bash
-# DejaQ — start all services (Mac)
+# DejaQ — start local services from the repository root
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-LOG_DIR="$PROJECT_DIR/.logs"
-VENV="$PROJECT_DIR/.venv"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SERVER_DIR="$ROOT_DIR/server"
+FRONTEND_DIR="$ROOT_DIR/frontend"
+CHAT_DIR="$ROOT_DIR/chat"
+LOG_DIR="$ROOT_DIR/.logs"
+VENV="$SERVER_DIR/.venv"
 mkdir -p "$LOG_DIR"
+touch "$LOG_DIR/redis.log"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 
+STACK_ARG=""
 MODE_ARG=""
 OLLAMA_URL_ARG=""
 OLLAMA_URL_FLAG_SET=false
 DRY_RUN=false
+ENV_STACK="${DEJAQ_STACK:-}"
 ENV_MODE="${DEJAQ_MODE:-}"
 ENV_OLLAMA_URL="${DEJAQ_OLLAMA_URL:-}"
 
 usage() {
-  echo "Usage: $0 [--mode=in-process|self-hosted|cloud] [--ollama-url URL] [--dry-run]"
+  echo "Usage: $0 [--stack=server|all] [--mode=in-process|self-hosted|cloud] [--ollama-url URL] [--dry-run]"
+  echo ""
+  echo "Stacks:"
+  echo "  server   Start backend services only: ChromaDB, Redis, Celery, FastAPI"
+  echo "  all      Start server plus dashboard frontend and chat app"
   echo ""
   echo "Environment:"
-  echo "  DEJAQ_MODE         Non-interactive mode selection"
+  echo "  DEJAQ_STACK        Non-interactive stack selection: server or all"
+  echo "  DEJAQ_MODE         Non-interactive deployment mode selection"
   echo "  DEJAQ_OLLAMA_URL   Required for self-hosted and cloud modes"
 }
 
 for arg in "$@"; do
   case "$arg" in
+    --stack=*)
+      STACK_ARG="${arg#*=}"
+      ;;
+    --stack)
+      echo -e "${RED}Use --stack=<server|all>${NC}"; exit 1
+      ;;
+    --server-only|--only-server)
+      STACK_ARG="server"
+      ;;
+    --all)
+      STACK_ARG="all"
+      ;;
     --mode=*)
       MODE_ARG="${arg#*=}"
       ;;
@@ -55,9 +77,13 @@ for arg in "$@"; do
   esac
 done
 
+if [[ ! -d "$SERVER_DIR" ]]; then
+  echo -e "${RED}Expected server directory at $SERVER_DIR${NC}"; exit 1
+fi
+
 # Verify the project venv exists
 if [[ ! -f "$VENV/bin/python" ]]; then
-  echo -e "${RED}No .venv found at $VENV. Run: uv sync${NC}"; exit 1
+  echo -e "${RED}No .venv found at $VENV. Run: cd server && uv sync${NC}"; exit 1
 fi
 
 # Use project venv executables directly — avoids any venv activated in the parent shell
@@ -67,7 +93,8 @@ CELERY="$VENV/bin/celery"
 CHROMA="$VENV/bin/chroma"
 ALEMBIC="$VENV/bin/alembic"
 
-REDIS_PID=""; CELERY_PID=""; CELERY_BEAT_PID=""; UVICORN_PID=""; CHROMA_PID=""; TAIL_PID=""
+REDIS_PID=""; CELERY_PID=""; CELERY_BEAT_PID=""; UVICORN_PID=""; CHROMA_PID=""
+DASHBOARD_PID=""; CHAT_PID=""; TAIL_PID=""
 
 cleanup() {
   trap - EXIT INT TERM
@@ -78,12 +105,14 @@ cleanup() {
   stop_service() {
     local pid=$1 name=$2
     if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
-      pkill -TERM -P "$pid" 2>/dev/null || true  # kill children first
+      pkill -TERM -P "$pid" 2>/dev/null || true
       kill -TERM "$pid" 2>/dev/null || true
       echo "  $name stopped"
     fi
   }
   [[ -n "$TAIL_PID" ]] && kill "$TAIL_PID" 2>/dev/null || true
+  stop_service "$CHAT_PID"        "Chat app"
+  stop_service "$DASHBOARD_PID"   "Dashboard"
   stop_service "$UVICORN_PID"     "FastAPI"
   stop_service "$CELERY_BEAT_PID" "Celery beat"
   stop_service "$CELERY_PID"      "Celery worker"
@@ -93,7 +122,6 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# Kill any process holding a port before we try to bind it
 free_port() {
   local port=$1
   local pids
@@ -105,22 +133,52 @@ free_port() {
   fi
 }
 
-cd "$PROJECT_DIR"
+load_env_file() {
+  local env_file=$1
+  if [[ -f "$env_file" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$env_file"
+    set +a
+  fi
+}
 
-# Load local env file so uvicorn, celery worker, and beat share the same config
-if [[ -f "$PROJECT_DIR/.env" ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source "$PROJECT_DIR/.env"
-  set +a
-fi
+normalize_stack() {
+  case "$1" in
+    server|backend|api|server-only|only-server)
+      echo "server"
+      ;;
+    all|full|everything)
+      echo "all"
+      ;;
+    *)
+      echo ""
+      ;;
+  esac
+}
 
-if [[ -n "$ENV_MODE" ]]; then
-  DEJAQ_MODE="$ENV_MODE"
-fi
-if [[ -n "$ENV_OLLAMA_URL" ]]; then
-  DEJAQ_OLLAMA_URL="$ENV_OLLAMA_URL"
-fi
+select_stack() {
+  local selected="${STACK_ARG:-${DEJAQ_STACK:-}}"
+  if [[ -n "$selected" ]]; then
+    selected="$(normalize_stack "$selected")"
+    if [[ -z "$selected" ]]; then
+      echo -e "${RED}Invalid stack. Choose server or all.${NC}" >&2
+      exit 1
+    fi
+    echo "$selected"
+    return
+  fi
+
+  echo -e "${CYAN}Select startup stack:${NC}" >&2
+  echo "  1) server  (backend services only)" >&2
+  echo "  2) all     (server + dashboard + chat)" >&2
+  read -r -p "Stack [1-2]: " selected
+  case "$selected" in
+    1|server|backend) echo "server" ;;
+    2|all|full) echo "all" ;;
+    *) echo -e "${RED}Invalid stack selection.${NC}" >&2; exit 1 ;;
+  esac
+}
 
 normalize_mode() {
   case "$1" in
@@ -198,9 +256,62 @@ apply_mode() {
   fi
 }
 
+ensure_node_app_ready() {
+  local dir=$1 name=$2
+  if [[ ! -f "$dir/package.json" ]]; then
+    echo -e "${RED}$name package.json not found at $dir${NC}"; exit 1
+  fi
+  if [[ ! -d "$dir/node_modules" ]]; then
+    echo -e "${RED}$name dependencies missing. Run: cd $dir && npm install${NC}"; exit 1
+  fi
+}
+
+start_dashboard() {
+  echo -e "${CYAN}[6/7] Starting dashboard frontend...${NC}"
+  ensure_node_app_ready "$FRONTEND_DIR" "Dashboard"
+  free_port 3000
+  (cd "$FRONTEND_DIR" && npm run dev) &>"$LOG_DIR/dashboard.log" &
+  DASHBOARD_PID=$!
+  sleep 2
+  if ! kill -0 "$DASHBOARD_PID" 2>/dev/null; then
+    echo -e "${RED}Dashboard failed to start. Check $LOG_DIR/dashboard.log${NC}"; exit 1
+  fi
+  echo -e "  ${GREEN}Dashboard running (PID $DASHBOARD_PID)${NC}"
+}
+
+start_chat() {
+  echo -e "${CYAN}[7/7] Starting chat app...${NC}"
+  ensure_node_app_ready "$CHAT_DIR" "Chat app"
+  free_port 4000
+  (cd "$CHAT_DIR" && npm run dev) &>"$LOG_DIR/chat.log" &
+  CHAT_PID=$!
+  sleep 2
+  if ! kill -0 "$CHAT_PID" 2>/dev/null; then
+    echo -e "${RED}Chat app failed to start. Check $LOG_DIR/chat.log${NC}"; exit 1
+  fi
+  echo -e "  ${GREEN}Chat app running (PID $CHAT_PID)${NC}"
+}
+
+cd "$SERVER_DIR"
+
+# Load backend env file so uvicorn, celery worker, and beat share the same config
+load_env_file "$SERVER_DIR/.env"
+
+if [[ -n "$ENV_STACK" ]]; then
+  DEJAQ_STACK="$ENV_STACK"
+fi
+if [[ -n "$ENV_MODE" ]]; then
+  DEJAQ_MODE="$ENV_MODE"
+fi
+if [[ -n "$ENV_OLLAMA_URL" ]]; then
+  DEJAQ_OLLAMA_URL="$ENV_OLLAMA_URL"
+fi
+
+STACK="$(select_stack)"
 MODE="$(select_mode)"
 apply_mode "$MODE"
 
+echo -e "${CYAN}Startup stack: ${STACK}${NC}"
 echo -e "${CYAN}Deployment mode: ${MODE}${NC}"
 echo -e "  DEJAQ_ENRICHER_BACKEND=${DEJAQ_ENRICHER_BACKEND}"
 echo -e "  DEJAQ_NORMALIZER_BACKEND=${DEJAQ_NORMALIZER_BACKEND}"
@@ -224,7 +335,7 @@ echo -e "  ${GREEN}Database schema is up to date${NC}"
 # ── 1. ChromaDB ─────────────────────────────────────────────────────────────
 echo -e "${CYAN}[1/5] Starting ChromaDB server...${NC}"
 free_port 8001
-"$CHROMA" run --path "$PROJECT_DIR/chroma_data" --host 127.0.0.1 --port 8001 \
+"$CHROMA" run --path "$SERVER_DIR/chroma_data" --host 127.0.0.1 --port 8001 \
   &>"$LOG_DIR/chroma.log" &
 CHROMA_PID=$!
 sleep 2
@@ -285,18 +396,33 @@ if ! kill -0 "$UVICORN_PID" 2>/dev/null; then
 fi
 echo -e "  ${GREEN}FastAPI running (PID $UVICORN_PID)${NC}"
 
-# ── Ready ───────────────────────────────────────────────────────────────────
+if [[ "$STACK" == "all" ]]; then
+  start_dashboard
+  start_chat
+fi
+
+TAIL_LOGS=("$LOG_DIR/redis.log" "$LOG_DIR/celery.log" "$LOG_DIR/celery_beat.log" "$LOG_DIR/uvicorn.log")
+
 echo ""
-echo -e "${GREEN}✓ All services running${NC}"
-echo -e "  API:         http://127.0.0.1:8000"
-echo -e "  ChromaDB:    http://127.0.0.1:8001"
-echo -e "  Mode:        $MODE"
-echo -e "  Demo UI:     open openai-compat-demo.html in browser"
-echo -e "  Stats TUI:   uv run python -m cli.stats"
-echo -e "  Logs:        $LOG_DIR/"
+if [[ "$STACK" == "all" ]]; then
+  echo -e "${GREEN}✓ Full local stack running${NC}"
+  echo -e "  API:         http://127.0.0.1:8000"
+  echo -e "  ChromaDB:    http://127.0.0.1:8001"
+  echo -e "  Dashboard:   http://localhost:3000/dashboard"
+  echo -e "  Chat:        http://localhost:4000"
+  echo -e "  Mode:        $MODE"
+  echo -e "  Logs:        $LOG_DIR/"
+  TAIL_LOGS+=("$LOG_DIR/dashboard.log" "$LOG_DIR/chat.log")
+else
+  echo -e "${GREEN}✓ Server services running${NC}"
+  echo -e "  API:         http://127.0.0.1:8000"
+  echo -e "  ChromaDB:    http://127.0.0.1:8001"
+  echo -e "  Mode:        $MODE"
+  echo -e "  Stats TUI:   cd server && uv run python -m cli.stats"
+  echo -e "  Logs:        $LOG_DIR/"
+fi
 echo -e "\n${YELLOW}Press Ctrl+C to stop all services.${NC}\n"
 
-# Tail all logs — kill tail pid in cleanup so it doesn't linger
-tail -f "$LOG_DIR/redis.log" "$LOG_DIR/celery.log" "$LOG_DIR/celery_beat.log" "$LOG_DIR/uvicorn.log" &
+tail -f "${TAIL_LOGS[@]}" &
 TAIL_PID=$!
 wait $TAIL_PID
