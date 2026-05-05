@@ -211,6 +211,7 @@ def test_admin_test_provider_uses_stored_org_credential(
     from app.routers.admin import test_provider
     from app.schemas.chat import ExternalLLMResponse
 
+    monkeypatch.setattr(test_provider, "_provider_test_last_success", {})
     key = Fernet.generate_key().decode()
     monkeypatch.setenv("DEJAQ_CREDENTIAL_ENCRYPTION_KEY", key)
     monkeypatch.setattr(config, "CREDENTIAL_ENCRYPTION_KEY", key, raising=False)
@@ -221,10 +222,10 @@ def test_admin_test_provider_uses_stored_org_credential(
         async def generate_response(self, request, provider, api_key):
             calls.append((request, provider, api_key))
             return ExternalLLMResponse(
-                text="provider is reachable",
+                text="OK",
                 model_used=request.model,
                 prompt_tokens=3,
-                completion_tokens=4,
+                completion_tokens=1,
                 latency_ms=12.5,
             )
 
@@ -240,27 +241,78 @@ def test_admin_test_provider_uses_stored_org_credential(
 
     response = client.post(
         "/admin/v1/orgs/acme/test-provider",
-        json={"prompt": "  ping  ", "model": "claude-sonnet-4-6"},
+        json={"prompt": "ignore this user text", "model": "claude-sonnet-4-6"},
         headers=headers,
     )
 
     assert response.status_code == 200
     assert response.json() == {
-        "text": "provider is reachable",
+        "ok": True,
         "model_used": "claude-sonnet-4-6",
         "provider": "anthropic",
         "latency_ms": 12.5,
         "prompt_tokens": 3,
-        "completion_tokens": 4,
+        "completion_tokens": 1,
     }
     assert len(calls) == 1
     request, provider, api_key = calls[0]
-    assert request.query == "ping"
+    assert request.query == "Reply with exactly: OK"
     assert request.model == "claude-sonnet-4-6"
-    assert request.max_tokens == 256
+    assert request.max_tokens == 8
     assert request.temperature == 0.0
     assert provider == "anthropic"
     assert api_key == "sk-ant-live"
+
+
+def test_admin_test_provider_rate_limits_successful_checks(
+    isolated_org_db,
+    authed_admin_client,
+    monkeypatch,
+):
+    from cryptography.fernet import Fernet
+    import app.config as config
+    from app.routers.admin import test_provider
+    from app.schemas.chat import ExternalLLMResponse
+
+    monkeypatch.setattr(test_provider, "_provider_test_last_success", {})
+    key = Fernet.generate_key().decode()
+    monkeypatch.setenv("DEJAQ_CREDENTIAL_ENCRYPTION_KEY", key)
+    monkeypatch.setattr(config, "CREDENTIAL_ENCRYPTION_KEY", key, raising=False)
+
+    class StubExternalLLM:
+        async def generate_response(self, request, provider, api_key):
+            return ExternalLLMResponse(
+                text="OK",
+                model_used=request.model,
+                prompt_tokens=3,
+                completion_tokens=1,
+                latency_ms=12.5,
+            )
+
+    monkeypatch.setattr(test_provider, "_external_llm", StubExternalLLM())
+
+    client, headers = authed_admin_client
+    client.post("/admin/v1/orgs", json={"name": "Acme"}, headers=headers)
+    client.put(
+        "/admin/v1/orgs/acme/credentials/google",
+        json={"api_key": "AIza-live"},
+        headers=headers,
+    )
+
+    first = client.post(
+        "/admin/v1/orgs/acme/test-provider",
+        json={"model": "gemini-2.5-flash"},
+        headers=headers,
+    )
+    second = client.post(
+        "/admin/v1/orgs/acme/test-provider",
+        json={"model": "gemini-2.5-flash"},
+        headers=headers,
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert "wait" in second.json()["detail"].lower()
 
 
 def test_admin_test_provider_missing_credential_returns_402(
@@ -280,7 +332,7 @@ def test_admin_test_provider_missing_credential_returns_402(
 
     response = client.post(
         "/admin/v1/orgs/acme/test-provider",
-        json={"prompt": "ping", "model": "gpt-5.4-mini"},
+        json={"model": "gpt-5.4-mini"},
         headers=headers,
     )
 
@@ -294,7 +346,7 @@ def test_admin_test_provider_unmapped_model_returns_422(isolated_org_db, authed_
 
     response = client.post(
         "/admin/v1/orgs/acme/test-provider",
-        json={"prompt": "ping", "model": "unknown-model"},
+        json={"model": "unknown-model"},
         headers=headers,
     )
 
@@ -312,6 +364,7 @@ def test_admin_test_provider_maps_provider_errors(
     from app.routers.admin import test_provider
     from app.utils.exceptions import ExternalLLMAuthError, ExternalLLMError, ExternalLLMTimeoutError
 
+    monkeypatch.setattr(test_provider, "_provider_test_last_success", {})
     key = Fernet.generate_key().decode()
     monkeypatch.setenv("DEJAQ_CREDENTIAL_ENCRYPTION_KEY", key)
     monkeypatch.setattr(config, "CREDENTIAL_ENCRYPTION_KEY", key, raising=False)
@@ -339,19 +392,19 @@ def test_admin_test_provider_maps_provider_errors(
 
     auth = client.post(
         "/admin/v1/orgs/acme/test-provider",
-        json={"prompt": "ping", "model": "gemini-2.5-flash"},
+        json={"model": "gemini-2.5-flash"},
         headers=headers,
     )
     stub.mode = "timeout"
     timeout = client.post(
         "/admin/v1/orgs/acme/test-provider",
-        json={"prompt": "ping", "model": "gemini-2.5-flash"},
+        json={"model": "gemini-2.5-flash"},
         headers=headers,
     )
     stub.mode = "generic"
     generic = client.post(
         "/admin/v1/orgs/acme/test-provider",
-        json={"prompt": "ping", "model": "gemini-2.5-flash"},
+        json={"model": "gemini-2.5-flash"},
         headers=headers,
     )
 

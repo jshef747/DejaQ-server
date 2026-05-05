@@ -68,7 +68,6 @@ export default function SettingsClient({
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [saveStatus, setSaveStatus] = useState<Status>({ kind: "idle", text: "" });
 
-  const [prompt, setPrompt] = useState("");
   const [testBusy, setTestBusy] = useState(false);
   const [testResult, setTestResult] = useState<TestResult>(null);
 
@@ -93,7 +92,7 @@ export default function SettingsClient({
   }, [externalModel, provider]);
 
   const hasUnsavedKey = apiKey.trim().length > 0;
-  const canTest = prompt.trim().length > 0 && !!currentCredential && !hasUnsavedKey && !testBusy;
+  const canTest = !!currentCredential && !hasUnsavedKey && !testBusy;
   const testHint = hasUnsavedKey
     ? "Save the API key first to enable Test."
     : currentCredential
@@ -191,11 +190,9 @@ export default function SettingsClient({
   }
 
   async function handleTest() {
-    const trimmed = prompt.trim();
-    if (!trimmed) return;
     setTestBusy(true);
     setTestResult(null);
-    const res = await testProvider(orgSlug, trimmed, externalModel);
+    const res = await testProvider(orgSlug, externalModel);
     setTestBusy(false);
     if (!res.ok) {
       setTestResult({ kind: "error", status: res.status, text: testErrorText(res.status, res.error, provider) });
@@ -312,24 +309,16 @@ export default function SettingsClient({
       <section className="ds-settings-section" style={{ marginBottom: 28 }}>
         <div className="ds-settings-header">
           <h2 className="ds-settings-title">Provider Test</h2>
-          <p className="ds-settings-sub">Send one prompt through the selected external model using the saved organization key.</p>
+          <p className="ds-settings-sub">Verify that the saved organization key can reach the selected external model.</p>
         </div>
         <div className="ds-card">
           <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-            <textarea
-              rows={4}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Hello, are you there?"
-              className="ds-input"
-              style={{ lineHeight: 1.5, resize: "vertical", fontFamily: "var(--font-sans)" }}
-            />
             <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
               <div style={{ color: hasUnsavedKey ? "var(--amber)" : "var(--fg-dimmer)", fontSize: 12 }}>
                 {testHint}
               </div>
               <Button variant="primary" onClick={handleTest} disabled={!canTest} loading={testBusy}>
-                Send
+                Run test
               </Button>
             </div>
             {testResult && <ProviderTestResult result={testResult} />}
@@ -399,9 +388,9 @@ function ProviderTestResult({ result }: { result: TestResult }) {
   const tokens = result.data.prompt_tokens + result.data.completion_tokens;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <pre style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--fg)", fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.55, margin: 0, overflow: "auto", padding: 12, whiteSpace: "pre-wrap" }}>
-        {result.data.text}
-      </pre>
+      <div style={{ background: "var(--green-bg)", border: "1px solid var(--green-border)", borderRadius: 6, color: "var(--green)", fontSize: 12, lineHeight: 1.55, padding: 12 }}>
+        Provider connection verified.
+      </div>
       <div style={{ color: "var(--fg-dimmer)", fontFamily: "var(--font-mono)", fontSize: 11 }}>
         model / {result.data.model_used} / {Math.round(result.data.latency_ms)}ms / {tokens} tokens
       </div>
@@ -412,6 +401,7 @@ function ProviderTestResult({ result }: { result: TestResult }) {
 function testErrorText(status: number | undefined, error: string, provider: Provider) {
   if (status === 401) return `API key was rejected by ${PROVIDER_LABEL[provider]}.`;
   if (status === 402) return `No ${PROVIDER_LABEL[provider]} API key configured for this organization.`;
+  if (status === 429) return "Provider test recently succeeded. Please wait before running it again.";
   if (status === 422) return error;
   return error || "Provider test failed.";
 }

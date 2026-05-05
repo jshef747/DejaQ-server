@@ -6,14 +6,13 @@ import type { TestProviderResponse } from "@/lib/types";
 
 export async function testProvider(
   orgSlug: string,
-  prompt: string,
   model: string,
 ): Promise<{ ok: true; data: TestProviderResponse } | { ok: false; error: string; status?: number }> {
   let res: Response;
   try {
     res = await apiFetch(`/admin/v1/orgs/${encodeURIComponent(orgSlug)}/test-provider`, {
       method: "POST",
-      body: JSON.stringify({ prompt, model }),
+      body: JSON.stringify({ model }),
     });
   } catch (e) {
     return { ok: false, error: (e as Error).message };

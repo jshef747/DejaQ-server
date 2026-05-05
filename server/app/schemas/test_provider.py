@@ -2,10 +2,9 @@ from pydantic import BaseModel, field_validator
 
 
 class TestProviderRequest(BaseModel):
-    prompt: str
     model: str
 
-    @field_validator("prompt", "model")
+    @field_validator("model")
     @classmethod
     def _strip_non_empty(cls, value: str) -> str:
         stripped = value.strip()
@@ -15,7 +14,7 @@ class TestProviderRequest(BaseModel):
 
 
 class TestProviderResponse(BaseModel):
-    text: str
+    ok: bool
     model_used: str
     provider: str
     latency_ms: float

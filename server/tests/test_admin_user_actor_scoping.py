@@ -240,7 +240,7 @@ def test_user_actor_test_provider_forbidden_without_membership(seeded_db, scoped
     client, headers = scoped_admin_client([])
     resp = client.post(
         "/admin/v1/orgs/acme/test-provider",
-        json={"prompt": "ping", "model": "gemini-2.5-flash"},
+        json={"model": "gemini-2.5-flash"},
         headers=headers,
     )
     assert resp.status_code == 403

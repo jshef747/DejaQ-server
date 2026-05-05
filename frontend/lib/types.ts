@@ -101,7 +101,7 @@ export type CredentialItem = {
 };
 
 export type TestProviderResponse = {
-  text: string;
+  ok: boolean;
   model_used: string;
   provider: string;
   latency_ms: number;
