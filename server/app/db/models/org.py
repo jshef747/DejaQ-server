@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -21,4 +21,18 @@ class Organization(Base):
     )
     api_keys: Mapped[list["ApiKey"]] = relationship(  # noqa: F821
         "ApiKey", back_populates="organization", cascade="all, delete-orphan"
+    )
+    llm_config: Mapped["OrgLlmConfig | None"] = relationship(  # noqa: F821
+        "OrgLlmConfig",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+    provider_credentials: Mapped[list["OrgProviderCredentials"]] = relationship(  # noqa: F821
+        "OrgProviderCredentials",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
+    memberships: Mapped[list["UserOrgMembership"]] = relationship(  # noqa: F821
+        "UserOrgMembership", back_populates="organization", cascade="all, delete-orphan"
     )

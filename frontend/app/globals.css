@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "./design-system.css";
+
+/* Tailwind v4 color tokens (bridge CSS vars → Tailwind utilities) */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-bg-hover: var(--bg-hover);
+  --color-border: var(--border);
+  --color-border-2: var(--border-2);
+  --color-fg: var(--fg);
+  --color-fg-dim: var(--fg-dim);
+  --color-fg-dimmer: var(--fg-dimmer);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-amber: var(--amber);
+  --color-red: var(--red);
+  --color-green: var(--green);
+  --color-blue: var(--blue);
+  --color-purple: var(--purple);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}

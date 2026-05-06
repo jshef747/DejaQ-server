@@ -110,8 +110,12 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        if request.url.path.startswith("/admin/v1"):
+            return await call_next(request)
+
         api_key: str | None = None
         org_slug = "anonymous"
+        org_id: int | None = None
         cache_namespace = _ANONYMOUS_NAMESPACE
 
         auth_header = request.headers.get("Authorization", "")
@@ -135,5 +139,6 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
 
         request.state.api_key = api_key
         request.state.org_slug = org_slug
+        request.state.org_id = org_id
         request.state.cache_namespace = cache_namespace
         return await call_next(request)

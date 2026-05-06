@@ -1,0 +1,34 @@
+import { NextResponse } from "next/server";
+import {
+  API_TIMEOUT_MS,
+  backendUnavailableError,
+  getDejaQConfig,
+  isNextResponse,
+  parseErrorDetail,
+  proxyError,
+} from "../_lib/dejaq";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  const config = getDejaQConfig();
+  if (isNextResponse(config)) return config;
+
+  let response: Response;
+  try {
+    response = await fetch(`${config.apiBaseUrl}/departments`, {
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    });
+  } catch {
+    return backendUnavailableError();
+  }
+
+  if (!response.ok) {
+    return proxyError(response.status, await parseErrorDetail(response));
+  }
+
+  return NextResponse.json(await response.json());
+}
