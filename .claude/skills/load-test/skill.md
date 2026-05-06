@@ -109,7 +109,17 @@ Shuffle all 100 (so clusters are not contiguous — simulates natural usage).
 ### 7. Write and run the load test script
 
 Write the script to `/tmp/dejaq_load_test.py`. Fill in `PROMPTS`, `API_KEY`, `DEPT_SLUG`,
-`PERSONA`, and `REPORT_PATH` = `"/tmp/dejaq_load_test_report.md"`.
+`PERSONA`, and `REPORT_PATH`.
+
+`REPORT_PATH` must be set to:
+```
+/Users/jonathansheffer/Desktop/Coding/DejaQ/load-test-reports/<dept-slug>.md
+```
+
+Create the directory if it doesn't exist:
+```bash
+mkdir -p /Users/jonathansheffer/Desktop/Coding/DejaQ/load-test-reports
+```
 
 The script must do everything below:
 
@@ -373,7 +383,7 @@ Then run:
 ### 8. Report to user
 
 Show the final summary. Tell the user:
-- The live report is at `/tmp/dejaq_load_test_report.md` (open in any markdown viewer)
+- The live report is at `DejaQ/load-test-reports/<dept-slug>.md` (open in any markdown viewer)
 - Hit rate across the easy clustered prompts
 - How many hard prompts were routed to Anthropic (difficulty=hard in the table)
 - Any remaining errors

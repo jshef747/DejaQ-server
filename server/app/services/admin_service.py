@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from pydantic import BaseModel
@@ -159,10 +160,13 @@ def delete_org(slug: str, ctx: ManagementAuthContext = _SYSTEM_CTX) -> OrgDelete
         if org is None:
             raise OrgNotFound(slug)
         _check_org_access(ctx, org)
-        departments_removed = len(org.departments)
+        namespaces = [d.cache_namespace for d in org.departments]
+        departments_removed = len(namespaces)
         session.delete(org)
         session.flush()
-        return OrgDeleteResult(deleted=True, departments_removed=departments_removed)
+    for ns in namespaces:
+        _delete_chroma_namespace(ns)
+    return OrgDeleteResult(deleted=True, departments_removed=departments_removed)
 
 
 def list_departments(
@@ -225,7 +229,26 @@ def delete_department(
             deleted = dept_repo.delete_dept(session, org_slug, dept_slug)
         except ValueError as exc:
             raise DeptNotFound(org_slug, dept_slug) from exc
-        return DeptDeleteResult(deleted=True, cache_namespace=deleted.cache_namespace)
+        namespace = deleted.cache_namespace
+    _delete_chroma_namespace(namespace)
+    return DeptDeleteResult(deleted=True, cache_namespace=namespace)
+
+
+def _delete_chroma_namespace(namespace: str) -> None:
+    logger = logging.getLogger("dejaq.admin_service")
+    try:
+        from app.services.memory_chromaDB import _pool
+        import chromadb
+        from app.config import CHROMA_HOST, CHROMA_PORT
+
+        client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+        existing = [c.name for c in client.list_collections()]
+        if namespace in existing:
+            client.delete_collection(namespace)
+            logger.info("Deleted ChromaDB collection '%s'", namespace)
+        _pool.pop(namespace, None)
+    except Exception:
+        logger.warning("Could not delete ChromaDB collection '%s'", namespace, exc_info=True)
 
 
 def list_keys(
