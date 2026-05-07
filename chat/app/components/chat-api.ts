@@ -66,6 +66,7 @@ export async function sendChatMessage(
   deptSlug: string,
   modelProfile: ModelProfile = "default",
   routingMode: RoutingMode = "auto",
+  onDelta?: (chunk: string) => void,
 ): Promise<ChatResult> {
   let response: Response;
   try {
@@ -83,18 +84,62 @@ export async function sendChatMessage(
     return { kind: "error", status: response.status, message: userFacingError(response.status, detail) };
   }
 
-  const data = await response.json();
-  const modelUsed = data.modelUsed ?? null;
+  // Read headers before consuming the body.
+  const modelUsed = response.headers.get("x-dejaq-model-used") ?? null;
+  const responseId = response.headers.get("x-dejaq-response-id") ?? null;
+  const conversationId = response.headers.get("x-dejaq-conversation-id") ?? null;
+  const promptDifficulty = response.headers.get("x-dejaq-prompt-difficulty") ?? null;
+  const latencyMs = Number(response.headers.get("x-dejaq-latency-ms") ?? "0");
+
+  // Parse SSE stream.
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let text = "";
+
+  outer: while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    // SSE events are separated by double newline.
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop()!; // last incomplete chunk stays in buffer
+
+    for (const part of parts) {
+      for (const line of part.split("\n")) {
+        if (!line.startsWith("data:")) continue;
+        const raw = line.slice(5).trim();
+        if (raw === "[DONE]") break outer;
+        try {
+          const chunk = JSON.parse(raw);
+          const delta: string = chunk?.choices?.[0]?.delta?.content ?? "";
+          if (delta) {
+            text += delta;
+            onDelta?.(delta);
+          }
+        } catch {
+          // malformed chunk — skip
+        }
+      }
+    }
+  }
+
+  // Approximate token counts using the same formula the backend uses.
+  const promptWords = messages.reduce((n, m) => n + m.content.split(/\s+/).length, 0);
+  const promptTokens = Math.round(promptWords * 1.3);
+  const completionTokens = Math.round(text.split(/\s+/).length * 1.3);
+
   return {
     kind: "success",
-    text: data.text ?? "",
+    text,
     modelUsed,
-    responseId: data.responseId ?? null,
-    conversationId: data.conversationId ?? null,
-    promptDifficulty: data.promptDifficulty ?? null,
-    promptTokens: data.promptTokens ?? 0,
-    completionTokens: data.completionTokens ?? 0,
-    latencyMs: data.latencyMs ?? 0,
+    responseId,
+    conversationId,
+    promptDifficulty,
+    promptTokens,
+    completionTokens,
+    latencyMs,
     cacheHit: modelUsed === "cache",
   };
 }

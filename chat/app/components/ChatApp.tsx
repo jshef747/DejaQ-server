@@ -514,42 +514,70 @@ export default function ChatApp() {
     setInput("");
     setIsLoading(true);
 
+    // Pre-allocate the assistant message so we can append deltas in-place.
+    const assistantId = newId();
+    const assistantPlaceholder: AppMessage = {
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      ts: Date.now(),
+    };
+
     // Send the full conversation history so the model has context.
     const history = withUserMsg.map((m) => ({ role: m.role, content: m.content }));
 
+    let firstDelta = true;
     const result = await sendChatMessage(
       history,
       settings.deptSlug,
       settings.modelProfile,
       settings.routingMode,
+      (delta) => {
+        if (firstDelta) {
+          // Show the placeholder bubble and hide the typing indicator on first byte.
+          firstDelta = false;
+          setIsLoading(false);
+          setMessages((prev) => [...prev, { ...assistantPlaceholder, content: delta }]);
+        } else {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m))
+          );
+        }
+      },
     );
     setIsLoading(false);
 
     if (isApiError(result)) {
       addToast("error", result.message);
-      // Revert the optimistic user message so the user can retry.
+      // Revert optimistic messages so the user can retry.
       setMessages(preSendMessages);
       setInput(text);
       return;
     }
 
-    const assistantMsg: AppMessage = {
-      id: newId(),
-      role: "assistant",
-      content: result.text,
-      ts: Date.now(),
-      modelUsed: result.modelUsed,
-      responseId: result.responseId,
-      promptTokens: result.promptTokens,
-      completionTokens: result.completionTokens,
-      feedbackPhase: "idle",
-      latencyMs: result.latencyMs,
-      cacheHit: result.cacheHit,
-      promptDifficulty: result.promptDifficulty,
-    };
-
-    const finalMessages = [...withUserMsg, assistantMsg];
-    setMessages(finalMessages);
+    // Attach metadata to the assistant message now that the stream is complete.
+    const finalMessages = await new Promise<AppMessage[]>((resolve) => {
+      setMessages((prev) => {
+        const updated = prev.map((m) =>
+          m.id === assistantId
+            ? {
+                ...m,
+                content: result.text || m.content,
+                modelUsed: result.modelUsed,
+                responseId: result.responseId,
+                promptTokens: result.promptTokens,
+                completionTokens: result.completionTokens,
+                feedbackPhase: "idle" as const,
+                latencyMs: result.latencyMs,
+                cacheHit: result.cacheHit,
+                promptDifficulty: result.promptDifficulty,
+              }
+            : m
+        );
+        resolve(updated);
+        return updated;
+      });
+    });
 
     // Assign a conversation ID on the first reply and persist to localStorage.
     const convId = activeConvId ?? `conv_${Date.now()}`;
@@ -661,10 +689,10 @@ export default function ChatApp() {
         <div
           style={{
             alignItems: "center",
-            background: hasDepartment ? "var(--green-bg)" : "var(--red-bg)",
-            border: `1px solid ${hasDepartment ? "rgba(34,197,94,0.3)" : "var(--red-border)"}`,
+            background: hasDepartment ? "var(--green-bg)" : "var(--bg-3)",
+            border: `1px solid ${hasDepartment ? "rgba(34,197,94,0.3)" : "var(--border)"}`,
             borderRadius: "4px",
-            color: hasDepartment ? "var(--green)" : "var(--red)",
+            color: hasDepartment ? "var(--green)" : "var(--fg-dim)",
             display: "flex",
             fontSize: "11px",
             gap: "5px",
@@ -673,7 +701,7 @@ export default function ChatApp() {
         >
           <span
             style={{
-              background: hasDepartment ? "var(--green)" : "var(--red)",
+              background: hasDepartment ? "var(--green)" : "var(--fg-dimmer)",
               borderRadius: "50%",
               display: "inline-block",
               height: "5px",
@@ -870,48 +898,44 @@ function WelcomeScreen({
         <div
           style={{
             alignItems: "center",
-            background: "var(--amber-bg)",
-            border: "1px solid var(--amber-border)",
-            borderRadius: "8px",
-            color: "var(--amber)",
+            borderLeft: "2px solid var(--amber-border)",
+            borderRadius: "3px",
             display: "flex",
-            gap: "10px",
+            gap: "8px",
             maxWidth: "460px",
-            padding: "12px 16px",
+            padding: "8px 12px",
             width: "100%",
           }}
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            style={{ flexShrink: 0 }}
-          >
-            <path d="M8 1L15 14H1L8 1z" />
-            <path d="M8 6v3.5M8 11.5v.5" strokeLinecap="round" />
-          </svg>
-          <span style={{ flex: 1, fontSize: "12px", lineHeight: 1.45 }}>
-            Select a department to start chatting. The API key is loaded from chat/.env.local.
-          </span>
-          <button
-            onClick={onOpenSettings}
+          <span
             style={{
-              background: "var(--amber-bg)",
-              border: "1px solid var(--amber-border)",
-              borderRadius: "4px",
-              color: "var(--amber)",
-              cursor: "pointer",
-              fontSize: "11px",
-              fontWeight: 500,
-              padding: "5px 10px",
-              whiteSpace: "nowrap",
+              background: "var(--amber)",
+              borderRadius: "50%",
+              display: "inline-block",
+              flexShrink: 0,
+              height: "5px",
+              width: "5px",
             }}
-          >
-            Open Settings
-          </button>
+          />
+          <span style={{ color: "var(--fg-dim)", flex: 1, fontSize: "12px", lineHeight: 1.45 }}>
+            Select a department to start chatting.{" "}
+            <button
+              onClick={onOpenSettings}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--accent)",
+                cursor: "pointer",
+                fontSize: "12px",
+                padding: 0,
+                textDecoration: "underline",
+                textDecorationColor: "var(--accent-border)",
+                textUnderlineOffset: "2px",
+              }}
+            >
+              Open settings
+            </button>
+          </span>
         </div>
       )}
 

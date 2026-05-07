@@ -103,7 +103,7 @@ export default function MessageInput({ value, onChange, onSend, disabled }: Prop
       </div>
       <p
         style={{
-          color: "var(--fg-dimmer)",
+          color: "var(--fg-dim)",
           fontSize: "11px",
           margin: "6px 2px 0",
           textAlign: "center",

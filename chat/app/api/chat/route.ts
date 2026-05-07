@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import {
   API_TIMEOUT_MS,
   backendUnavailableError,
@@ -12,6 +12,16 @@ import {
 } from "../_lib/dejaq";
 
 export const dynamic = "force-dynamic";
+
+const SSE_HEADERS_TO_FORWARD = [
+  "x-dejaq-model-used",
+  "x-dejaq-response-id",
+  "x-dejaq-conversation-id",
+  "x-dejaq-prompt-difficulty",
+  "x-dejaq-prompt-difficulty-score",
+  "x-dejaq-cache-distance",
+  "x-dejaq-cache-matched-query",
+];
 
 export async function POST(request: NextRequest) {
   const config = getDejaQConfig();
@@ -32,31 +42,30 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: "default",
         messages: body.messages,
-        stream: false,
+        stream: true,
       }),
       signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
   } catch {
     return backendUnavailableError();
   }
-  const latencyMs = Date.now() - fetchStart;
 
   if (!response.ok) {
     return proxyError(response.status, await parseErrorDetail(response));
   }
 
-  const data = await response.json();
-  const choice = data.choices?.[0];
-  const usage = data.usage ?? {};
+  // Forward SSE headers from the upstream response plus our own latency measurement.
+  const outHeaders: Record<string, string> = {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+    "x-dejaq-latency-ms": String(Date.now() - fetchStart),
+  };
+  for (const h of SSE_HEADERS_TO_FORWARD) {
+    const v = response.headers.get(h);
+    if (v !== null) outHeaders[h] = v;
+  }
 
-  return NextResponse.json({
-    text: choice?.message?.content ?? "",
-    modelUsed: response.headers.get("x-dejaq-model-used"),
-    responseId: response.headers.get("x-dejaq-response-id"),
-    conversationId: response.headers.get("x-dejaq-conversation-id"),
-    promptDifficulty: response.headers.get("x-dejaq-prompt-difficulty"),
-    promptTokens: usage.prompt_tokens ?? 0,
-    completionTokens: usage.completion_tokens ?? 0,
-    latencyMs,
-  });
+  return new Response(response.body, { status: 200, headers: outHeaders });
 }

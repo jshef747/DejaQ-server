@@ -21,7 +21,7 @@ export default function ConversationSidebar({
     <aside
       style={{
         background: "#161616",
-        borderRight: "1px solid var(--border)",
+        borderRight: "1px solid var(--border-2)",
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
@@ -35,10 +35,10 @@ export default function ConversationSidebar({
           onClick={onNew}
           style={{
             alignItems: "center",
-            background: "var(--accent-bg)",
-            border: "1px solid var(--accent-border)",
+            background: "var(--bg-3)",
+            border: "1px solid var(--border)",
             borderRadius: "6px",
-            color: "var(--accent)",
+            color: "var(--fg)",
             cursor: "pointer",
             display: "flex",
             fontSize: "12px",
@@ -46,10 +46,19 @@ export default function ConversationSidebar({
             gap: "6px",
             justifyContent: "center",
             padding: "7px 12px",
+            transition: "background 0.1s, border-color 0.1s",
             width: "100%",
           }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--bg-hover)";
+            e.currentTarget.style.borderColor = "var(--border-2)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--bg-3)";
+            e.currentTarget.style.borderColor = "var(--border)";
+          }}
         >
-          <PlusIcon />
+          <span style={{ color: "var(--accent)" }}><PlusIcon /></span>
           New chat
         </button>
       </div>
