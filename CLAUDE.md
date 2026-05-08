@@ -8,7 +8,7 @@ DejaQ is an LLM cost-optimization platform that reduces API costs through semant
 
 **Cache miss pipeline:** User Query → Context Enricher (Qwen 1.5B + regex gate, makes query standalone) → Normalizer (Qwen 2.5, produces cache key) → Cache Filter (heuristics) → LLM gets **original query + history** (preserves tone) → Response to user → Background: Generalize response (Phi-3.5 Mini) → Store in ChromaDB (if filter passes)
 
-**Cache hit pipeline:** User Query → Context Enricher → Normalizer → ChromaDB returns tone-neutral response (cosine ≤ 0.15) → Context Adjuster adds tone → Response to user
+**Cache hit pipeline:** User Query → Context Enricher → Normalizer → ChromaDB returns tone-neutral response (cosine ≤ 0.15) → **Cache Validator** (Gemma E2B checks cached answer covers the new query; INVALID → treat as miss) → Context Adjuster adds tone → Response to user
 
 ## Commands
 
@@ -117,6 +117,9 @@ When adding a new `DEJAQ_*_BACKEND` variable, update the env examples in all thr
 | `DEJAQ_LOCAL_LLM_MODEL_NAME` | `gemma_local` | Logical model label for local generation traces/stats |
 | `DEJAQ_GENERALIZER_MODEL_NAME` | `phi_generalizer` | Logical model label for background generalizer traces/stats |
 | `DEJAQ_CONTEXT_ADJUSTER_MODEL_NAME` | `qwen_1_5b` | Logical model label for context adjuster traces/stats |
+| `DEJAQ_VALIDATOR_BACKEND` | `in_process` | Backend mode for cache-answer validator on cache hits |
+| `DEJAQ_VALIDATOR_MODEL_NAME` | `gemma_e2b` | Model for cache-answer validator (Gemma 4 E2B recommended) |
+| `DEJAQ_VALIDATOR_ENABLED` | `true` | Set to `false` to disable the validator (kill switch) |
 
 ### Endpoints
 - `GET /health` — health check; also reports Celery worker status
@@ -181,6 +184,7 @@ app/
 │   ├── llm_providers/   # Google, OpenAI, Anthropic provider clients
 │   ├── context_adjuster.py # generalize() strips tone via Phi-3.5 Mini, adjust() adds tone via Qwen 2.5-1.5B
 │   ├── context_enricher.py # Rewrites context-dependent queries into standalone ones (Qwen 1.5B + regex gate, v5)
+│   ├── validator.py     # Cache-answer validator (Gemma E2B): VALID/INVALID judge on cache hits; INVALID → treat as miss
 │   ├── cache_filter.py  # Smart heuristic filter: skips non-cacheable prompts (too short, filler, vague)
 │   ├── classifier.py    # NVIDIA DeBERTa-based prompt complexity classifier (easy/hard routing)
 │   ├── memory_chromaDB.py # ChromaDB semantic cache (HttpClient, cosine ≤ 0.15); score-based eviction
@@ -237,6 +241,7 @@ The org API-key middleware skips `/admin/v1/*` before parsing or logging `Author
 | Context Enricher (v5) | Qwen 2.5-1.5B-Instruct | Q4_K_M | `ModelManager.load_qwen_1_5b()` |
 | Normalizer (cleaning) | Qwen 2.5-0.5B-Instruct | Q4_K_M | `ModelManager.load_qwen()` |
 | Normalizer (opinion rewrite, v22) | Gemma 4 E2B-Instruct | Q4_K_M | `ModelManager.load_gemma_e2b()` |
+| Cache Validator | Gemma 4 E2B-Instruct | Q4_K_M | `ModelManager.load_gemma_e2b()` |
 | Context Adjuster (adjust) | Qwen 2.5-1.5B-Instruct | Q4_K_M | `ModelManager.load_qwen_1_5b()` |
 | Generalizer (strip tone) | Phi-3.5-Mini-Instruct | Q4_K_M | `ModelManager.load_phi()` |
 | Local LLM (generation) | Gemma 4 E4B-Instruct | Q4_K_M | `ModelManager.load_gemma()` |

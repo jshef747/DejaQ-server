@@ -8,6 +8,7 @@ from app.services.context_enricher import ContextEnricherService
 from app.services.llm_router import LLMRouterService
 from app.services.model_backends import InProcessBackend, ModelBackend, OllamaBackend
 from app.services.normalizer import NormalizerService
+from app.services.validator import ValidatorService
 
 logger = logging.getLogger("dejaq.services.service_factory")
 
@@ -111,6 +112,24 @@ def get_context_adjuster_service(
             "Configured service role=generalizer backend=%s model=%s",
             config.GENERALIZER_BACKEND,
             resolved_generalize_model_name,
+        )
+    return service  # type: ignore[return-value]
+
+
+def get_validator_service(model_name: str | None = None) -> ValidatorService:
+    resolved_model_name = model_name or config.VALIDATOR_MODEL_NAME
+    service_key = _service_key("validator", config.VALIDATOR_BACKEND, resolved_model_name)
+    service = _service_pool.get(service_key)
+    if service is None:
+        service = ValidatorService(
+            backend=_get_backend(config.VALIDATOR_BACKEND),
+            model_name=resolved_model_name,
+        )
+        _service_pool[service_key] = service
+        logger.info(
+            "Configured service role=validator backend=%s model=%s",
+            config.VALIDATOR_BACKEND,
+            resolved_model_name,
         )
     return service  # type: ignore[return-value]
 

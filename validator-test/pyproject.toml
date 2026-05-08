@@ -1,0 +1,16 @@
+[project]
+name = "validator-test"
+version = "0.1.0"
+description = "Offline eval harness: can a cached answer answer a new query? Binary VALID/INVALID judge."
+requires-python = ">=3.13"
+dependencies = [
+    "llama-cpp-python>=0.3.20",
+    "huggingface-hub>=0.24.0",
+    "numpy>=1.26.0",
+    "tqdm>=4.65.0",
+    "sentence-transformers>=3.0.0",
+    "chromadb>=0.5.0",
+]
+
+[tool.uv]
+package = false

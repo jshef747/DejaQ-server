@@ -34,9 +34,10 @@ from app.services.service_factory import (
     get_context_enricher_service,
     get_llm_router_service,
     get_normalizer_service,
+    get_validator_service,
 )
 from app.tasks.cache_tasks import generalize_and_store_task
-from app.config import USE_CELERY, EXTERNAL_MODEL_NAME, ROUTING_THRESHOLD
+from app.config import USE_CELERY, EXTERNAL_MODEL_NAME, ROUTING_THRESHOLD, VALIDATOR_ENABLED
 from app.db.session import get_session
 from app.utils.exceptions import ExternalLLMError
 from app.utils.logger import clear_request_id, content_snippet, set_request_id
@@ -62,6 +63,7 @@ class ModelServices:
     llm_router: object
     adjuster: object
     enricher: object
+    validator: object
 
 
 @dataclass(frozen=True)
@@ -76,6 +78,7 @@ _normalizer = get_normalizer_service()
 _llm_router = get_llm_router_service()
 _adjuster = get_context_adjuster_service()
 _enricher = get_context_enricher_service()
+_validator = get_validator_service()
 _classifier = ClassifierService()
 _external_llm = ExternalLLMService()
 # MemoryService is namespace-aware; use get_memory_service(namespace) per-request
@@ -128,12 +131,14 @@ def _services_for_model_profile(model_profile: str) -> ModelServices:
                 generalize_model_name=WEAK_CPU_MODEL_NAME,
             ),
             enricher=get_context_enricher_service(model_name=WEAK_CPU_MODEL_NAME),
+            validator=_validator,
         )
     return ModelServices(
         normalizer=_normalizer,
         llm_router=_llm_router,
         adjuster=_adjuster,
         enricher=_enricher,
+        validator=_validator,
     )
 
 
@@ -407,65 +412,96 @@ async def chat_completions(
         except Exception:
             logger.exception("Cache check failed")
 
+        _validator_verdict: str | None = None
         if cache_lookup.hit:
             cached_answer = cache_lookup.generalized_answer or ""
             _entry_id = cache_lookup.entry_id or ""
             _cache_distance = float(cache_lookup.distance or 0.0)
             _cache_matched_query = _diagnostic_prompt(cache_lookup.matched_query) or ""
-            try:
-                with trace.step("adjust"):
-                    answer = await services.adjuster.adjust(user_query, cached_answer)
-            except Exception:
-                logger.exception("Context adjuster failed")
-                answer = cached_answer
-            model_used = "cache"
 
-            response_id = f"{cache_namespace}:{_entry_id}"
-            _latency = int((time.monotonic() - _t0) * 1000)
-            asyncio.create_task(request_logger.log(org_slug, dept, _latency, True, None, None, response_id))
-            asyncio.create_task(_increment_hit_count_bg(cache_namespace, _entry_id))
-            logger.info(
-                "done cache=hit route=cache model=%s response_id=%s latency=%dms steps=%s%s%s",
-                model_used,
-                response_id,
-                _latency,
-                trace.summary(),
-                _enriched_log_suffix(enriched, enrich_succeeded),
-                _nearest_log_suffix(cache_lookup),
-            )
+            # Validator gate: reject cache hits where the cached answer can't answer the new query
+            _validator_accepted = True
+            if VALIDATOR_ENABLED:
+                try:
+                    with trace.step("validate"):
+                        _validator_accepted, _validator_verdict = await services.validator.validate(
+                            user_query,
+                            cache_lookup.matched_query or "",
+                            cached_answer,
+                        )
+                except Exception:
+                    logger.exception("Validator failed; treating as cache miss (fail-safe)")
+                    _validator_accepted = False
 
-            _hit_headers = {
-                "x-dejaq-model-used": model_used,
-                "x-dejaq-conversation-id": completion_id,
-                "x-dejaq-response-id": response_id,
-                "x-dejaq-cache-distance": f"{_cache_distance:.4f}",
-                "x-dejaq-cache-matched-query": _cache_matched_query,
-            }
-            _hit_headers.update(_nearest_headers(cache_lookup))
+            if not _validator_accepted:
+                # Convert hit to miss, preserving nearest-* for diagnostics
+                cache_lookup = CacheLookupResult(
+                    hit=False,
+                    nearest_distance=_cache_distance,
+                    nearest_prompt=cache_lookup.matched_query,
+                )
+                logger.info(
+                    "validator rejected cache hit distance=%.4f matched_query=%r steps=%s",
+                    _cache_distance,
+                    _cache_matched_query,
+                    trace.summary(),
+                )
+            else:
+                try:
+                    with trace.step("adjust"):
+                        answer = await services.adjuster.adjust(user_query, cached_answer)
+                except Exception:
+                    logger.exception("Context adjuster failed")
+                    answer = cached_answer
+                model_used = "cache"
 
-            if oai_request.stream:
-                words = answer.split(" ")
-                chunks = [w + " " for w in words[:-1]] + [words[-1]] if words else [answer]
-                return StreamingResponse(
-                    _stream_generator(chunks, completion_id, oai_request.model, model_used),
-                    media_type="text/event-stream",
-                    headers=_hit_headers,
+                response_id = f"{cache_namespace}:{_entry_id}"
+                _latency = int((time.monotonic() - _t0) * 1000)
+                asyncio.create_task(request_logger.log(org_slug, dept, _latency, True, None, None, response_id))
+                asyncio.create_task(_increment_hit_count_bg(cache_namespace, _entry_id))
+                logger.info(
+                    "done cache=hit route=cache model=%s response_id=%s latency=%dms steps=%s%s%s",
+                    model_used,
+                    response_id,
+                    _latency,
+                    trace.summary(),
+                    _enriched_log_suffix(enriched, enrich_succeeded),
+                    _nearest_log_suffix(cache_lookup),
                 )
 
-            # Non-streaming cache hit
-            prompt_tokens = int(len(clean_query.split()) * 1.3)
-            response = OAIChatResponse(
-                id=completion_id,
-                created=_now_ts(),
-                model=oai_request.model,
-                choices=[OAIChoice(message=OAIMessageResponse(content=answer))],
-                usage=OAIUsage(
-                    prompt_tokens=prompt_tokens,
-                    completion_tokens=0,
-                    total_tokens=prompt_tokens,
-                ),
-            )
-            return JSONResponse(content=response.model_dump(), headers=_hit_headers)
+                _hit_headers = {
+                    "x-dejaq-model-used": model_used,
+                    "x-dejaq-conversation-id": completion_id,
+                    "x-dejaq-response-id": response_id,
+                    "x-dejaq-cache-distance": f"{_cache_distance:.4f}",
+                    "x-dejaq-cache-matched-query": _cache_matched_query,
+                    "x-dejaq-validator-verdict": "valid",
+                }
+                _hit_headers.update(_nearest_headers(cache_lookup))
+
+                if oai_request.stream:
+                    words = answer.split(" ")
+                    chunks = [w + " " for w in words[:-1]] + [words[-1]] if words else [answer]
+                    return StreamingResponse(
+                        _stream_generator(chunks, completion_id, oai_request.model, model_used),
+                        media_type="text/event-stream",
+                        headers=_hit_headers,
+                    )
+
+                # Non-streaming cache hit
+                prompt_tokens = int(len(clean_query.split()) * 1.3)
+                response = OAIChatResponse(
+                    id=completion_id,
+                    created=_now_ts(),
+                    model=oai_request.model,
+                    choices=[OAIChoice(message=OAIMessageResponse(content=answer))],
+                    usage=OAIUsage(
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=0,
+                        total_tokens=prompt_tokens,
+                    ),
+                )
+                return JSONResponse(content=response.model_dump(), headers=_hit_headers)
 
         # 4. Cache miss — classify then route
         if routing_mode == ROUTING_MODE_EASY_LOCAL:
@@ -639,6 +675,8 @@ async def chat_completions(
         miss_headers.update(_nearest_headers(cache_lookup))
         if miss_response_id:
             miss_headers["x-dejaq-response-id"] = miss_response_id
+        if _validator_verdict is not None:
+            miss_headers["x-dejaq-validator-verdict"] = "invalid"
 
         if oai_request.stream:
             words = answer.split(" ")

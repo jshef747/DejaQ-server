@@ -30,6 +30,7 @@ touch "$LOG_DIR/redis.log"
 STACK_ARG=""
 MODE_ARG=""
 LOG_MODE_ARG=""
+VALIDATOR_ARG=""
 OLLAMA_URL_ARG=""
 OLLAMA_URL_FLAG_SET=false
 DRY_RUN=false
@@ -37,9 +38,10 @@ ENV_STACK="${DEJAQ_STACK:-}"
 ENV_MODE="${DEJAQ_MODE:-}"
 ENV_OLLAMA_URL="${DEJAQ_OLLAMA_URL:-}"
 ENV_START_LOGS="${DEJAQ_START_LOGS:-}"
+ENV_VALIDATOR="${DEJAQ_VALIDATOR_ENABLED:-}"
 
 usage() {
-  echo "Usage: $0 [--stack=server|all] [--mode=in-process|self-hosted|cloud] [--logs=requests|all] [--ollama-url URL] [--dry-run]"
+  echo "Usage: $0 [--stack=server|all] [--mode=in-process|self-hosted|cloud] [--logs=requests|all] [--validator=on|off] [--ollama-url URL] [--dry-run]"
   echo ""
   echo "Stacks:"
   echo "  server   Start backend services only: ChromaDB, Redis, Celery, FastAPI"
@@ -49,11 +51,16 @@ usage() {
   echo "  requests Tail compact request/response logs only"
   echo "  all      Tail all service logs"
   echo ""
+  echo "Validator:"
+  echo "  on       Enable cache-answer validator (default)"
+  echo "  off      Disable validator (kill switch)"
+  echo ""
   echo "Environment:"
-  echo "  DEJAQ_STACK        Non-interactive stack selection: server or all"
-  echo "  DEJAQ_MODE         Non-interactive deployment mode selection"
-  echo "  DEJAQ_START_LOGS   Non-interactive log mode selection: requests or all"
-  echo "  DEJAQ_OLLAMA_URL   Required for self-hosted and cloud modes"
+  echo "  DEJAQ_STACK             Non-interactive stack selection: server or all"
+  echo "  DEJAQ_MODE              Non-interactive deployment mode selection"
+  echo "  DEJAQ_START_LOGS        Non-interactive log mode selection: requests or all"
+  echo "  DEJAQ_VALIDATOR_ENABLED Non-interactive validator toggle: true or false"
+  echo "  DEJAQ_OLLAMA_URL        Required for self-hosted and cloud modes"
 }
 
 for arg in "$@"; do
@@ -81,6 +88,15 @@ for arg in "$@"; do
       ;;
     --logs)
       echo -e "${RED}Use --logs=<requests|all>${NC}"; exit 1
+      ;;
+    --validator=*)
+      VALIDATOR_ARG="${arg#*=}"
+      ;;
+    --validator)
+      echo -e "${RED}Use --validator=<on|off>${NC}"; exit 1
+      ;;
+    --no-validator)
+      VALIDATOR_ARG="off"
       ;;
     --ollama-url=*)
       OLLAMA_URL_ARG="${arg#*=}"
@@ -261,6 +277,28 @@ select_log_mode() {
   esac
 }
 
+select_validator() {
+  local raw="${VALIDATOR_ARG:-${ENV_VALIDATOR:-}}"
+  if [[ -n "$raw" ]]; then
+    case "$raw" in
+      on|true|1|yes|enabled)  echo "on"  ;;
+      off|false|0|no|disabled) echo "off" ;;
+      *) echo -e "${RED}Invalid --validator value. Use on or off.${NC}" >&2; exit 1 ;;
+    esac
+    return
+  fi
+
+  echo -e "${CYAN}Enable cache-answer validator?${NC}" >&2
+  echo "  1) on   (validate cache hits before context-adjust — recommended)" >&2
+  echo "  2) off  (skip validator, legacy behaviour)" >&2
+  read -r -p "Validator [1-2, default 1]: " selected
+  case "${selected:-1}" in
+    1|on|yes|true)  echo "on"  ;;
+    2|off|no|false) echo "off" ;;
+    *) echo -e "${RED}Invalid validator selection.${NC}" >&2; exit 1 ;;
+  esac
+}
+
 select_mode() {
   local selected="${MODE_ARG:-${DEJAQ_MODE:-}}"
   if [[ -n "$selected" ]]; then
@@ -287,8 +325,9 @@ select_mode() {
 }
 
 apply_mode() {
-  local mode="$1"
+  local mode="$1" validator="$2"
   export DEJAQ_MODE="$mode"
+  export DEJAQ_VALIDATOR_ENABLED="$([[ "$validator" == "on" ]] && echo true || echo false)"
 
   if [[ "$mode" == "in-process" ]]; then
     export DEJAQ_ENRICHER_BACKEND=in_process
@@ -296,6 +335,7 @@ apply_mode() {
     export DEJAQ_LOCAL_LLM_BACKEND=in_process
     export DEJAQ_GENERALIZER_BACKEND=in_process
     export DEJAQ_CONTEXT_ADJUSTER_BACKEND=in_process
+    export DEJAQ_VALIDATOR_BACKEND=in_process
     return
   fi
 
@@ -304,6 +344,7 @@ apply_mode() {
   export DEJAQ_LOCAL_LLM_BACKEND=ollama
   export DEJAQ_GENERALIZER_BACKEND=ollama
   export DEJAQ_CONTEXT_ADJUSTER_BACKEND=ollama
+  export DEJAQ_VALIDATOR_BACKEND=ollama
 
   if [[ "$OLLAMA_URL_FLAG_SET" == "true" ]]; then
     export DEJAQ_OLLAMA_URL="$OLLAMA_URL_ARG"
@@ -376,11 +417,13 @@ fi
 
 STACK="$(select_stack)"
 MODE="$(select_mode)"
+VALIDATOR="$(select_validator)"
 LOG_MODE="$(select_log_mode)"
-apply_mode "$MODE"
+apply_mode "$MODE" "$VALIDATOR"
 
 echo -e "${CYAN}Startup stack: ${STACK}${NC}"
 echo -e "${CYAN}Deployment mode: ${MODE}${NC}"
+echo -e "${CYAN}Validator: ${VALIDATOR}${NC}"
 echo -e "${CYAN}Log mode: ${LOG_MODE}${NC}"
 echo -e "${CYAN}Logs: ${LOG_DIR}/${NC}"
 echo -e "  DEJAQ_ENRICHER_BACKEND=${DEJAQ_ENRICHER_BACKEND}"
@@ -388,6 +431,8 @@ echo -e "  DEJAQ_NORMALIZER_BACKEND=${DEJAQ_NORMALIZER_BACKEND}"
 echo -e "  DEJAQ_LOCAL_LLM_BACKEND=${DEJAQ_LOCAL_LLM_BACKEND}"
 echo -e "  DEJAQ_GENERALIZER_BACKEND=${DEJAQ_GENERALIZER_BACKEND}"
 echo -e "  DEJAQ_CONTEXT_ADJUSTER_BACKEND=${DEJAQ_CONTEXT_ADJUSTER_BACKEND}"
+echo -e "  DEJAQ_VALIDATOR_BACKEND=${DEJAQ_VALIDATOR_BACKEND}"
+echo -e "  DEJAQ_VALIDATOR_ENABLED=${DEJAQ_VALIDATOR_ENABLED}"
 if [[ "$MODE" != "in-process" ]]; then
   echo -e "  DEJAQ_OLLAMA_URL=${DEJAQ_OLLAMA_URL}"
 fi
@@ -496,7 +541,7 @@ echo -e "\n${YELLOW}Press Ctrl+C to stop all services.${NC}\n"
 if [[ "$LOG_MODE" == "requests" ]]; then
   (
     tail -n 0 -f "$LOG_DIR/uvicorn.log" \
-      | grep --line-buffered -E "router\.openai_compat.*(start org=|done cache=)" \
+      | grep --line-buffered -E "router\.openai_compat.*(start org=|done cache=|validator rejected)" \
       | format_terminal_logs
   ) &
 else
