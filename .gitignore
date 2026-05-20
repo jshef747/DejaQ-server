@@ -12,6 +12,8 @@ test_reports/
 .claude/scheduled_tasks.lock
 server/celerybeat-schedule
 docs/dejaq-presentation-brief.md
+docs/*.docx
+docs/*.pdf
 
 # Python defaults
 __pycache__/
